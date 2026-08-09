@@ -1,64 +1,76 @@
 :root {
-  --primary-blue: #0f55d8;
-  --primary-hover: #0c43ad;
-  --accent-orange: #ff7a00;
-  --bg-light: #f7f9fc;
-  --white: #ffffff;
-  --text-dark: #0f172a;
-  --text-muted: #64748b;
-  --border-color: #e2e8f0;
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 10px 25px -5px rgba(15, 85, 216, 0.08), 0 8px 16px -6px rgba(0, 0, 0, 0.03);
-  --shadow-lg: 0 20px 40px rgba(15, 23, 42, 0.08);
-  
-  --font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --app-bg: #edf2fb;
+  --text-primary: #111827;
+  --text-secondary: #8d97a6;
+  --brand-blue: #2463ff;
+  --brand-blue-dark: #1448da;
+  --brand-blue-soft: #dce8ff;
+  --brand-orange: #ff8a1f;
+  --success-ring: rgba(54, 111, 255, 0.1);
+  --shadow-frame: 0 28px 64px rgba(31, 52, 97, 0.12);
+  --shadow-panel: 0 16px 34px rgba(15, 23, 42, 0.08);
+  --shadow-soft: 0 14px 30px rgba(32, 72, 167, 0.08);
+  --button-start: #f6a93b;
+  --button-end: #f1841b;
+  --button-shadow: rgba(241, 132, 27, 0.28);
+  --font-sans: "SF Pro Display", "Avenir Next", "Segoe UI", sans-serif;
 }
 
 * {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
 }
 
 body {
+  margin: 0;
   font-family: var(--font-sans);
-  background-color: #eef2f6;
-  color: var(--text-dark);
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
+  background:
+    radial-gradient(circle at top, rgba(114, 154, 255, 0.26), transparent 28%),
+    linear-gradient(180deg, #f7faff 0%, var(--app-bg) 100%);
+  color: var(--text-primary);
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 6px;
+button,
+input {
+  font: inherit;
 }
-::-webkit-scrollbar-track {
+
+button {
+  border: 0;
+}
+
+input {
+  border: 0;
   background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  width: 100%;
 }
 
-/* Core App Container (Full screen) */
+input::placeholder {
+  color: #c2cad5;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid rgba(31, 87, 231, 0.28);
+  outline-offset: 2px;
+}
+
 .app-container {
   position: relative;
   width: 100vw;
   height: 100vh;
   height: 100dvh;
-  background-color: #002d8b; /* Fallback blue */
+  background-color: #002d8b;
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
-/* App Core Layout */
 .app-screen {
   flex: 1;
   position: relative;
@@ -69,27 +81,24 @@ body {
   width: 100%;
 }
 
-/* STEP 1: SPLASH SCREEN */
 .splash-screen {
   position: relative;
   width: 100%;
   height: 100%;
-  color: var(--white);
+  color: #ffffff;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
   text-align: center;
   overflow: hidden;
-  box-sizing: border-box;
   padding: 56px 24px 36px;
+  cursor: pointer;
 }
 
-/* Layer 1: Background Landscape */
 .splash-bg-layer {
   position: absolute;
-  top: 0;
-  left: 0;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -97,7 +106,12 @@ body {
   pointer-events: none;
 }
 
-/* Branding (Top) */
+.splash-screen-interactive-area {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+}
+
 .splash-branding {
   position: relative;
   z-index: 10;
@@ -108,26 +122,17 @@ body {
 }
 
 .brand-logo-img {
-  height: 52px; /* Prominent size matching Reference style */
+  height: 52px;
   width: auto;
   margin-bottom: 6px;
   object-fit: contain;
 }
 
-.logo-subtitle {
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: #ffffff;
-  margin-top: 6px;
-}
-
-/* Layer 3: Cylinder Hero (Middle) - occupies 45-55% height responsively */
 .splash-cylinder-layer {
   position: relative;
   z-index: 5;
   width: 100%;
-  height: 48vh; 
+  height: 48vh;
   max-height: 52vh;
   display: flex;
   justify-content: center;
@@ -143,7 +148,6 @@ body {
   filter: drop-shadow(0 15px 35px rgba(0, 0, 0, 0.45));
 }
 
-/* ContentLayer (Bottom) */
 .splash-content-layer {
   position: relative;
   z-index: 10;
@@ -155,20 +159,20 @@ body {
 }
 
 .splash-tagline h2 {
+  margin: 0 0 8px;
   font-size: 22px;
   font-weight: 700;
-  margin-bottom: 8px;
   letter-spacing: -0.015em;
   color: #ffffff;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.45);
 }
 
 .splash-tagline p {
+  margin: 0;
   font-size: 14px;
   color: rgba(255, 255, 255, 0.85);
   line-height: 1.5;
   max-width: 280px;
-  margin: 0 auto;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 
@@ -186,47 +190,27 @@ body {
 }
 
 .dot.active {
-  background-color: var(--white);
+  background-color: #ffffff;
   width: 18px;
   border-radius: 3px;
 }
 
-/* Click to continue helper on Splash for proto */
-.splash-screen-interactive-area {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  cursor: pointer;
-  z-index: 4;
+.legacy-auth-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+  background: linear-gradient(180deg, #eef3fa 0%, #e6edf7 100%);
 }
 
-/* Custom SVG Wave background for other screens */
-.bottom-wave-decor {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  width: 100%;
-  pointer-events: none;
-  line-height: 0;
-  z-index: 1;
-}
-
-.bottom-wave-decor svg {
-  width: 100%;
-  height: auto;
-}
-
-/* LOGIN SCREEN styling */
 .login-screen {
   background-color: #f8fafc;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  width: 100%;
-  overflow-y: auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: min(100%, 430px);
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.12);
 }
 
 .login-header {
@@ -235,8 +219,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 25vh;
-  min-height: 160px;
+  min-height: 180px;
 }
 
 .login-brand-logo {
@@ -247,15 +230,13 @@ body {
 
 .login-card {
   flex: 1;
-  background-color: var(--white);
-  padding: 32px 24px;
+  background-color: #ffffff;
+  padding: 32px 24px 40px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   border-top-left-radius: 32px;
   border-top-right-radius: 32px;
   margin-top: -24px;
-  z-index: 10;
   box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.03);
 }
 
@@ -267,13 +248,14 @@ body {
 .login-card-header h2 {
   font-size: 24px;
   font-weight: 700;
-  color: var(--text-dark);
-  margin-bottom: 6px;
+  color: #0f172a;
+  margin: 0 0 6px;
 }
 
 .login-card-header p {
+  margin: 0;
   font-size: 14px;
-  color: var(--text-muted);
+  color: #64748b;
 }
 
 .login-form {
@@ -310,19 +292,19 @@ body {
 
 .input-wrapper input {
   width: 100%;
-  padding: 14px 14px 14px 44px;
+  padding: 14px 50px 14px 44px;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   font-size: 14px;
-  color: var(--text-dark);
+  color: #0f172a;
   background-color: #f8fafc;
   outline: none;
   transition: all 0.2s ease;
 }
 
 .input-wrapper input:focus {
-  border-color: var(--primary-blue);
-  background-color: var(--white);
+  border-color: #0f55d8;
+  background-color: #ffffff;
   box-shadow: 0 0 0 3px rgba(15, 85, 216, 0.1);
 }
 
@@ -330,7 +312,6 @@ body {
   position: absolute;
   right: 14px;
   background: none;
-  border: none;
   color: #94a3b8;
   cursor: pointer;
   display: flex;
@@ -339,10 +320,16 @@ body {
   padding: 0;
 }
 
+.password-toggle svg {
+  width: 20px;
+  height: 20px;
+}
+
 .form-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 16px;
   font-size: 13px;
   margin-top: 4px;
 }
@@ -358,24 +345,27 @@ body {
 .remember-me input {
   width: 16px;
   height: 16px;
-  accent-color: var(--primary-blue);
+  accent-color: #0f55d8;
   cursor: pointer;
 }
 
-.forgot-link {
-  color: var(--primary-blue);
-  text-decoration: none;
+.forgot-link,
+.contact-link {
+  background: none;
+  padding: 0;
+  color: #0f55d8;
+  cursor: pointer;
   font-weight: 600;
 }
 
-.forgot-link:hover {
+.forgot-link:hover,
+.contact-link:hover {
   text-decoration: underline;
 }
 
 .btn-primary {
-  background-color: var(--accent-orange);
-  color: var(--white);
-  border: none;
+  background-color: #ff7a00;
+  color: #ffffff;
   border-radius: 12px;
   padding: 15px;
   font-size: 15px;
@@ -397,15 +387,235 @@ body {
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: var(--text-muted);
+  color: #64748b;
 }
 
-.contact-link {
-  color: var(--primary-blue);
-  text-decoration: none;
+.login-footer p {
+  margin: 0;
+}
+
+.password-hints {
+  list-style: disc;
+  margin: -6px 0 0;
+  padding-left: 18px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.app-root {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.app-root--auth {
+  background:
+    radial-gradient(circle at top, rgba(119, 153, 255, 0.18), transparent 24%),
+    linear-gradient(180deg, #f9fbff 0%, #eef3fa 100%);
+}
+
+.phone-shell {
+  width: min(100%, 390px);
+  min-height: min(844px, calc(100vh - 48px));
+  border-radius: 42px;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 10px;
+  box-shadow: var(--shadow-frame);
+  backdrop-filter: blur(16px);
+}
+
+.phone-screen {
+  min-height: min(824px, calc(100vh - 68px));
+  border-radius: 34px;
+  overflow: hidden;
+}
+
+.auth-screen {
+  background: linear-gradient(180deg, #ffffff 0%, #fcfdff 100%);
+}
+
+.screen-body {
+  min-height: calc(min(824px, calc(100vh - 68px)));
+  padding: 52px 26px 28px;
+  display: flex;
+  flex-direction: column;
+}
+
+.screen-body--success {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 34px;
+}
+
+.success-art {
+  width: 220px;
+  height: 220px;
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.success-ring {
+  position: absolute;
+  border-radius: 50%;
+}
+
+.success-ring--outer {
+  inset: 18px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0) 58%, var(--success-ring) 100%);
+}
+
+.success-ring--inner {
+  inset: 42px;
+  border: 1px solid rgba(110, 154, 255, 0.16);
+}
+
+.spark {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #dbe7ff;
+  box-shadow: 0 0 0 10px rgba(231, 239, 255, 0.75);
+}
+
+.spark--top {
+  top: 34px;
+}
+
+.spark--right {
+  right: 34px;
+}
+
+.spark--bottom {
+  bottom: 34px;
+}
+
+.spark--left {
+  left: 34px;
+}
+
+.shield-badge {
+  width: 122px;
+  height: 122px;
+  padding: 10px;
+  border-radius: 34px;
+  background: linear-gradient(180deg, #f6faff 0%, #eaf1ff 100%);
+  box-shadow: var(--shadow-panel);
+}
+
+.shield-badge svg {
+  width: 100%;
+  height: 100%;
+}
+
+.success-copy {
+  max-width: 280px;
+}
+
+.success-copy h2 {
+  margin: 0;
+  font-size: clamp(1.9rem, 6vw, 2.25rem);
+  line-height: 1.06;
   font-weight: 700;
+  letter-spacing: -0.05em;
 }
 
-.contact-link:hover {
-  text-decoration: underline;
+.success-copy p {
+  max-width: 240px;
+  margin: 10px auto 0;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.primary-button {
+  width: 100%;
+  min-height: 58px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, var(--button-start) 0%, var(--button-end) 100%);
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  box-shadow: 0 16px 24px var(--button-shadow);
+  cursor: pointer;
+  margin-top: 12px;
+}
+
+.home-root {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  background:
+    radial-gradient(circle at top left, rgba(164, 191, 255, 0.25), transparent 28%),
+    linear-gradient(180deg, #f7faff 0%, #eef4ff 100%);
+}
+
+.home-reference-frame {
+  width: min(100vw - 24px, calc((100dvh - 24px) * 0.5137));
+  max-width: 412px;
+  aspect-ratio: 824 / 1604;
+  overflow: hidden;
+  background: #f7faff;
+  box-shadow: 0 24px 58px rgba(30, 57, 120, 0.16);
+}
+
+.home-reference-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  transform: translateY(-3.8%);
+}
+
+@media (max-width: 480px) {
+  .app-root {
+    padding: 0;
+  }
+
+  .phone-shell,
+  .phone-screen {
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+    border-radius: 0;
+  }
+
+  .phone-shell {
+    padding: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .screen-body {
+    min-height: 100dvh;
+  }
+
+  .login-screen {
+    width: 100%;
+    box-shadow: none;
+  }
+
+  .home-root {
+    padding: 0;
+  }
+
+  .home-reference-frame {
+    width: 100vw;
+    height: 100dvh;
+    aspect-ratio: auto;
+    box-shadow: none;
+  }
+
+  .home-reference-image {
+    width: 100%;
+    height: auto;
+  }
 }
