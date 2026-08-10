@@ -1,0 +1,16 @@
+services:
+  customer:
+    build: .
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - .:/app
+      - customer_node_modules:/app/node_modules
+    ports:
+      - "5174:5174"
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8001/api}
+    command: sh -c "bun install && bun run dev --host 0.0.0.0 --port 5174"
+
+volumes:
+  customer_node_modules:

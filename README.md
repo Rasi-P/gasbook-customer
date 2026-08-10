@@ -1,32 +1,74 @@
-# React + TypeScript + Vite
+# GasBook Customer PWA
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Customer-facing React + TypeScript + Vite application for GasBook.
 
-Currently, two official plugins are available:
+## Local Run
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+### Bun
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+bun install
+bun run dev --host 0.0.0.0 --port 5174
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+The app runs at:
+
+```text
+http://localhost:5174
+```
+
+Set the backend API in `.env`:
+
+```env
+VITE_API_BASE_URL=http://localhost:8001/api
+```
+
+### Docker
+
+This repo now has its own Docker setup.
+
+Start it from the `gasbook-customer` folder:
+
+```bash
+docker compose up --build
+```
+
+Run in background:
+
+```bash
+docker compose up -d --build
+```
+
+Stop it:
+
+```bash
+docker compose down
+```
+
+Restart it:
+
+```bash
+docker compose restart
+```
+
+The container serves the app at:
+
+```text
+http://localhost:5174
+```
+
+## Environment
+
+Create `.env` in this repo and set:
+
+```env
+VITE_API_BASE_URL=http://localhost:8001/api
+```
+
+If your Django backend runs on another host or port, change that value.
+
+## Files
+
+- `Dockerfile` — Bun-based container for the customer app
+- `docker-compose.yml` — standalone Compose setup for this repo
+- `.dockerignore` — excludes local build and dependency folders from the Docker build context
