@@ -380,6 +380,13 @@ input:focus-visible {
   box-shadow: 0 4px 12px rgba(255, 122, 0, 0.2);
 }
 
+.btn-primary:disabled,
+.primary-button:disabled {
+  cursor: wait;
+  opacity: 0.75;
+  box-shadow: none;
+}
+
 .login-footer {
   margin-top: 32px;
   display: flex;
@@ -401,6 +408,28 @@ input:focus-visible {
   color: #64748b;
   font-size: 13px;
   line-height: 1.6;
+}
+
+.form-feedback,
+.field-feedback {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.form-feedback {
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.form-feedback--error,
+.field-feedback {
+  color: #b42318;
+}
+
+.form-feedback--error {
+  background: #fef3f2;
+  border: 1px solid #fecdca;
 }
 
 .app-root {

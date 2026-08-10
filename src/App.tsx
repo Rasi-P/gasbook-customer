@@ -1,11 +1,27 @@
 import { useEffect, useState } from 'react'
-import type { FormEvent, ReactNode } from 'react'
+import type { ChangeEvent, FormEvent, ReactNode } from 'react'
 import homeUiReference from './assets/home_ui_reference.png'
+import sabcoLogo from './assets/sabco_logo.png'
 import splashBg from './assets/splash_bg.png'
 import splashCylinder from './assets/splash_cylinder.png'
-import sabcoLogo from './assets/sabco_logo.png'
+import {
+  changePassword,
+  getApiErrorDetails,
+  getCurrentUser,
+  hasStoredSession,
+  login,
+  logout,
+  type CurrentUser,
+} from './lib/auth'
 
 type ScreenType = 'splash' | 'login' | 'change-password' | 'password-success' | 'home'
+type NextScreen = Exclude<ScreenType, 'splash'>
+
+type PasswordFieldErrors = {
+  current_password?: string
+  new_password?: string
+  confirm_new_password?: string
+}
 
 function EyeIcon({ open }: { open: boolean }) {
   if (open) {
@@ -89,23 +105,35 @@ function LegacyPasswordInput({
   value,
   placeholder,
   visible,
+  onChange,
   onToggle,
+  autoComplete,
 }: {
   id: string
   value: string
   placeholder: string
   visible: boolean
+  onChange: (event: ChangeEvent<HTMLInputElement>) => void
   onToggle: () => void
+  autoComplete?: string
 }) {
   return (
     <div className="input-wrapper">
       <LockIcon />
-      <input id={id} type={visible ? 'text' : 'password'} placeholder={placeholder} required />
+      <input
+        id={id}
+        type={visible ? 'text' : 'password'}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        autoComplete={autoComplete}
+        required
+      />
       <button
         type="button"
         className="password-toggle"
         onClick={onToggle}
-        aria-label={visible ? `Hide ${value}` : `Show ${value}`}
+        aria-label={visible ? `Hide ${placeholder}` : `Show ${placeholder}`}
       >
         <EyeIcon open={!visible} />
       </button>
@@ -139,40 +167,256 @@ function HomeScreen() {
   )
 }
 
+function resolvePostLoginScreen(user: CurrentUser | null, mustChangePassword: boolean): NextScreen {
+  if (user?.must_change_password || mustChangePassword) {
+    return 'change-password'
+  }
+
+  return 'home'
+}
+
+function buildFallbackUser(username: string, userId: number | undefined, mustChangePassword: boolean): CurrentUser {
+  return {
+    id: userId ?? 0,
+    username,
+    name: username,
+    role: 'customer',
+    redirect: null,
+    must_change_password: mustChangePassword,
+    vehicle_location_name: null,
+  }
+}
+
 function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('splash')
+  const [postSplashScreen, setPostSplashScreen] = useState<NextScreen>('login')
+  const [isSplashReady, setIsSplashReady] = useState(false)
+  const [isBootstrapComplete, setIsBootstrapComplete] = useState(false)
+  const [authUser, setAuthUser] = useState<CurrentUser | null>(null)
+
+  const [loginForm, setLoginForm] = useState({
+    username: '',
+    password: '',
+    rememberMe: false,
+  })
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  })
+
+  const [loginError, setLoginError] = useState<string | null>(null)
+  const [changePasswordError, setChangePasswordError] = useState<string | null>(null)
+  const [passwordFieldErrors, setPasswordFieldErrors] = useState<PasswordFieldErrors>({})
+  const [isLoginSubmitting, setIsLoginSubmitting] = useState(false)
+  const [isPasswordSubmitting, setIsPasswordSubmitting] = useState(false)
   const [showLoginPassword, setShowLoginPassword] = useState(false)
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   useEffect(() => {
-    if (currentScreen !== 'splash') {
-      return undefined
-    }
-
     const timer = window.setTimeout(() => {
-      setCurrentScreen('login')
+      setIsSplashReady(true)
     }, 2300)
 
     return () => window.clearTimeout(timer)
+  }, [])
+
+  useEffect(() => {
+    let isCancelled = false
+
+    const bootstrapSession = async () => {
+      let nextScreen: NextScreen = 'login'
+      let restoredUser: CurrentUser | null = null
+      let restoreError: string | null = null
+
+      if (hasStoredSession()) {
+        try {
+          restoredUser = await getCurrentUser()
+          nextScreen = resolvePostLoginScreen(restoredUser, restoredUser.must_change_password)
+        } catch (error) {
+          const details = getApiErrorDetails(error, 'Unable to restore your session. Please sign in again.')
+          await logout()
+          restoreError =
+            details.status === 401
+              ? 'Your session expired. Please sign in again.'
+              : details.message || 'Unable to restore your session. Please sign in again.'
+        }
+      }
+
+      if (isCancelled) {
+        return
+      }
+
+      setAuthUser(restoredUser)
+      setPostSplashScreen(nextScreen)
+      setLoginError(restoreError)
+      setIsBootstrapComplete(true)
+    }
+
+    void bootstrapSession()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (currentScreen === 'splash' && isSplashReady && isBootstrapComplete) {
+      setCurrentScreen(postSplashScreen)
+    }
+  }, [currentScreen, isBootstrapComplete, isSplashReady, postSplashScreen])
+
+  useEffect(() => {
+    const requiresAuth =
+      currentScreen === 'change-password' || currentScreen === 'password-success' || currentScreen === 'home'
+
+    if (!requiresAuth || hasStoredSession()) {
+      return
+    }
+
+    setAuthUser(null)
+    setCurrentScreen('login')
+    setLoginError('Please sign in to continue.')
   }, [currentScreen])
 
-  const handleLoginSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setCurrentScreen('change-password')
+  const displayName = authUser?.name?.trim() || authUser?.username || loginForm.username.trim() || 'Customer'
+
+  const updateLoginField = (field: 'username' | 'password') => (event: ChangeEvent<HTMLInputElement>) => {
+    setLoginForm((current) => ({
+      ...current,
+      [field]: event.target.value,
+    }))
   }
 
-  const handlePasswordSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const updatePasswordField =
+    (field: 'currentPassword' | 'newPassword' | 'confirmPassword') => (event: ChangeEvent<HTMLInputElement>) => {
+      setPasswordForm((current) => ({
+        ...current,
+        [field]: event.target.value,
+      }))
+      setPasswordFieldErrors((current) => ({
+        ...current,
+        [field === 'currentPassword'
+          ? 'current_password'
+          : field === 'newPassword'
+            ? 'new_password'
+            : 'confirm_new_password']: undefined,
+      }))
+      setChangePasswordError(null)
+    }
+
+  const handleLoginSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    setCurrentScreen('password-success')
+
+    const username = loginForm.username.trim()
+    if (!username || !loginForm.password) {
+      setLoginError('Username and password are required.')
+      return
+    }
+
+    setIsLoginSubmitting(true)
+    setLoginError(null)
+
+    try {
+      const tokenResponse = await login(username, loginForm.password, loginForm.rememberMe)
+
+      let user: CurrentUser
+
+      try {
+        user = await getCurrentUser()
+      } catch (error) {
+        const details = getApiErrorDetails(error, 'Unable to load your account details.')
+        if (details.status === 401) {
+          throw error
+        }
+        user = buildFallbackUser(username, tokenResponse.user_id, tokenResponse.must_change_password)
+      }
+
+      setAuthUser(user)
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      })
+      setPasswordFieldErrors({})
+      setChangePasswordError(null)
+      setLoginForm((current) => ({
+        ...current,
+        password: '',
+      }))
+      setCurrentScreen(resolvePostLoginScreen(user, tokenResponse.must_change_password))
+    } catch (error) {
+      const details = getApiErrorDetails(error, 'Unable to sign in. Please try again.')
+      await logout()
+      setAuthUser(null)
+      setLoginError(details.message)
+    } finally {
+      setIsLoginSubmitting(false)
+    }
+  }
+
+  const handlePasswordSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    setIsPasswordSubmitting(true)
+    setChangePasswordError(null)
+    setPasswordFieldErrors({})
+
+    try {
+      await changePassword({
+        current_password: passwordForm.currentPassword,
+        new_password: passwordForm.newPassword,
+        confirm_new_password: passwordForm.confirmPassword,
+      })
+
+      let nextUser: CurrentUser | null = authUser
+        ? { ...authUser, must_change_password: false }
+        : buildFallbackUser(loginForm.username.trim() || 'customer', undefined, false)
+
+      try {
+        nextUser = await getCurrentUser()
+      } catch (error) {
+        const details = getApiErrorDetails(error, 'Password changed, but account details could not be refreshed.')
+        if (details.status === 401) {
+          throw error
+        }
+      }
+
+      setAuthUser(nextUser)
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      })
+      setCurrentScreen('password-success')
+    } catch (error) {
+      const details = getApiErrorDetails(error, 'Unable to change password. Please try again.')
+
+      if (details.status === 401) {
+        await logout()
+        setAuthUser(null)
+        setCurrentScreen('login')
+        setLoginError('Your session expired. Please sign in again.')
+      } else {
+        setPasswordFieldErrors({
+          current_password: details.fieldErrors.current_password,
+          new_password: details.fieldErrors.new_password,
+          confirm_new_password: details.fieldErrors.confirm_new_password,
+        })
+        setChangePasswordError(details.message)
+      }
+    } finally {
+      setIsPasswordSubmitting(false)
+    }
   }
 
   if (currentScreen === 'splash') {
     return (
       <div className="app-container">
         <div className="app-screen">
-          <div className="splash-screen" onClick={() => setCurrentScreen('login')}>
+          <div className="splash-screen" onClick={() => setIsSplashReady(true)}>
             <img src={splashBg} className="splash-bg-layer" alt="" />
             <div className="splash-screen-interactive-area" />
 
@@ -225,7 +469,15 @@ function App() {
                 <label htmlFor="username">Username</label>
                 <div className="input-wrapper">
                   <UserIcon />
-                  <input id="username" type="text" placeholder="Username" required />
+                  <input
+                    id="username"
+                    type="text"
+                    placeholder="Username"
+                    value={loginForm.username}
+                    onChange={updateLoginField('username')}
+                    autoComplete="username"
+                    required
+                  />
                 </div>
               </div>
 
@@ -233,16 +485,27 @@ function App() {
                 <label htmlFor="login-password">Password</label>
                 <LegacyPasswordInput
                   id="login-password"
-                  value="password"
+                  value={loginForm.password}
                   placeholder="Password"
                   visible={showLoginPassword}
+                  onChange={updateLoginField('password')}
                   onToggle={() => setShowLoginPassword((value) => !value)}
+                  autoComplete="current-password"
                 />
               </div>
 
               <div className="form-actions">
                 <label className="remember-me">
-                  <input type="checkbox" />
+                  <input
+                    type="checkbox"
+                    checked={loginForm.rememberMe}
+                    onChange={(event) =>
+                      setLoginForm((current) => ({
+                        ...current,
+                        rememberMe: event.target.checked,
+                      }))
+                    }
+                  />
                   <span>Remember me</span>
                 </label>
                 <button type="button" className="forgot-link">
@@ -250,8 +513,10 @@ function App() {
                 </button>
               </div>
 
-              <button type="submit" className="btn-primary">
-                LOGIN
+              {loginError ? <p className="form-feedback form-feedback--error">{loginError}</p> : null}
+
+              <button type="submit" className="btn-primary" disabled={isLoginSubmitting}>
+                {isLoginSubmitting ? 'SIGNING IN...' : 'LOGIN'}
               </button>
             </form>
 
@@ -277,7 +542,7 @@ function App() {
 
           <div className="login-card">
             <div className="login-card-header">
-              <h2>Welcome Aleena 👋</h2>
+              <h2>Welcome {displayName} 👋</h2>
               <p>Please change your password to continue</p>
             </div>
 
@@ -286,33 +551,46 @@ function App() {
                 <label htmlFor="current-password">Current Password</label>
                 <LegacyPasswordInput
                   id="current-password"
-                  value="current password"
+                  value={passwordForm.currentPassword}
                   placeholder="Current Password"
                   visible={showCurrentPassword}
+                  onChange={updatePasswordField('currentPassword')}
                   onToggle={() => setShowCurrentPassword((value) => !value)}
+                  autoComplete="current-password"
                 />
+                {passwordFieldErrors.current_password ? (
+                  <p className="field-feedback">{passwordFieldErrors.current_password}</p>
+                ) : null}
               </div>
 
               <div className="form-group">
                 <label htmlFor="new-password">New Password</label>
                 <LegacyPasswordInput
                   id="new-password"
-                  value="new password"
+                  value={passwordForm.newPassword}
                   placeholder="New Password"
                   visible={showNewPassword}
+                  onChange={updatePasswordField('newPassword')}
                   onToggle={() => setShowNewPassword((value) => !value)}
+                  autoComplete="new-password"
                 />
+                {passwordFieldErrors.new_password ? <p className="field-feedback">{passwordFieldErrors.new_password}</p> : null}
               </div>
 
               <div className="form-group">
                 <label htmlFor="confirm-password">Confirm Password</label>
                 <LegacyPasswordInput
                   id="confirm-password"
-                  value="confirm password"
+                  value={passwordForm.confirmPassword}
                   placeholder="Confirm Password"
                   visible={showConfirmPassword}
+                  onChange={updatePasswordField('confirmPassword')}
                   onToggle={() => setShowConfirmPassword((value) => !value)}
+                  autoComplete="new-password"
                 />
+                {passwordFieldErrors.confirm_new_password ? (
+                  <p className="field-feedback">{passwordFieldErrors.confirm_new_password}</p>
+                ) : null}
               </div>
 
               <ul className="password-hints">
@@ -320,8 +598,10 @@ function App() {
                 <li>Include number &amp; symbol</li>
               </ul>
 
-              <button type="submit" className="btn-primary">
-                SAVE PASSWORD
+              {changePasswordError ? <p className="form-feedback form-feedback--error">{changePasswordError}</p> : null}
+
+              <button type="submit" className="btn-primary" disabled={isPasswordSubmitting}>
+                {isPasswordSubmitting ? 'SAVING...' : 'SAVE PASSWORD'}
               </button>
             </form>
           </div>
@@ -351,7 +631,11 @@ function App() {
             <p>Your password has been changed successfully</p>
           </header>
 
-          <button type="button" className="primary-button" onClick={() => setCurrentScreen('home')}>
+          <button
+            type="button"
+            className="primary-button"
+            onClick={() => setCurrentScreen(hasStoredSession() ? 'home' : 'login')}
+          >
             CONTINUE
           </button>
         </div>
