@@ -26,6 +26,19 @@ export interface ChangePasswordPayload {
   confirm_new_password: string
 }
 
+export interface CustomerProfile {
+  id: number
+  user_id: number
+  username: string
+  full_name: string
+  name: string
+  phone: string
+  email: string
+  address: string
+  created_at: string
+  updated_at: string
+}
+
 export class ApiError extends Error {
   status: number
   data: unknown
@@ -315,6 +328,11 @@ export async function login(username: string, password: string, remember: boolea
 
 export async function getCurrentUser(): Promise<CurrentUser> {
   return request<CurrentUser>('/auth/me/', { method: 'GET' })
+}
+
+export async function getCustomerProfile(): Promise<CustomerProfile | null> {
+  const data = await request<CustomerProfile[]>('/customers/', { method: 'GET' })
+  return data[0] ?? null
 }
 
 export async function changePassword(payload: ChangePasswordPayload): Promise<{ detail: string }> {

@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react'
 import type { ChangeEvent, FormEvent, ReactNode } from 'react'
 import {
   changePassword,
+  getCustomerProfile,
   getApiErrorDetails,
   getCurrentUser,
   hasStoredSession,
   login,
   logout,
+  type CustomerProfile,
   type CurrentUser,
 } from './lib/auth'
 import splashBg from './assets/splash_bg.png'
@@ -688,11 +690,13 @@ function CartView({
   onUpdateQuantity,
   onRemoveItem,
   onNavigateToExplore,
+  customerProfile,
 }: {
   cartItems: CartItem[]
   onUpdateQuantity: (id: string, delta: number) => void
   onRemoveItem: (id: string) => void
   onNavigateToExplore: () => void
+  customerProfile: CustomerProfile | null
 }) {
   const subtotal = cartItems.reduce((acc, item) => acc + item.unitPrice * item.quantity, 0)
   const deliveryFee = cartItems.length > 0 ? 40 : 0
@@ -706,6 +710,9 @@ function CartView({
   const handleChangeAddress = () => {
     alert('Opening address management...')
   }
+
+  const deliveryName = customerProfile?.name?.trim() || customerProfile?.full_name?.trim() || 'Customer'
+  const deliveryAddress = customerProfile?.address?.trim() || 'Add your delivery address in GasBook.'
 
   return (
     <div className="cart-scroll-container">
@@ -809,8 +816,8 @@ function CartView({
               </div>
               <div className="address-details">
                 <span className="address-label">Delivery Address</span>
-                <h4 className="address-name">Aleena Jomy</h4>
-                <p className="address-text">Edappally, Kochi, Kerala - 682024</p>
+                <h4 className="address-name">{deliveryName}</h4>
+                <p className="address-text">{deliveryAddress}</p>
               </div>
               <button className="change-address-btn" onClick={handleChangeAddress}>
                 <span>Change</span>
@@ -893,20 +900,46 @@ function CartView({
   )
 }
 
-function HomeView({ onBook }: { onBook: (productName: string) => void }) {
+function getGreetingName(customerProfile: CustomerProfile | null) {
+  return customerProfile?.name?.trim() || customerProfile?.full_name?.trim() || 'Customer'
+}
+
+function getLocationText(customerProfile: CustomerProfile | null) {
+  const address = customerProfile?.address?.trim()
+  if (!address) {
+    return 'Add your address in GasBook'
+  }
+
+  const segments = address
+    .split(',')
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+
+  return segments.slice(0, 2).join(', ') || address
+}
+
+function HomeView({
+  onBook,
+  customerProfile,
+}: {
+  onBook: (productName: string) => void
+  customerProfile: CustomerProfile | null
+}) {
   const [hasActiveOrder] = useState(false)
+  const greetingName = getGreetingName(customerProfile)
+  const locationText = getLocationText(customerProfile)
 
   return (
     <div className="home-scroll-container">
       {/* 1. Header */}
       <div className="home-header">
         <div className="header-left">
-          <h1 className="header-greeting">Good Afternoon, Aleena 👋</h1>
+          <h1 className="header-greeting">Good Afternoon, {greetingName} 👋</h1>
           <div className="header-location">
             <svg className="location-pin-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
             </svg>
-            <span className="location-text">Edappally, Kochi</span>
+            <span className="location-text">{locationText}</span>
           </div>
         </div>
         
@@ -1234,14 +1267,16 @@ interface ProfileUser {
   name: string
   email: string
   phone: string
+  address: string
   memberSince: string
 }
 
 function ProfileView({
   user = {
-    name: 'Aleena Jomy',
-    email: 'aleenajomy4@gmail.com',
-    phone: '+91 85471 39184',
+    name: 'Customer',
+    email: 'Not available',
+    phone: 'Not available',
+    address: 'Not available',
     memberSince: 'May 2025',
   },
   onNavigateToAddresses,
@@ -1315,7 +1350,23 @@ function ProfileView({
 
           <div className="profile-row-divider" />
 
-          {/* Row 3: Member Since */}
+          {/* Row 3: Address */}
+          <div className="profile-row-item">
+            <div className="profile-row-left">
+              <div className="profile-icon-wrap">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+              </div>
+              <span className="profile-row-label">Address</span>
+            </div>
+            <span className="profile-row-val profile-email-val">{user.address}</span>
+          </div>
+
+          <div className="profile-row-divider" />
+
+          {/* Row 4: Member Since */}
           <div className="profile-row-item">
             <div className="profile-row-left">
               <div className="profile-icon-wrap">
@@ -1381,9 +1432,38 @@ function ProfileView({
   )
 }
 
-function HomeScreen({ onLogout }: { onLogout?: () => void }) {
+function formatMemberSince(dateValue: string | undefined) {
+  if (!dateValue) {
+    return 'Not available'
+  }
+
+  const parsed = new Date(dateValue)
+  if (Number.isNaN(parsed.getTime())) {
+    return 'Not available'
+  }
+
+  return parsed.toLocaleDateString('en-IN', {
+    month: 'short',
+    year: 'numeric',
+  })
+}
+
+function HomeScreen({
+  onLogout,
+  customerProfile,
+}: {
+  onLogout?: () => void
+  customerProfile: CustomerProfile | null
+}) {
   const [activeTab, setActiveTab] = useState<'home' | 'explore' | 'orders' | 'cart' | 'profile'>('home')
   const [cartItems, setCartItems] = useState<CartItem[]>([])
+  const profileUser: ProfileUser = {
+    name: customerProfile?.name?.trim() || customerProfile?.full_name?.trim() || 'Customer',
+    email: customerProfile?.email?.trim() || 'Not available',
+    phone: customerProfile?.phone?.trim() || 'Not available',
+    address: customerProfile?.address?.trim() || 'Not available',
+    memberSince: formatMemberSince(customerProfile?.created_at),
+  }
 
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0)
 
@@ -1442,7 +1522,7 @@ function HomeScreen({ onLogout }: { onLogout?: () => void }) {
           />
         )}
         {activeTab === 'home' && (
-          <HomeView onBook={handleBook} />
+          <HomeView onBook={handleBook} customerProfile={customerProfile} />
         )}
         {activeTab === 'orders' && (
           <OrdersView
@@ -1457,10 +1537,12 @@ function HomeScreen({ onLogout }: { onLogout?: () => void }) {
             onUpdateQuantity={handleUpdateQuantity}
             onRemoveItem={handleRemoveItem}
             onNavigateToExplore={() => setActiveTab('explore')}
+            customerProfile={customerProfile}
           />
         )}
         {activeTab === 'profile' && (
           <ProfileView
+            user={profileUser}
             onNavigateToAddresses={() => alert('Opening My Addresses')}
             onLogout={() => {
               if (onLogout) {
@@ -1573,6 +1655,7 @@ function App() {
   const [isSplashReady, setIsSplashReady] = useState(false)
   const [isBootstrapComplete, setIsBootstrapComplete] = useState(false)
   const [authUser, setAuthUser] = useState<CurrentUser | null>(null)
+  const [customerProfile, setCustomerProfile] = useState<CustomerProfile | null>(null)
 
   const [loginForm, setLoginForm] = useState({
     username: '',
@@ -1609,11 +1692,13 @@ function App() {
     const bootstrapSession = async () => {
       let nextScreen: NextScreen = 'login'
       let restoredUser: CurrentUser | null = null
+      let restoredCustomerProfile: CustomerProfile | null = null
       let restoreError: string | null = null
 
       if (hasStoredSession()) {
         try {
           restoredUser = await getCurrentUser()
+          restoredCustomerProfile = await getCustomerProfile()
           nextScreen = resolvePostLoginScreen(restoredUser, restoredUser.must_change_password)
         } catch (error) {
           const details = getApiErrorDetails(error, 'Unable to restore your session. Please sign in again.')
@@ -1630,6 +1715,7 @@ function App() {
       }
 
       setAuthUser(restoredUser)
+      setCustomerProfile(restoredCustomerProfile)
       setPostSplashScreen(nextScreen)
       setLoginError(restoreError)
       setIsBootstrapComplete(true)
@@ -1657,6 +1743,7 @@ function App() {
     }
 
     setAuthUser(null)
+    setCustomerProfile(null)
     setCurrentScreen('login')
     setLoginError('Please sign in to continue.')
   }, [currentScreen])
@@ -1703,9 +1790,11 @@ function App() {
       const tokenResponse = await login(username, loginForm.password, loginForm.rememberMe)
 
       let user: CurrentUser
+      let profile: CustomerProfile | null = null
 
       try {
         user = await getCurrentUser()
+        profile = await getCustomerProfile()
       } catch (error) {
         const details = getApiErrorDetails(error, 'Unable to load your account details.')
         if (details.status === 401) {
@@ -1715,6 +1804,7 @@ function App() {
       }
 
       setAuthUser(user)
+      setCustomerProfile(profile)
       setPasswordForm({
         currentPassword: '',
         newPassword: '',
@@ -1731,6 +1821,7 @@ function App() {
       const details = getApiErrorDetails(error, 'Invalid username or password.')
       await logout()
       setAuthUser(null)
+      setCustomerProfile(null)
       setLoginError(details.message)
     } finally {
       setIsLoginSubmitting(false)
@@ -1754,9 +1845,11 @@ function App() {
       let nextUser: CurrentUser | null = authUser
         ? { ...authUser, must_change_password: false }
         : buildFallbackUser(loginForm.username.trim() || 'customer', undefined, false)
+      let nextCustomerProfile: CustomerProfile | null = customerProfile
 
       try {
         nextUser = await getCurrentUser()
+        nextCustomerProfile = await getCustomerProfile()
       } catch (error) {
         const details = getApiErrorDetails(error, 'Password changed, but account details could not be refreshed.')
         if (details.status === 401) {
@@ -1765,6 +1858,7 @@ function App() {
       }
 
       setAuthUser(nextUser)
+      setCustomerProfile(nextCustomerProfile)
       setPasswordForm({
         currentPassword: '',
         newPassword: '',
@@ -1777,6 +1871,7 @@ function App() {
       if (details.status === 401) {
         await logout()
         setAuthUser(null)
+        setCustomerProfile(null)
         setCurrentScreen('login')
         setLoginError('Your session expired. Please sign in again.')
       } else {
@@ -1795,6 +1890,7 @@ function App() {
   const handleLogout = async () => {
     await logout()
     setAuthUser(null)
+    setCustomerProfile(null)
     setPasswordForm({
       currentPassword: '',
       newPassword: '',
@@ -2034,7 +2130,7 @@ function App() {
     )
   }
 
-  return <HomeScreen onLogout={handleLogout} />
+  return <HomeScreen onLogout={handleLogout} customerProfile={customerProfile} />
 }
 
 export default App
