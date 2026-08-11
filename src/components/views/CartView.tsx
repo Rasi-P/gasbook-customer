@@ -7,6 +7,7 @@ interface CartViewProps {
   onUpdateQuantity: (id: string, delta: number) => void
   onRemoveItem: (id: string) => void
   onNavigateToExplore: () => void
+  onProceedToCheckout: () => void
   customerProfile: CustomerProfile | null
 }
 
@@ -15,6 +16,7 @@ export function CartView({
   onUpdateQuantity,
   onRemoveItem,
   onNavigateToExplore,
+  onProceedToCheckout,
   customerProfile,
 }: CartViewProps) {
   const subtotal = cartItems.reduce((acc, item) => acc + item.unitPrice * item.quantity, 0)
@@ -23,7 +25,7 @@ export function CartView({
   const totalCount = cartItems.reduce((acc, item) => acc + item.quantity, 0)
 
   const handleCheckout = () => {
-    alert(`Proceeding to checkout for total ₹${total.toLocaleString('en-IN')}`)
+    onProceedToCheckout()
   }
 
   const handleChangeAddress = () => {

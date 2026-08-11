@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import type { OrderItem } from '../../types'
 import splashCylinder from '../../assets/splash_cylinder.png'
 import type { CustomerProfile } from '../../lib/auth'
 
@@ -23,10 +23,12 @@ function getLocationText(customerProfile: CustomerProfile | null) {
 interface HomeViewProps {
   onBook: (productName: string) => void
   customerProfile: CustomerProfile | null
+  latestActiveOrder?: OrderItem | null
+  onViewOrders?: () => void
 }
 
-export function HomeView({ onBook, customerProfile }: HomeViewProps) {
-  const [hasActiveOrder] = useState(false)
+export function HomeView({ onBook, customerProfile, latestActiveOrder, onViewOrders }: HomeViewProps) {
+  const hasActiveOrder = Boolean(latestActiveOrder)
   const greetingName = getGreetingName(customerProfile)
   const locationText = getLocationText(customerProfile)
 
@@ -151,10 +153,10 @@ export function HomeView({ onBook, customerProfile }: HomeViewProps) {
       <div className="recent-order-section">
         <div className="section-header">
           <h3 className="section-title">
-            {hasActiveOrder ? 'Your Recent Order' : 'Gas Booking Status'}
+            {hasActiveOrder ? 'Your Active Order' : 'Gas Booking Status'}
           </h3>
-          {hasActiveOrder && (
-            <button className="view-all-btn">
+          {onViewOrders && (
+            <button className="view-all-btn" onClick={onViewOrders}>
               <span>View all</span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12" />
@@ -164,7 +166,42 @@ export function HomeView({ onBook, customerProfile }: HomeViewProps) {
           )}
         </div>
 
-        {hasActiveOrder ? null : (
+        {hasActiveOrder && latestActiveOrder ? (
+          <div className="order-item-card" style={{ marginTop: '12px' }}>
+            <div className="order-card-top">
+              <span className="order-card-id">{latestActiveOrder.orderNumber}</span>
+              <span className="order-card-date">{latestActiveOrder.date}</span>
+            </div>
+
+            <div className="order-card-main">
+              <div className="order-cylinder-wrap">
+                <img src={splashCylinder} className="order-cylinder-img" alt={latestActiveOrder.productName} />
+              </div>
+
+              <div className="order-info-center">
+                <h3 className="order-product-name">{latestActiveOrder.productName}</h3>
+                <span className="order-weight-badge">{latestActiveOrder.weight}</span>
+                <span className="order-price-tag">{latestActiveOrder.price}</span>
+              </div>
+
+              <div className="order-status-action-right">
+                <div className={`status-pill ${latestActiveOrder.statusCode === 'pending' ? 'pending' : 'ongoing'}`}>
+                  <span>{latestActiveOrder.statusLabel}</span>
+                </div>
+
+                <div className="status-detail-text">
+                  <span>{latestActiveOrder.etaOrDate}</span>
+                </div>
+
+                {onViewOrders && (
+                  <button className="order-action-outline-btn" onClick={onViewOrders}>
+                    Track Order
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
           <div className="no-active-order-card">
             <div className="no-order-left">
               <div className="no-order-icon-circle">

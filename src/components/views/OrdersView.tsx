@@ -92,8 +92,14 @@ export function OrdersView({
                 </div>
 
                 <div className="order-status-action-right">
-                  <div className={`status-pill ${order.status}`}>
-                    {order.status === 'ongoing' && (
+                  <div className={`status-pill ${order.statusCode === 'pending' ? 'pending' : order.status}`}>
+                    {order.statusCode === 'pending' && (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                      </svg>
+                    )}
+                    {order.statusCode === 'approved' && (
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <rect x="1" y="3" width="15" height="13" />
                         <polygon points="16 8 20 8 23 11 23 16 16 16 8" />

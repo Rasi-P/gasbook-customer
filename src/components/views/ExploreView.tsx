@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import splashCylinder from '../../assets/splash_cylinder.png'
+import { fetchCylinderTypes, type CylinderTypeItem } from '../../lib/auth'
 
 interface ExploreViewProps {
   cartCount: number
-  onBook: (productName: string) => void
+  onBook: (productName: string, price?: number, cylinderTypeId?: number) => void
   onNavigateToCart: () => void
 }
 
@@ -14,23 +15,30 @@ export function ExploreView({
 }: ExploreViewProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'cylinder' | 'connection'>('all')
+  const [cylinderTypes, setCylinderTypes] = useState<CylinderTypeItem[]>([])
 
-  const products = [
-    {
-      id: 'p1',
-      name: '12 KG Gas Cylinder',
-      price: '₹1,300',
-      category: 'cylinder',
-      isPopular: true,
-    },
-    {
-      id: 'p2',
-      name: '17 KG Gas Cylinder',
-      price: '₹2,400',
-      category: 'cylinder',
-      isPopular: false,
-    },
-  ]
+  useEffect(() => {
+    fetchCylinderTypes()
+      .then((data) => {
+        setCylinderTypes(data.filter((c) => c.is_active))
+      })
+      .catch(() => undefined)
+  }, [])
+
+  const products = cylinderTypes.length > 0
+    ? cylinderTypes.map((c) => ({
+        id: `ct-${c.id}`,
+        cylinderTypeId: c.id,
+        name: c.name,
+        rawPrice: Number(c.selling_price) || 0,
+        price: `₹${Number(c.selling_price).toLocaleString('en-IN')}`,
+        category: 'cylinder',
+        isPopular: c.weight === '14.20' || c.name.includes('14.2'),
+      }))
+    : [
+        { id: 'p1', cylinderTypeId: 1, name: '14.2 KG Domestic LPG', rawPrice: 1300, price: '₹1,300', category: 'cylinder', isPopular: true },
+        { id: 'p2', cylinderTypeId: 2, name: '19 KG Commercial LPG', rawPrice: 2400, price: '₹2,400', category: 'cylinder', isPopular: false },
+      ]
 
   const filteredProducts = products.filter((p) => {
     const matchesSearch =
@@ -163,7 +171,7 @@ export function ExploreView({
               <div className="product-details">
                 <h3 className="product-name">{prod.name}</h3>
                 <div className="product-price">{prod.price}</div>
-                <button className="product-book-btn" onClick={() => onBook(prod.name)}>
+                <button className="product-book-btn" onClick={() => onBook(prod.name, prod.rawPrice, prod.cylinderTypeId)}>
                   Book
                 </button>
               </div>

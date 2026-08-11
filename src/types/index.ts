@@ -15,6 +15,7 @@ export interface OrderItem {
   weight: string
   price: string
   status: 'ongoing' | 'completed' | 'cancelled'
+  statusCode?: 'pending' | 'approved' | 'delivered' | 'cancelled' | 'rejected'
   statusLabel: string
   etaOrDate: string
   actionLabel: string
@@ -22,6 +23,7 @@ export interface OrderItem {
 
 export interface CartItem {
   id: string
+  cylinderTypeId?: number
   name: string
   variant: string
   unitPrice: number
@@ -37,4 +39,4 @@ export interface ProfileUser {
   memberSince: string
 }
 
-export type ActiveTab = 'home' | 'explore' | 'orders' | 'cart' | 'profile'
+export type ActiveTab = 'home' | 'explore' | 'orders' | 'cart' | 'checkout' | 'order-success' | 'profile'
