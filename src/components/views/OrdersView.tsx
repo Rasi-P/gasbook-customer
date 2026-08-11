@@ -3,55 +3,19 @@ import splashCylinder from '../../assets/splash_cylinder.png'
 import type { OrderItem } from '../../types'
 
 interface OrdersViewProps {
+  orders?: OrderItem[]
   onNavigateToExplore: () => void
   onTrackOrder: (orderId: string) => void
   onOrderAgain: (orderId: string) => void
 }
 
 export function OrdersView({
+  orders = [],
   onNavigateToExplore,
   onTrackOrder,
   onOrderAgain,
 }: OrdersViewProps) {
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'ongoing' | 'completed' | 'cancelled'>('all')
-  const orders: OrderItem[] = [
-    {
-      id: 'ord-1',
-      orderNumber: 'Order #GB12345678',
-      date: '10 May 2025',
-      productName: 'Domestic LPG',
-      weight: '14.2 KG',
-      price: '₹1,100',
-      status: 'ongoing',
-      statusLabel: 'Out for Delivery',
-      etaOrDate: 'Arriving in 18 mins',
-      actionLabel: 'Track Order',
-    },
-    {
-      id: 'ord-2',
-      orderNumber: 'Order #GB12340001',
-      date: '02 May 2025',
-      productName: 'Domestic LPG',
-      weight: '14.2 KG',
-      price: '₹1,100',
-      status: 'completed',
-      statusLabel: 'Delivered',
-      etaOrDate: 'Delivered on 02 May',
-      actionLabel: 'Order Again',
-    },
-    {
-      id: 'ord-3',
-      orderNumber: 'Order #GB12330045',
-      date: '25 Apr 2025',
-      productName: 'Domestic LPG',
-      weight: '14.2 KG',
-      price: '₹1,100',
-      status: 'completed',
-      statusLabel: 'Delivered',
-      etaOrDate: 'Delivered on 25 Apr',
-      actionLabel: 'Order Again',
-    },
-  ]
 
   const filteredOrders = orders.filter((order) => {
     if (selectedFilter === 'all') return true
