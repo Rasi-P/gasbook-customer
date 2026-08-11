@@ -1,11 +1,13 @@
-import { useState } from 'react'
-import type { CustomerProfile } from '../../lib/auth'
-import type { ActiveTab, CartItem, ProfileUser } from '../../types'
+import { useState, useEffect } from 'react'
+import { fetchCustomerBookings, type CustomerProfile } from '../../lib/auth'
+import type { ActiveTab, CartItem, OrderItem, ProfileUser } from '../../types'
 import { BottomNavigation } from '../layout/BottomNavigation'
 import { CartView } from './CartView'
+import { CheckoutView } from './CheckoutView'
 import { ExploreView } from './ExploreView'
 import { HomeView } from './HomeView'
 import { OrdersView } from './OrdersView'
+import { OrderSuccessView } from './OrderSuccessView'
 import { ProfileView } from './ProfileView'
 
 function formatMemberSince(dateValue: string | undefined) {
@@ -32,6 +34,68 @@ interface HomeScreenProps {
 export function HomeScreen({ onLogout, customerProfile }: HomeScreenProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>('home')
   const [cartItems, setCartItems] = useState<CartItem[]>([])
+  const [lastCreatedOrderId, setLastCreatedOrderId] = useState<number | null>(null)
+  const [realOrders, setRealOrders] = useState<OrderItem[]>([])
+
+  const fetchOrders = async () => {
+    try {
+      const items = await fetchCustomerBookings()
+      const mapped: OrderItem[] = items.map((b: any) => {
+        let statusLabel = 'Order Placed'
+        let statusKind: 'ongoing' | 'completed' | 'cancelled' = 'ongoing'
+        if (b.status === 'approved') {
+          statusLabel = 'Assigned for Delivery'
+          statusKind = 'ongoing'
+        } else if (b.status === 'delivered') {
+          statusLabel = 'Delivered'
+          statusKind = 'completed'
+        } else if (b.status === 'cancelled' || b.status === 'rejected') {
+          statusLabel = b.status === 'rejected' ? 'Rejected' : 'Cancelled'
+          statusKind = 'cancelled'
+        }
+
+        const rawName = b.cylinder_type_name || 'Domestic LPG'
+        let displayTitle = rawName
+        let weightStr = '14.2 KG'
+        
+        const kgMatch = rawName.match(/^(\d+(?:\.\d+)?)\s*kg/i)
+        if (kgMatch) {
+          weightStr = `${kgMatch[1]} KG`
+          displayTitle = 'Gas Cylinder'
+        } else {
+          const anyKg = rawName.match(/(\d+(?:\.\d+)?)\s*kg/i)
+          if (anyKg) {
+            weightStr = `${anyKg[1]} KG`
+          }
+        }
+
+        return {
+          id: `ord-${b.id}`,
+          orderNumber: `Order #GB${b.id}`,
+          date: b.created_at ? new Date(b.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Today',
+          productName: displayTitle,
+          weight: weightStr,
+          price: `₹${(floatRate(b) * b.quantity).toLocaleString('en-IN')}`,
+          status: statusKind,
+          statusCode: b.status,
+          statusLabel: statusLabel,
+          etaOrDate: b.status === 'delivered' ? `Delivered on ${new Date(b.delivered_at || b.updated_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}` : (b.status === 'approved' ? `Assigned to ${b.assigned_staff_name || 'Delivery Staff'}` : 'Order Placed — Awaiting staff assignment'),
+          actionLabel: b.status === 'delivered' ? 'Order Again' : 'Track Order',
+        }
+      })
+      setRealOrders(mapped)
+    } catch {
+      // Ignore network errors
+    }
+  }
+
+  function floatRate(b: any) {
+    return parseFloat(b.rate || '1300')
+  }
+
+  useEffect(() => {
+    void fetchOrders()
+  }, [activeTab])
 
   const profileUser: ProfileUser = {
     name: customerProfile?.name?.trim() || customerProfile?.full_name?.trim() || 'Customer',
@@ -61,9 +125,9 @@ export function HomeScreen({ onLogout, customerProfile }: HomeScreenProps) {
     setCartItems((prev) => prev.filter((item) => item.id !== id))
   }
 
-  const handleBook = (productName: string) => {
+  const handleBook = (productName: string, price?: number, cylinderTypeId?: number) => {
     setCartItems((prev) => {
-      const existing = prev.find((item) => item.name.toLowerCase().includes(productName.toLowerCase()) || productName.toLowerCase().includes(item.name.toLowerCase()))
+      const existing = prev.find((item) => item.cylinderTypeId === cylinderTypeId || item.name.toLowerCase().includes(productName.toLowerCase()))
       if (existing) {
         return prev.map((item) => (item.id === existing.id ? { ...item, quantity: item.quantity + 1 } : item))
       }
@@ -71,9 +135,10 @@ export function HomeScreen({ onLogout, customerProfile }: HomeScreenProps) {
         ...prev,
         {
           id: `cart-${Date.now()}`,
+          cylinderTypeId: cylinderTypeId || 1,
           name: productName,
-          variant: productName.includes('17') ? '17 KG' : '14.2 KG',
-          unitPrice: productName.includes('17') ? 2400 : 1300,
+          variant: productName.includes('KG') ? productName : `${productName}`,
+          unitPrice: price || 1300,
           quantity: 1,
           type: 'cylinder',
         },
@@ -84,6 +149,13 @@ export function HomeScreen({ onLogout, customerProfile }: HomeScreenProps) {
 
   const handleNavigateToCart = () => {
     setActiveTab('cart')
+  }
+
+  const handleOrderCreated = (orderId: number) => {
+    setCartItems([]) // Clear cart only after checkout order creation succeeds
+    setLastCreatedOrderId(orderId)
+    setActiveTab('order-success')
+    void fetchOrders()
   }
 
   return (
@@ -98,12 +170,18 @@ export function HomeScreen({ onLogout, customerProfile }: HomeScreenProps) {
           />
         )}
         {activeTab === 'home' && (
-          <HomeView onBook={handleBook} customerProfile={customerProfile} />
+          <HomeView
+            onBook={handleBook}
+            customerProfile={customerProfile}
+            latestActiveOrder={realOrders.find((o) => o.status === 'ongoing')}
+            onViewOrders={() => setActiveTab('orders')}
+          />
         )}
         {activeTab === 'orders' && (
           <OrdersView
+            orders={realOrders}
             onNavigateToExplore={() => setActiveTab('explore')}
-            onTrackOrder={(orderId: string) => alert(`Opening tracking details for ${orderId}`)}
+            onTrackOrder={() => alert('Order details & live status')}
             onOrderAgain={(orderId: string) => alert(`Reordering items from ${orderId}`)}
           />
         )}
@@ -113,7 +191,22 @@ export function HomeScreen({ onLogout, customerProfile }: HomeScreenProps) {
             onUpdateQuantity={handleUpdateQuantity}
             onRemoveItem={handleRemoveItem}
             onNavigateToExplore={() => setActiveTab('explore')}
+            onProceedToCheckout={() => setActiveTab('checkout')}
             customerProfile={customerProfile}
+          />
+        )}
+        {activeTab === 'checkout' && (
+          <CheckoutView
+            cartItems={cartItems}
+            customerProfile={customerProfile}
+            onBackToCart={() => setActiveTab('cart')}
+            onOrderCreated={handleOrderCreated}
+          />
+        )}
+        {activeTab === 'order-success' && (
+          <OrderSuccessView
+            orderId={lastCreatedOrderId || 0}
+            onViewOrders={() => setActiveTab('orders')}
           />
         )}
         {activeTab === 'profile' && (
@@ -132,7 +225,7 @@ export function HomeScreen({ onLogout, customerProfile }: HomeScreenProps) {
 
         {/* Bottom Navigation */}
         <BottomNavigation
-          activeTab={activeTab}
+          activeTab={activeTab === 'checkout' || activeTab === 'order-success' ? 'cart' : activeTab}
           cartCount={cartCount}
           setActiveTab={setActiveTab}
         />

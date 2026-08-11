@@ -342,6 +342,31 @@ export async function changePassword(payload: ChangePasswordPayload): Promise<{ 
   })
 }
 
+export interface CylinderTypeItem {
+  id: number
+  name: string
+  weight: string
+  selling_price: string
+  is_active: boolean
+}
+
+export async function fetchCylinderTypes(): Promise<CylinderTypeItem[]> {
+  const data = await request<any>('/cylinder-types/', { method: 'GET' })
+  return data.results || data || []
+}
+
+export async function createBooking(payload: Record<string, unknown>): Promise<{ id: number }> {
+  return request<{ id: number }>('/bookings/', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function fetchCustomerBookings(): Promise<any[]> {
+  const data = await request<any>('/bookings/', { method: 'GET' })
+  return data.results || data || []
+}
+
 export async function logout() {
   clearTokens()
 }
