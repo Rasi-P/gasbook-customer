@@ -367,6 +367,26 @@ export async function fetchCustomerBookings(): Promise<any[]> {
   return data.results || data || []
 }
 
+export interface NotificationItem {
+  id: number
+  recipient: number
+  booking: number | null
+  notification_type: string
+  title: string
+  body: string
+  is_read: boolean
+  created_at: string
+}
+
+export async function fetchCustomerNotifications(): Promise<NotificationItem[]> {
+  const data = await request<any>('/notifications/', { method: 'GET' })
+  return data.results || data || []
+}
+
+export async function markNotificationRead(id: number): Promise<NotificationItem> {
+  return request<NotificationItem>(`/notifications/${id}/mark_read/`, { method: 'POST' })
+}
+
 export async function logout() {
   clearTokens()
 }
