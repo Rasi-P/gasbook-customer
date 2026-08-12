@@ -43,15 +43,24 @@ export function HomeScreen({ onLogout, customerProfile }: HomeScreenProps) {
       const mapped: OrderItem[] = items.map((b: any) => {
         let statusLabel = 'Order Placed'
         let statusKind: 'ongoing' | 'completed' | 'cancelled' = 'ongoing'
+        let etaOrDate = 'Order Placed — Awaiting staff assignment'
+
         if (b.status === 'approved') {
-          statusLabel = 'Assigned for Delivery'
+          statusLabel = 'Order Confirmed'
           statusKind = 'ongoing'
+          etaOrDate = 'Order confirmed — awaiting dispatch'
+        } else if (b.status === 'accepted' || b.status === 'out_for_delivery') {
+          statusLabel = 'Out for Delivery'
+          statusKind = 'ongoing'
+          etaOrDate = `Out for delivery with ${b.assigned_staff_name || 'Delivery Staff'}`
         } else if (b.status === 'delivered') {
           statusLabel = 'Delivered'
           statusKind = 'completed'
+          etaOrDate = `Delivered on ${new Date(b.delivered_at || b.updated_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}`
         } else if (b.status === 'cancelled' || b.status === 'rejected') {
           statusLabel = b.status === 'rejected' ? 'Rejected' : 'Cancelled'
           statusKind = 'cancelled'
+          etaOrDate = b.status === 'rejected' ? 'Order rejected by administration' : 'Order cancelled'
         }
 
         const rawName = b.cylinder_type_name || 'Domestic LPG'
@@ -79,7 +88,7 @@ export function HomeScreen({ onLogout, customerProfile }: HomeScreenProps) {
           status: statusKind,
           statusCode: b.status,
           statusLabel: statusLabel,
-          etaOrDate: b.status === 'delivered' ? `Delivered on ${new Date(b.delivered_at || b.updated_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}` : (b.status === 'approved' ? `Assigned to ${b.assigned_staff_name || 'Delivery Staff'}` : 'Order Placed — Awaiting staff assignment'),
+          etaOrDate: etaOrDate,
           actionLabel: b.status === 'delivered' ? 'Order Again' : 'Track Order',
         }
       })
