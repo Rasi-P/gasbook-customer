@@ -32,6 +32,7 @@ export interface CartItem {
 }
 
 export interface ProfileUser {
+  profileId?: number
   name: string
   email: string
   phone: string

@@ -29,9 +29,10 @@ function formatMemberSince(dateValue: string | undefined) {
 interface HomeScreenProps {
   onLogout?: () => void
   customerProfile: CustomerProfile | null
+  onProfileUpdated?: () => void
 }
 
-export function HomeScreen({ onLogout, customerProfile }: HomeScreenProps) {
+export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: HomeScreenProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>('home')
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [lastCreatedOrderId, setLastCreatedOrderId] = useState<number | null>(null)
@@ -107,6 +108,7 @@ export function HomeScreen({ onLogout, customerProfile }: HomeScreenProps) {
   }, [activeTab])
 
   const profileUser: ProfileUser = {
+    profileId: customerProfile?.id,
     name: customerProfile?.name?.trim() || customerProfile?.full_name?.trim() || 'Customer',
     email: customerProfile?.email?.trim() || 'Not available',
     phone: customerProfile?.phone?.trim() || 'Not available',
@@ -221,7 +223,7 @@ export function HomeScreen({ onLogout, customerProfile }: HomeScreenProps) {
         {activeTab === 'profile' && (
           <ProfileView
             user={profileUser}
-            onNavigateToAddresses={() => alert('Opening My Addresses')}
+            onProfileUpdated={onProfileUpdated}
             onLogout={() => {
               if (onLogout) {
                 onLogout()

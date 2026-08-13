@@ -1,5 +1,6 @@
 import type { OrderItem } from '../../types'
 import splashCylinder from '../../assets/splash_cylinder.png'
+import heroBg from '../../assets/hero_bg.png'
 import type { CustomerProfile } from '../../lib/auth'
 
 function getGreetingName(customerProfile: CustomerProfile | null) {
@@ -45,7 +46,7 @@ export function HomeView({ onBook, customerProfile, latestActiveOrder, onViewOrd
             <span className="location-text">{locationText}</span>
           </div>
         </div>
-        
+
         <div className="header-right">
           <button className="header-icon-btn notification-btn" aria-label="Notifications">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -64,13 +65,14 @@ export function HomeView({ onBook, customerProfile, latestActiveOrder, onViewOrd
 
       {/* 2. Hero Banner Card */}
       <div className="hero-banner-card">
-        <div className="hero-deco-ring hero-deco-ring-1" />
-        <div className="hero-deco-ring hero-deco-ring-2" />
-        <div className="hero-deco-dots">
+        <img src={heroBg} className="hero-bg-img" alt="" />
+        {/* <div className="hero-deco-ring hero-deco-ring-1" />
+        <div className="hero-deco-ring hero-deco-ring-2" /> */}
+        {/* <div className="hero-deco-dots">
           <span></span><span></span><span></span>
           <span></span><span></span><span></span>
           <span></span><span></span><span></span>
-        </div>
+        </div> */}
 
         <div className="hero-left-content">
           <div className="ready-badge-text">READY TO BOOK</div>
@@ -79,8 +81,8 @@ export function HomeView({ onBook, customerProfile, latestActiveOrder, onViewOrd
             for every home.
           </h2>
           <p className="hero-subtitle">Safe. On time. Every time.</p>
-          
-          <button className="book-now-btn" onClick={() => onBook('Domestic LPG Cylinder')}>
+
+          <button className="book-now-btn" onClick={() => onBook('LPG Cylinder')}>
             <span>Book Cylinder</span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="5" y1="12" x2="19" y2="12" />
@@ -88,17 +90,15 @@ export function HomeView({ onBook, customerProfile, latestActiveOrder, onViewOrd
             </svg>
           </button>
         </div>
-        
-        <div className="hero-right-cylinder">
-          <img src={splashCylinder} className="hero-cylinder-img" alt="Gas Cylinder" />
-        </div>
+
+
       </div>
 
       {/* 3. Quick Actions Grid */}
       <div className="quick-actions-section">
         <h3 className="section-title">Quick Actions</h3>
         <div className="quick-actions-grid">
-          <button className="action-card" aria-label="Book Cylinder" onClick={() => onBook('Domestic LPG Cylinder')}>
+          <button className="action-card" aria-label="Book Cylinder" onClick={() => onBook('LPG Cylinder')}>
             <div className="action-icon-wrapper book-icon-bg">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 2v20M2 12h20" />
@@ -107,7 +107,7 @@ export function HomeView({ onBook, customerProfile, latestActiveOrder, onViewOrd
             <span className="action-title">Book Cylinder</span>
             <span className="action-desc">Fast refill</span>
           </button>
-          
+
           <button
             className="action-card"
             aria-label="Track Order"
@@ -124,7 +124,7 @@ export function HomeView({ onBook, customerProfile, latestActiveOrder, onViewOrd
             <span className="action-title">Track Order</span>
             <span className="action-desc">Live status</span>
           </button>
-          
+
           <button className="action-card" aria-label="Payments">
             <div className="action-icon-wrapper payments-icon-bg">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -135,7 +135,7 @@ export function HomeView({ onBook, customerProfile, latestActiveOrder, onViewOrd
             <span className="action-title">Payments</span>
             <span className="action-desc">Easy &amp; secure</span>
           </button>
-          
+
           <button className="action-card" aria-label="Support">
             <div className="action-icon-wrapper support-icon-bg">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -248,18 +248,7 @@ export function HomeView({ onBook, customerProfile, latestActiveOrder, onViewOrd
               </svg>
             </div>
           </div>
-          <div className="promo-card-art">
-            <svg width="90" height="90" viewBox="0 0 120 120" fill="none">
-              <rect x="36" y="52" width="56" height="52" rx="6" fill="#F97316" />
-              <rect x="30" y="40" width="68" height="15" rx="4" fill="#FB923C" />
-              <rect x="60" y="40" width="8" height="64" fill="#FDBA74" />
-              <path d="M64 40C52 24 38 34 60 40Z" fill="#FDBA74" />
-              <path d="M64 40C76 24 90 34 68 40Z" fill="#FDBA74" />
-              <circle cx="64" cy="40" r="5" fill="#FED7AA" />
-              <path d="M22 36L24 30L26 36L32 38L26 40L24 46L22 40L16 38Z" fill="#FDBA74" opacity="0.8" />
-              <path d="M102 32L103.5 28L105 32L109 33.5L105 35L103.5 39L102 35L98 33.5Z" fill="#FDBA74" opacity="0.8" />
-            </svg>
-          </div>
+
         </div>
 
         <div className="promo-card safety-card">
@@ -283,16 +272,7 @@ export function HomeView({ onBook, customerProfile, latestActiveOrder, onViewOrd
               </svg>
             </button>
           </div>
-          <div className="promo-card-art">
-            <svg width="86" height="86" viewBox="0 0 120 120" fill="none">
-              <path d="M60 16L116 56H96V104H72V74H52V104H16V56L60 16Z" fill="#DBEAFE" opacity="0.5" />
-              <path d="M60 12L118 54L112 58L60 20L8 58L2 54L60 12Z" fill="#93C5FD" opacity="0.8" />
-              <rect x="74" y="60" width="30" height="46" rx="8" fill="#1D4ED8" />
-              <rect x="80" y="52" width="18" height="8" rx="2" fill="#1E40AF" />
-              <ellipse cx="89" cy="60" rx="15" ry="4" fill="#2563EB" />
-              <ellipse cx="89" cy="104" rx="13" ry="3" fill="#1E3A8A" />
-            </svg>
-          </div>
+
         </div>
       </div>
     </div>

@@ -335,6 +335,16 @@ export async function getCustomerProfile(): Promise<CustomerProfile | null> {
   return data[0] ?? null
 }
 
+export async function updateCustomerProfile(
+  id: number,
+  payload: Partial<{ name: string; phone: string; email: string; address: string }>,
+): Promise<CustomerProfile> {
+  return request<CustomerProfile>(`/customers/${id}/`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  })
+}
+
 export async function changePassword(payload: ChangePasswordPayload): Promise<{ detail: string }> {
   return request<{ detail: string }>('/auth/change-password/', {
     method: 'POST',
