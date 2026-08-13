@@ -1,8 +1,11 @@
+import { useState, useEffect } from 'react'
 import type { ProfileUser } from '../../types'
+import { updateCustomerProfile, getApiErrorDetails } from '../../lib/auth'
 
 interface ProfileViewProps {
   user?: ProfileUser
-  onNavigateToAddresses: () => void
+  onProfileUpdated?: () => void
+  onNavigateToAddresses?: () => void
   onLogout: () => void
 }
 
@@ -14,24 +17,119 @@ export function ProfileView({
     address: 'Not available',
     memberSince: 'May 2025',
   },
+  onProfileUpdated,
   onNavigateToAddresses,
   onLogout,
 }: ProfileViewProps) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+
+  const [formValues, setFormValues] = useState({
+    name: user.name === 'Customer' ? '' : user.name,
+    phone: user.phone === 'Not available' ? '' : user.phone,
+    email: user.email === 'Not available' ? '' : user.email,
+    address: user.address === 'Not available' ? '' : user.address,
+  })
+
+  // Sync form values when user prop updates
+  useEffect(() => {
+    setFormValues({
+      name: user.name === 'Customer' ? '' : user.name,
+      phone: user.phone === 'Not available' ? '' : user.phone,
+      email: user.email === 'Not available' ? '' : user.email,
+      address: user.address === 'Not available' ? '' : user.address,
+    })
+  }, [user])
+
   const initials = user.name
     .split(' ')
     .map((part) => part[0])
     .join('')
     .toUpperCase()
-    .slice(0, 2)
+    .slice(0, 2) || 'C'
+
+  const handleOpenEdit = () => {
+    setErrorMessage(null)
+    setSuccessMessage(null)
+    setFormValues({
+      name: user.name === 'Customer' ? '' : user.name,
+      phone: user.phone === 'Not available' ? '' : user.phone,
+      email: user.email === 'Not available' ? '' : user.email,
+      address: user.address === 'Not available' ? '' : user.address,
+    })
+    setIsEditing(true)
+  }
+
+  const handleCloseEdit = () => {
+    if (isSaving) return
+    setIsEditing(false)
+    setErrorMessage(null)
+  }
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setErrorMessage(null)
+    setSuccessMessage(null)
+
+    if (!formValues.name.trim()) {
+      setErrorMessage('Full name is required.')
+      return
+    }
+
+    if (formValues.phone.trim() && !/^\d+$/.test(formValues.phone.trim())) {
+      setErrorMessage('Phone number must contain only numbers.')
+      return
+    }
+
+    setIsSaving(true)
+
+    try {
+      if (user.profileId) {
+        await updateCustomerProfile(user.profileId, {
+          name: formValues.name.trim(),
+          phone: formValues.phone.trim(),
+          email: formValues.email.trim(),
+          address: formValues.address.trim(),
+        })
+      }
+      setSuccessMessage('Profile updated successfully!')
+      setIsEditing(false)
+      if (onProfileUpdated) {
+        onProfileUpdated()
+      }
+    } catch (err: unknown) {
+      const details = getApiErrorDetails(err, 'Failed to update profile. Please try again.')
+      setErrorMessage(details.message)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleAddressClick = () => {
+    if (onNavigateToAddresses) {
+      onNavigateToAddresses()
+    }
+    handleOpenEdit()
+  }
 
   return (
     <div className="profile-scroll-container">
+      {/* Success Notification Banner */}
+      {successMessage && (
+        <div className="profile-toast-banner">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          <span>{successMessage}</span>
+          <button className="toast-dismiss-btn" onClick={() => setSuccessMessage(null)}>×</button>
+        </div>
+      )}
+
       {/* 1. Profile Hero Card */}
       <div className="profile-hero-card">
-        {/* Background Decorative Rings */}
-        <div className="hero-bg-ring hero-ring-1" />
-        <div className="hero-bg-ring hero-ring-2" />
-        <div className="hero-bg-ring hero-ring-3" />
+
 
         <div className="profile-hero-content">
           <div className="profile-avatar-circle">
@@ -48,9 +146,40 @@ export function ProfileView({
 
       {/* 2. Account Details Section */}
       <div className="profile-section">
-        <h2 className="profile-section-heading">Account Details</h2>
+        <div className="profile-section-header">
+          <h2 className="profile-section-heading">Account Details</h2>
+          <button 
+            type="button" 
+            className="profile-edit-btn" 
+            onClick={handleOpenEdit}
+            title="Edit profile details"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </svg>
+            Edit
+          </button>
+        </div>
+
         <div className="profile-card">
-          {/* Row 1: Phone */}
+          {/* Row 1: Name */}
+          <div className="profile-row-item">
+            <div className="profile-row-left">
+              <div className="profile-icon-wrap">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </div>
+              <span className="profile-row-label">Full Name</span>
+            </div>
+            <span className="profile-row-val">{user.name}</span>
+          </div>
+
+          <div className="profile-row-divider" />
+
+          {/* Row 2: Phone */}
           <div className="profile-row-item">
             <div className="profile-row-left">
               <div className="profile-icon-wrap">
@@ -65,7 +194,7 @@ export function ProfileView({
 
           <div className="profile-row-divider" />
 
-          {/* Row 2: Email */}
+          {/* Row 3: Email */}
           <div className="profile-row-item">
             <div className="profile-row-left">
               <div className="profile-icon-wrap">
@@ -81,7 +210,7 @@ export function ProfileView({
 
           <div className="profile-row-divider" />
 
-          {/* Row 3: Address */}
+          {/* Row 4: Address */}
           <div className="profile-row-item">
             <div className="profile-row-left">
               <div className="profile-icon-wrap">
@@ -97,7 +226,7 @@ export function ProfileView({
 
           <div className="profile-row-divider" />
 
-          {/* Row 4: Member Since */}
+          {/* Row 5: Member Since */}
           <div className="profile-row-item">
             <div className="profile-row-left">
               <div className="profile-icon-wrap">
@@ -119,39 +248,21 @@ export function ProfileView({
       <div className="profile-section">
         <h2 className="profile-section-heading">Account</h2>
         <div className="profile-card">
-          {/* Row 1: My Addresses */}
-          <button className="profile-action-row" onClick={onNavigateToAddresses}>
-            <div className="profile-row-left">
-              <div className="profile-icon-wrap">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
-              </div>
-              <span className="profile-row-action-label">My Addresses</span>
-            </div>
-            <div className="profile-chevron">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </div>
-          </button>
-
-          <div className="profile-row-divider" />
+          {/* Logout */}
 
           {/* Row 2: Logout */}
           <button className="profile-action-row" onClick={onLogout}>
             <div className="profile-row-left">
-              <div className="profile-icon-wrap">
+              <div className="profile-icon-wrap" style={{ backgroundColor: '#fef2f2', color: '#ef4444' }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                   <polyline points="16 17 21 12 16 7" />
                   <line x1="21" y1="12" x2="9" y2="12" />
                 </svg>
               </div>
-              <span className="profile-row-action-label">Logout</span>
+              <span className="profile-row-action-label" style={{ color: '#dc2626' }}>Logout</span>
             </div>
-            <div className="profile-chevron">
+            <div className="profile-chevron" style={{ color: '#dc2626' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6" />
               </svg>
@@ -159,6 +270,142 @@ export function ProfileView({
           </button>
         </div>
       </div>
+
+      {/* 4. Edit Profile Modal Dialog */}
+      {isEditing && (
+        <div className="edit-profile-modal-overlay" onClick={handleCloseEdit}>
+          <div className="edit-profile-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="edit-modal-header">
+              <div className="edit-modal-title-wrap">
+                <div className="edit-modal-icon-badge">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="edit-modal-title">Edit Profile</h3>
+                  <p className="edit-modal-subtitle">Update your personal account details</p>
+                </div>
+              </div>
+              <button type="button" className="edit-modal-close" onClick={handleCloseEdit}>×</button>
+            </div>
+
+            {errorMessage && (
+              <div className="edit-modal-error">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveProfile} className="edit-modal-form">
+              {/* Full Name */}
+              <div className="form-group">
+                <label htmlFor="edit-name" className="form-label">Full Name *</label>
+                <div className="input-with-icon">
+                  <svg className="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                  <input
+                    id="edit-name"
+                    type="text"
+                    className="form-input"
+                    placeholder="Enter your full name"
+                    value={formValues.name}
+                    onChange={(e) => setFormValues({ ...formValues, name: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Phone Number */}
+              <div className="form-group">
+                <label htmlFor="edit-phone" className="form-label">Phone Number</label>
+                <div className="input-with-icon">
+                  <svg className="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                  </svg>
+                  <input
+                    id="edit-phone"
+                    type="tel"
+                    className="form-input"
+                    placeholder="Enter mobile number"
+                    value={formValues.phone}
+                    onChange={(e) => setFormValues({ ...formValues, phone: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Email Address */}
+              <div className="form-group">
+                <label htmlFor="edit-email" className="form-label">Email Address</label>
+                <div className="input-with-icon">
+                  <svg className="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                    <polyline points="22,6 12,13 2,6" />
+                  </svg>
+                  <input
+                    id="edit-email"
+                    type="email"
+                    className="form-input"
+                    placeholder="Enter email address"
+                    value={formValues.email}
+                    onChange={(e) => setFormValues({ ...formValues, email: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Address */}
+              <div className="form-group">
+                <label htmlFor="edit-address" className="form-label">Address</label>
+                <div className="input-with-icon align-top">
+                  <svg className="input-icon icon-top" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                  <textarea
+                    id="edit-address"
+                    className="form-textarea"
+                    rows={3}
+                    placeholder="Enter full delivery address"
+                    value={formValues.address}
+                    onChange={(e) => setFormValues({ ...formValues, address: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="edit-modal-actions">
+                <button
+                  type="button"
+                  className="modal-btn-cancel"
+                  onClick={handleCloseEdit}
+                  disabled={isSaving}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="modal-btn-save"
+                  disabled={isSaving}
+                >
+                  {isSaving ? (
+                    <>
+                      <span className="spinner-small" /> Saving...
+                    </>
+                  ) : (
+                    'Save Changes'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

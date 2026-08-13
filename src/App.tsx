@@ -288,6 +288,15 @@ function App() {
     setCurrentScreen('login')
   }
 
+  const handleProfileUpdated = async () => {
+    try {
+      const refreshed = await getCustomerProfile()
+      setCustomerProfile(refreshed)
+    } catch {
+      // Ignore
+    }
+  }
+
   if (currentScreen === 'splash') {
     return <SplashScreen onSplashClick={() => setIsSplashReady(true)} />
   }
@@ -331,7 +340,7 @@ function App() {
     return <PasswordSuccessScreen onContinue={() => setCurrentScreen(hasStoredSession() ? 'home' : 'login')} />
   }
 
-  return <HomeScreen onLogout={handleLogout} customerProfile={customerProfile} />
+  return <HomeScreen onLogout={handleLogout} customerProfile={customerProfile} onProfileUpdated={handleProfileUpdated} />
 }
 
 export default App
