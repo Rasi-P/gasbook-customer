@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react'
 import type { OrderItem } from '../../types'
+import { fetchCustomerNotifications, markNotificationRead, type NotificationItem } from '../../lib/auth'
 import splashCylinder from '../../assets/splash_cylinder.png'
 import heroBg from '../../assets/hero_bg.png'
 import type { CustomerProfile } from '../../lib/auth'
@@ -29,9 +31,25 @@ interface HomeViewProps {
 }
 
 export function HomeView({ onBook, customerProfile, latestActiveOrder, onViewOrders }: HomeViewProps) {
+  const [showNotifications, setShowNotifications] = useState(false)
+  const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const hasActiveOrder = Boolean(latestActiveOrder)
   const greetingName = getGreetingName(customerProfile)
   const locationText = getLocationText(customerProfile)
+
+  useEffect(() => {
+    fetchCustomerNotifications().then(setNotifications).catch(() => {})
+  }, [])
+
+  const handleMarkRead = async (id: number) => {
+    try {
+      await markNotificationRead(id)
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)))
+    } catch {
+      // ignore
+    }
+  }
+  const unreadNotifCount = notifications.filter((n) => !n.is_read).length
 
   return (
     <div className="home-scroll-container">
@@ -48,12 +66,12 @@ export function HomeView({ onBook, customerProfile, latestActiveOrder, onViewOrd
         </div>
 
         <div className="header-right">
-          <button className="header-icon-btn notification-btn" aria-label="Notifications">
+          <button className="header-icon-btn notification-btn" aria-label="Notifications" onClick={() => setShowNotifications(true)}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
               <path d="M13.73 21a2 2 0 0 1-3.46 0" />
             </svg>
-            <span className="notification-dot" />
+            {unreadNotifCount > 0 && <span className="notification-dot" />}
           </button>
           <button className="header-icon-btn support-btn" aria-label="Customer Support">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -275,6 +293,33 @@ export function HomeView({ onBook, customerProfile, latestActiveOrder, onViewOrd
 
         </div>
       </div>
+
+      {showNotifications && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
+          <div style={{ background: '#FFF', width: '100%', maxWidth: '360px', maxHeight: '80vh', borderRadius: '16px', padding: '20px', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #F1F5F9', paddingBottom: '12px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: '#132B4F' }}>Notifications</h3>
+              <button onClick={() => setShowNotifications(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#132B4F' }}>✕</button>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {notifications.map((n) => (
+                <div
+                  key={n.id}
+                  onClick={() => void handleMarkRead(n.id)}
+                  style={{ padding: '12px', borderRadius: '10px', background: n.is_read ? '#F8FAFC' : '#EFF6FF', border: n.is_read ? '1px solid #E2E8F0' : '1px solid #BFDBFE', cursor: 'pointer' }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <strong style={{ fontSize: '13px', color: '#1E293B' }}>{n.title}</strong>
+                    <small style={{ fontSize: '10px', color: '#94A3B8' }}>{new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
+                  </div>
+                  <p style={{ fontSize: '12px', color: '#475569', margin: 0 }}>{n.body}</p>
+                </div>
+              ))}
+              {notifications.length === 0 && <p style={{ textAlign: 'center', color: '#94A3B8', marginTop: '40px', fontSize: '13px' }}>No new notifications at this time.</p>}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
