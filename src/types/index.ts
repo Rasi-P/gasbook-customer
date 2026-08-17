@@ -15,10 +15,12 @@ export interface OrderItem {
   weight: string
   price: string
   status: 'ongoing' | 'completed' | 'cancelled'
-  statusCode?: 'pending' | 'approved' | 'delivered' | 'cancelled' | 'rejected'
+  statusCode?: 'pending' | 'approved' | 'accepted' | 'out_for_delivery' | 'delivered' | 'cancelled' | 'rejected'
   statusLabel: string
   etaOrDate: string
   actionLabel: string
+  rawBooking?: any
+  rejectionReason?: string
 }
 
 export interface CartItem {

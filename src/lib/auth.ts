@@ -264,7 +264,7 @@ async function refreshTokens(): Promise<AuthTokens> {
   return refreshRequest
 }
 
-async function request<T>(
+export async function request<T>(
   path: string,
   init: RequestInit = {},
   options: { auth?: boolean; retryOnUnauthorized?: boolean } = {},
@@ -375,6 +375,10 @@ export async function createBooking(payload: Record<string, unknown>): Promise<{
 export async function fetchCustomerBookings(): Promise<any[]> {
   const data = await request<any>('/bookings/', { method: 'GET' })
   return data.results || data || []
+}
+
+export async function fetchBookingById(id: number): Promise<any> {
+  return request<any>(`/bookings/${id}/`, { method: 'GET' })
 }
 
 export interface NotificationItem {

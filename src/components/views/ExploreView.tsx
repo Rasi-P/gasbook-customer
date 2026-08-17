@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import splashCylinder from '../../assets/splash_cylinder.png'
-import { fetchCylinderTypes, type CylinderTypeItem } from '../../lib/auth'
+import { fetchCylinderTypes } from '../../lib/auth'
 
 interface ExploreViewProps {
   cartCount: number
@@ -15,30 +15,23 @@ export function ExploreView({
 }: ExploreViewProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'cylinder' | 'connection'>('all')
-  const [cylinderTypes, setCylinderTypes] = useState<CylinderTypeItem[]>([])
+  const [cylinderTypes, setCylinderTypes] = useState<any[]>([])
 
   useEffect(() => {
     fetchCylinderTypes()
-      .then((data) => {
-        setCylinderTypes(data.filter((c) => c.is_active))
-      })
+      .then((data: any[]) => setCylinderTypes(data))
       .catch(() => undefined)
   }, [])
 
-  const products = cylinderTypes.length > 0
-    ? cylinderTypes.map((c) => ({
-        id: `ct-${c.id}`,
-        cylinderTypeId: c.id,
-        name: c.name,
-        rawPrice: Number(c.selling_price) || 0,
-        price: `₹${Number(c.selling_price).toLocaleString('en-IN')}`,
-        category: 'cylinder',
-        isPopular: c.weight === '14.20' || c.name.includes('14.2'),
-      }))
-    : [
-        { id: 'p1', cylinderTypeId: 1, name: '14.2 KG Domestic LPG', rawPrice: 1300, price: '₹1,300', category: 'cylinder', isPopular: true },
-        { id: 'p2', cylinderTypeId: 2, name: '19 KG Commercial LPG', rawPrice: 2400, price: '₹2,400', category: 'cylinder', isPopular: false },
-      ]
+  const products = cylinderTypes.map((c) => ({
+    id: c.id.toString(),
+    rawId: c.id,
+    name: c.name,
+    rawPrice: Number(c.selling_price) || 0,
+    price: `₹${Number(c.selling_price).toLocaleString('en-IN')}`,
+    category: 'cylinder',
+    isPopular: c.name.includes('14.2'),
+  }))
 
   const filteredProducts = products.filter((p) => {
     const matchesSearch =
@@ -171,7 +164,7 @@ export function ExploreView({
               <div className="product-details">
                 <h3 className="product-name">{prod.name}</h3>
                 <div className="product-price">{prod.price}</div>
-                <button className="product-book-btn" onClick={() => onBook(prod.name, prod.rawPrice, prod.cylinderTypeId)}>
+                <button className="product-book-btn" onClick={() => onBook(prod.name, prod.rawPrice, prod.rawId)}>
                   Book
                 </button>
               </div>

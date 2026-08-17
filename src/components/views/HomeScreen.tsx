@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { fetchCustomerBookings, type CustomerProfile } from '../../lib/auth'
+import { type CustomerProfile } from '../../lib/auth'
 import type { ActiveTab, CartItem, OrderItem, ProfileUser } from '../../types'
 import { BottomNavigation } from '../layout/BottomNavigation'
 import { CartView } from './CartView'
@@ -9,6 +9,8 @@ import { HomeView } from './HomeView'
 import { OrdersView } from './OrdersView'
 import { OrderSuccessView } from './OrderSuccessView'
 import { ProfileView } from './ProfileView'
+import { TrackingModal } from './TrackingModal'
+import { fetchPaginatedBookings } from '../../lib/api-queries'
 
 function formatMemberSince(dateValue: string | undefined) {
   if (!dateValue) {
@@ -37,10 +39,13 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [lastCreatedOrderIds, setLastCreatedOrderIds] = useState<number[]>([])
   const [realOrders, setRealOrders] = useState<OrderItem[]>([])
+  const [trackingBookingId, setTrackingBookingId] = useState<number | null>(null)
 
-  const fetchOrders = async () => {
+  const fetchActiveOrder = async () => {
     try {
-      const items = await fetchCustomerBookings()
+      // Fetch just the ongoing orders for the Home active order card
+      const response = await fetchPaginatedBookings({ status: 'pending,approved,accepted,out_for_delivery', page: 1 })
+      const items = response.results
       const mapped: OrderItem[] = items.map((b: any) => {
         let statusLabel = 'Order Placed'
         let statusKind: 'ongoing' | 'completed' | 'cancelled' = 'ongoing'
@@ -61,7 +66,11 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
         } else if (b.status === 'cancelled' || b.status === 'rejected') {
           statusLabel = b.status === 'rejected' ? 'Rejected' : 'Cancelled'
           statusKind = 'cancelled'
-          etaOrDate = b.status === 'rejected' ? 'Order rejected by administration' : 'Order cancelled'
+          if (b.status === 'rejected') {
+            etaOrDate = b.rejection_reason ? `Rejected: ${b.rejection_reason}` : 'Order rejected by administration'
+          } else {
+            etaOrDate = 'Order cancelled'
+          }
         }
 
         const rawName = b.cylinder_type_name || 'Domestic LPG'
@@ -90,29 +99,38 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
           statusCode: b.status,
           statusLabel: statusLabel,
           etaOrDate: etaOrDate,
-          actionLabel: b.status === 'delivered' ? 'Order Again' : 'Track Order',
+          actionLabel: (b.status === 'rejected' || b.status === 'cancelled') ? 'View Details' : (b.status === 'delivered' ? 'Order Again' : 'Track Order'),
+          rawBooking: b,
+          rejectionReason: b.rejection_reason,
         }
       })
       setRealOrders(mapped)
-    } catch {
-      // Ignore network errors
+    } catch (err) {
+      console.error(err)
     }
   }
 
   function floatRate(b: any) {
-    return parseFloat(b.rate || '1300')
+    return parseFloat(b.rate || '0')
   }
 
   useEffect(() => {
-    void fetchOrders()
+    void fetchActiveOrder()
   }, [activeTab])
+
+  // Safety guard: if cart is empty but we are on checkout, redirect to explore
+  useEffect(() => {
+    if (activeTab === 'checkout' && cartItems.length === 0) {
+      setActiveTab('explore')
+    }
+  }, [activeTab, cartItems])
 
   const profileUser: ProfileUser = {
     profileId: customerProfile?.id,
-    name: customerProfile?.name?.trim() || customerProfile?.full_name?.trim() || 'Customer',
-    email: customerProfile?.email?.trim() || 'Not available',
-    phone: customerProfile?.phone?.trim() || 'Not available',
-    address: customerProfile?.address?.trim() || 'Not available',
+    name: customerProfile?.name?.trim() || customerProfile?.full_name?.trim() || '',
+    email: customerProfile?.email?.trim() || '',
+    phone: customerProfile?.phone?.trim() || '',
+    address: customerProfile?.address?.trim() || '',
     memberSince: formatMemberSince(customerProfile?.created_at),
   }
 
@@ -159,15 +177,18 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
     setActiveTab('cart')
   }
 
+  // Removed old handleOrderAgain, OrdersView will call handleBook directly
+
   const handleNavigateToCart = () => {
-    setActiveTab('cart')
+    // Actually, "Cart" is deprecated in this flow. We'll map this back to home if called
+    setActiveTab('home')
   }
 
   const handleOrderCreated = (orderIds: number[]) => {
     setCartItems([]) // Clear cart only after checkout order creation succeeds
     setLastCreatedOrderIds(orderIds)
     setActiveTab('order-success')
-    void fetchOrders()
+    void fetchActiveOrder()
   }
 
   return (
@@ -183,18 +204,18 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
         )}
         {activeTab === 'home' && (
           <HomeView
-            onBook={handleBook}
+            onNavigateToExplore={() => setActiveTab('explore')}
             customerProfile={customerProfile}
-            latestActiveOrder={realOrders.find((o) => o.status === 'ongoing')}
+            latestActiveOrder={realOrders[0]}
             onViewOrders={() => setActiveTab('orders')}
+            onTrackOrder={(id: number) => setTrackingBookingId(id)}
           />
         )}
         {activeTab === 'orders' && (
           <OrdersView
-            orders={realOrders}
             onNavigateToExplore={() => setActiveTab('explore')}
-            onTrackOrder={() => alert('Order details & live status')}
-            onOrderAgain={(orderId: string) => alert(`Reordering items from ${orderId}`)}
+            onTrackOrder={(id: number) => setTrackingBookingId(id)}
+            onOrderAgain={handleBook}
           />
         )}
         {activeTab === 'cart' && (
@@ -213,7 +234,7 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
           <CheckoutView
             cartItems={cartItems}
             customerProfile={customerProfile}
-            onBackToCart={() => setActiveTab('cart')}
+            onBackToCart={() => setActiveTab('explore')}
             onOrderCreated={handleOrderCreated}
           />
         )}
@@ -249,6 +270,10 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
             cartCount={cartCount}
             setActiveTab={setActiveTab}
           />
+        )}       
+        {/* Global Tracking Modal */}
+        {trackingBookingId !== null && (
+          <TrackingModal bookingId={trackingBookingId} onClose={() => setTrackingBookingId(null)} />
         )}
       </div>
     </div>

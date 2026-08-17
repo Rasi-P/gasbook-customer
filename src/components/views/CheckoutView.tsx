@@ -19,12 +19,13 @@ export function CheckoutView({
   const [error, setError] = useState<string | null>(null)
 
   const subtotal = cartItems.reduce((acc, item) => acc + item.unitPrice * item.quantity, 0)
-  const deliveryFee = cartItems.length > 0 ? 40 : 0
-  const total = subtotal + deliveryFee
+  const total = subtotal
 
-  const customerName = customerProfile?.name?.trim() || customerProfile?.full_name?.trim() || 'Customer'
-  const customerPhone = customerProfile?.phone?.trim() || 'Not available'
-  const customerAddress = customerProfile?.address?.trim() || 'Add address in GasBook'
+  const customerName = customerProfile?.name?.trim() || customerProfile?.full_name?.trim() || ''
+  const customerPhone = customerProfile?.phone?.trim() || ''
+  const customerAddress = customerProfile?.address?.trim() || ''
+  
+  const hasValidAddress = Boolean(customerAddress)
 
   const handlePlaceOrder = async () => {
     if (submitting) return
@@ -100,10 +101,6 @@ export function CheckoutView({
               <span className="price-label">Subtotal</span>
               <span className="price-val">₹{subtotal.toLocaleString('en-IN')}</span>
             </div>
-            <div className="price-row">
-              <span className="price-label">Delivery Fee</span>
-              <span className="price-val">₹{deliveryFee.toLocaleString('en-IN')}</span>
-            </div>
             <div className="price-divider" />
             <div className="price-row total-row">
               <span className="total-label">Total Amount</span>
@@ -124,10 +121,17 @@ export function CheckoutView({
                 <circle cx="12" cy="10" r="3" />
               </svg>
             </div>
-            <div className="address-details">
-              <h4 className="address-name">{customerName} ({customerPhone})</h4>
-              <p className="address-text">{customerAddress}</p>
-            </div>
+            {hasValidAddress ? (
+              <div className="address-details">
+                <h4 className="address-name">{customerName} {customerPhone ? `(${customerPhone})` : ''}</h4>
+                <p className="address-text">{customerAddress}</p>
+              </div>
+            ) : (
+              <div className="address-details">
+                <h4 className="address-name" style={{ color: '#ef4444' }}>Address Missing</h4>
+                <p className="address-text">Please add your address in your Profile to book a cylinder.</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -149,8 +153,13 @@ export function CheckoutView({
         {error && <p className="form-feedback form-feedback--error">{error}</p>}
 
         {/* 5. Submit Button */}
-        <button className="proceed-checkout-btn" onClick={handlePlaceOrder} disabled={submitting}>
-          <span>{submitting ? 'Placing Order...' : 'Confirm & Place Order (COD)'}</span>
+        <button 
+          className="proceed-checkout-btn" 
+          onClick={handlePlaceOrder} 
+          disabled={submitting || !hasValidAddress}
+          style={{ opacity: (!hasValidAddress) ? 0.6 : 1 }}
+        >
+          <span>{submitting ? 'Placing Order...' : 'Confirm Booking'}</span>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <line x1="5" y1="12" x2="19" y2="12" />
             <polyline points="12 5 19 12 12 19" />
