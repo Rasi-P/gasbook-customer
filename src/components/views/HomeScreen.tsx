@@ -43,8 +43,8 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
 
   const fetchActiveOrder = async () => {
     try {
-      // Fetch just the ongoing orders for the Home active order card
-      const response = await fetchPaginatedBookings({ status: 'pending,approved,accepted,out_for_delivery', page: 1 })
+      // Fetch the most recent order for the Home active order card
+      const response = await fetchPaginatedBookings({ page: 1 })
       const items = response.results
       const mapped: OrderItem[] = items.map((b: any) => {
         let statusLabel = 'Order Placed'

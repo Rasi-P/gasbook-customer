@@ -178,7 +178,7 @@ export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrd
       <div className="recent-order-section">
         <div className="section-header">
           <h3 className="section-title">
-            {hasActiveOrder ? 'Your Active Order' : 'Gas Booking Status'}
+            {hasActiveOrder ? 'Your Recent Order' : 'Gas Booking Status'}
           </h3>
           {onViewOrders && (
             <button className="view-all-btn" onClick={onViewOrders}>
@@ -228,40 +228,55 @@ export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrd
 
             {/* Live Order Status Timeline */}
             <div className="timeline-container">
-              {[
-                {
-                  title: 'Order Placed',
-                  desc: 'Your order has been received',
-                  active: latestActiveOrder.statusCode !== 'cancelled' && latestActiveOrder.statusCode !== 'rejected'
-                },
-                {
-                  title: 'Order Confirmed',
-                  desc: latestActiveOrder.statusCode !== 'pending' && latestActiveOrder.statusCode !== 'cancelled' && latestActiveOrder.statusCode !== 'rejected' ? 'Assigned to delivery partner' : 'Awaiting confirmation',
-                  active: latestActiveOrder.statusCode !== 'pending' && latestActiveOrder.statusCode !== 'cancelled' && latestActiveOrder.statusCode !== 'rejected'
-                },
-                {
-                  title: 'Out for Delivery',
-                  desc: (latestActiveOrder.statusCode === 'accepted' || latestActiveOrder.statusCode === 'out_for_delivery' || latestActiveOrder.statusCode === 'delivered') ? 'Agent is on the way' : 'Pending dispatch',
-                  active: (latestActiveOrder.statusCode === 'accepted' || latestActiveOrder.statusCode === 'out_for_delivery' || latestActiveOrder.statusCode === 'delivered')
-                },
-                {
-                  title: 'Delivered',
-                  desc: latestActiveOrder.statusCode === 'delivered' ? 'Cylinder delivered successfully' : 'Pending delivery',
-                  active: latestActiveOrder.statusCode === 'delivered'
-                }
-              ].map((step, idx, arr) => (
-                <div key={step.title} className="timeline-step">
+              {latestActiveOrder.statusCode === 'cancelled' || latestActiveOrder.statusCode === 'rejected' ? (
+                <div className="timeline-step">
                   <div className="timeline-indicator">
-                    <div className={`timeline-dot ${step.active ? 'active' : ''}`} />
-                    <div className={`timeline-line ${step.active && arr[idx + 1]?.active ? 'active' : ''}`} />
+                    <div className="timeline-dot active" style={{ backgroundColor: '#ef4444' }} />
                   </div>
                   <div className="timeline-content">
-                    <h4 className={`timeline-title ${step.active ? 'active' : ''}`}>{step.title}</h4>
-                    <p className={`timeline-desc ${step.active ? 'active' : ''}`}>{step.desc}</p>
+                    <h4 className="timeline-title active" style={{ color: '#ef4444' }}>
+                      {latestActiveOrder.statusCode === 'rejected' ? 'Order Rejected' : 'Order Cancelled'}
+                    </h4>
+                    <p className="timeline-desc active">{latestActiveOrder.etaOrDate}</p>
                   </div>
                 </div>
-              ))}
+              ) : (
+                [
+                  {
+                    title: 'Order Placed',
+                    desc: 'Your order has been received',
+                    active: true
+                  },
+                  {
+                    title: 'Order Confirmed',
+                    desc: latestActiveOrder.statusCode !== 'pending' ? 'Assigned to delivery partner' : 'Awaiting confirmation',
+                    active: latestActiveOrder.statusCode !== 'pending'
+                  },
+                  {
+                    title: 'Out for Delivery',
+                    desc: (latestActiveOrder.statusCode === 'accepted' || latestActiveOrder.statusCode === 'out_for_delivery' || latestActiveOrder.statusCode === 'delivered') ? 'Agent is on the way' : 'Pending dispatch',
+                    active: (latestActiveOrder.statusCode === 'accepted' || latestActiveOrder.statusCode === 'out_for_delivery' || latestActiveOrder.statusCode === 'delivered')
+                  },
+                  {
+                    title: 'Delivered',
+                    desc: latestActiveOrder.statusCode === 'delivered' ? 'Cylinder delivered successfully' : 'Pending delivery',
+                    active: latestActiveOrder.statusCode === 'delivered'
+                  }
+                ].map((step, idx, arr) => (
+                  <div key={step.title} className="timeline-step">
+                    <div className="timeline-indicator">
+                      <div className={`timeline-dot ${step.active ? 'active' : ''}`} />
+                      <div className={`timeline-line ${step.active && arr[idx + 1]?.active ? 'active' : ''}`} />
+                    </div>
+                    <div className="timeline-content">
+                      <h4 className={`timeline-title ${step.active ? 'active' : ''}`}>{step.title}</h4>
+                      <p className={`timeline-desc ${step.active ? 'active' : ''}`}>{step.desc}</p>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
+
           </div>
         ) : (
           <div className="no-active-order-card">
