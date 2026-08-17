@@ -19,6 +19,8 @@ export interface OrderItem {
   statusLabel: string
   etaOrDate: string
   actionLabel: string
+  rawBooking?: any
+  rejectionReason?: string
 }
 
 export interface CartItem {
