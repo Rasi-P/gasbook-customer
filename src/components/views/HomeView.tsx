@@ -28,9 +28,10 @@ interface HomeViewProps {
   customerProfile: CustomerProfile | null
   latestActiveOrder?: OrderItem | null
   onViewOrders?: () => void
+  onTrackOrder?: (bookingId: number) => void
 }
 
-export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrder, onViewOrders }: HomeViewProps) {
+export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrder, onViewOrders, onTrackOrder }: HomeViewProps) {
   const [showNotifications, setShowNotifications] = useState(false)
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const hasActiveOrder = Boolean(latestActiveOrder)
@@ -129,7 +130,13 @@ export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrd
           <button
             className="action-card"
             aria-label="Track Order"
-            onClick={() => alert('No active orders to track. Book a cylinder to start live tracking!')}
+            onClick={() => {
+              if (hasActiveOrder && latestActiveOrder?.rawBooking?.id) {
+                onTrackOrder(latestActiveOrder.rawBooking.id)
+              } else {
+                alert('No active orders to track. Book a cylinder to start live tracking!')
+              }
+            }}
           >
             <div className="action-icon-wrapper track-icon-bg">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -211,8 +218,8 @@ export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrd
                   <span>{latestActiveOrder.etaOrDate}</span>
                 </div>
 
-                {onViewOrders && (
-                  <button className="order-action-outline-btn" onClick={onViewOrders}>
+                {onTrackOrder && (
+                  <button className="order-action-outline-btn" onClick={() => onTrackOrder(latestActiveOrder.rawBooking.id)}>
                     Track Order
                   </button>
                 )}

@@ -9,6 +9,7 @@ import { HomeView } from './HomeView'
 import { OrdersView } from './OrdersView'
 import { OrderSuccessView } from './OrderSuccessView'
 import { ProfileView } from './ProfileView'
+import { TrackingModal } from './TrackingModal'
 
 function formatMemberSince(dateValue: string | undefined) {
   if (!dateValue) {
@@ -39,6 +40,7 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
   const [realOrders, setRealOrders] = useState<OrderItem[]>([])
   const [isLoadingOrders, setIsLoadingOrders] = useState(true)
   const [ordersError, setOrdersError] = useState<string | null>(null)
+  const [trackingBookingId, setTrackingBookingId] = useState<number | null>(null)
 
   const fetchOrders = async () => {
     try {
@@ -215,6 +217,7 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
             customerProfile={customerProfile}
             latestActiveOrder={realOrders.find((o) => o.status === 'ongoing')}
             onViewOrders={() => setActiveTab('orders')}
+            onTrackOrder={(id: number) => setTrackingBookingId(id)}
           />
         )}
         {activeTab === 'orders' && (
@@ -223,7 +226,12 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
             isLoading={isLoadingOrders}
             error={ordersError}
             onNavigateToExplore={() => setActiveTab('explore')}
-            onTrackOrder={() => {}} // Not needed here as OrdersView will handle it inline/modal
+            onTrackOrder={(id: string) => {
+              const order = realOrders.find((o) => o.id === id)
+              if (order && order.rawBooking) {
+                setTrackingBookingId(order.rawBooking.id)
+              }
+            }}
             onOrderAgain={handleOrderAgain}
           />
         )}
@@ -273,6 +281,11 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
             cartCount={0}
             setActiveTab={setActiveTab}
           />
+        )}
+        
+        {/* Global Tracking Modal */}
+        {trackingBookingId !== null && (
+          <TrackingModal bookingId={trackingBookingId} onClose={() => setTrackingBookingId(null)} />
         )}
       </div>
     </div>
