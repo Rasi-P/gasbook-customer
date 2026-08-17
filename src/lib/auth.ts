@@ -39,6 +39,10 @@ export interface CustomerProfile {
   updated_at: string
 }
 
+interface PaginatedResponse<T> {
+  results?: T[]
+}
+
 export class ApiError extends Error {
   status: number
   data: unknown
@@ -331,8 +335,9 @@ export async function getCurrentUser(): Promise<CurrentUser> {
 }
 
 export async function getCustomerProfile(): Promise<CustomerProfile | null> {
-  const data = await request<CustomerProfile[]>('/customers/', { method: 'GET' })
-  return data[0] ?? null
+  const data = await request<CustomerProfile[] | PaginatedResponse<CustomerProfile>>('/customers/', { method: 'GET' })
+  const rows = Array.isArray(data) ? data : data?.results || []
+  return rows[0] ?? null
 }
 
 export async function updateCustomerProfile(
