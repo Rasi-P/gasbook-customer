@@ -205,6 +205,8 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
             onNavigateToExplore={() => setActiveTab('explore')}
             onProceedToCheckout={() => setActiveTab('checkout')}
             customerProfile={customerProfile}
+            profileUser={profileUser}
+            onProfileUpdated={onProfileUpdated}
           />
         )}
         {activeTab === 'checkout' && (

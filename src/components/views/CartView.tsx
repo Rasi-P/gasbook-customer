@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import splashCylinder from '../../assets/splash_cylinder.png'
 import type { CustomerProfile } from '../../lib/auth'
-import type { CartItem } from '../../types'
+import type { CartItem, ProfileUser } from '../../types'
+import { EditProfileModal } from '../common/EditProfileModal'
 
 interface CartViewProps {
   cartItems: CartItem[]
@@ -9,6 +11,8 @@ interface CartViewProps {
   onNavigateToExplore: () => void
   onProceedToCheckout: () => void
   customerProfile: CustomerProfile | null
+  profileUser?: ProfileUser
+  onProfileUpdated?: () => void
 }
 
 export function CartView({
@@ -18,7 +22,10 @@ export function CartView({
   onNavigateToExplore,
   onProceedToCheckout,
   customerProfile,
+  profileUser,
+  onProfileUpdated,
 }: CartViewProps) {
+  const [isEditingAddress, setIsEditingAddress] = useState(false)
   const subtotal = cartItems.reduce((acc, item) => acc + item.unitPrice * item.quantity, 0)
   const deliveryFee = cartItems.length > 0 ? 40 : 0
   const total = subtotal + deliveryFee
@@ -29,7 +36,7 @@ export function CartView({
   }
 
   const handleChangeAddress = () => {
-    alert('Opening address management...')
+    setIsEditingAddress(true)
   }
 
   const deliveryName = customerProfile?.name?.trim() || customerProfile?.full_name?.trim() || 'Customer'
@@ -225,6 +232,18 @@ export function CartView({
             Book Cylinder
           </button>
         </div>
+      )}
+
+      {/* Edit Profile Modal for changing delivery address */}
+      {isEditingAddress && profileUser && (
+        <EditProfileModal
+          user={profileUser}
+          onClose={() => setIsEditingAddress(false)}
+          onSuccess={() => {
+            setIsEditingAddress(false)
+            if (onProfileUpdated) onProfileUpdated()
+          }}
+        />
       )}
     </div>
   )
