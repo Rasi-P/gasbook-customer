@@ -377,6 +377,10 @@ export async function fetchCustomerBookings(): Promise<any[]> {
   return data.results || data || []
 }
 
+export async function fetchBookingById(id: number): Promise<any> {
+  return request<any>(`/bookings/${id}/`, { method: 'GET' })
+}
+
 export interface NotificationItem {
   id: number
   recipient: number
