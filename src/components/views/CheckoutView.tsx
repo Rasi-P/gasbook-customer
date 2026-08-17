@@ -6,7 +6,7 @@ interface CheckoutViewProps {
   cartItems: CartItem[]
   customerProfile: CustomerProfile | null
   onBackToCart: () => void
-  onOrderCreated: (orderId: number) => void
+  onOrderCreated: (orderIds: number[]) => void
 }
 
 export function CheckoutView({
@@ -32,22 +32,27 @@ export function CheckoutView({
     setError(null)
 
     try {
-      const cylinderItem = cartItems.find((item) => item.cylinderTypeId)
-      const cylinderTypeId = cylinderItem?.cylinderTypeId || 1
-      const quantity = cartItems.reduce((acc, i) => acc + i.quantity, 0)
+      // Create a booking for each distinct cart item. 
+      // The API currently accepts cylinder_type and quantity.
+      const bookingPromises = cartItems.map((item) => {
+        const payload = {
+          cylinder_type: item.cylinderTypeId || 1,
+          quantity: item.quantity || 1,
+          note: `Order via Customer App (COD)`,
+          payment_method: 'COD',
+          payment_status: 'PENDING',
+          delivery_address: customerAddress,
+          delivery_phone: customerPhone,
+        }
+        return createBooking(payload)
+      })
 
-      const payload = {
-        cylinder_type: cylinderTypeId,
-        quantity: quantity || 1,
-        note: `Order via Customer App (COD)`,
-        payment_method: 'COD',
-        payment_status: 'PENDING',
-        delivery_address: customerAddress,
-        delivery_phone: customerPhone,
-      }
-
-      const data = await createBooking(payload)
-      onOrderCreated(data.id)
+      // Wait for all bookings to succeed
+      const responses = await Promise.all(bookingPromises)
+      
+      // Extract the order IDs
+      const orderIds = responses.map((res: any) => res.id)
+      onOrderCreated(orderIds)
     } catch (err: unknown) {
       const details = getApiErrorDetails(err, 'Unable to place order. Please try again.')
       setError(details.message)
@@ -59,11 +64,14 @@ export function CheckoutView({
   return (
     <div className="cart-scroll-container">
       {/* 1. Header */}
-      <div className="cart-header">
-        <button className="search-clear-btn" onClick={onBackToCart} style={{ fontSize: '1rem', marginRight: '8px' }}>
-          ←
+      <div className="cart-header" style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingBottom: '16px', borderBottom: '1px solid #f1f5f9', marginBottom: '16px' }}>
+        <button onClick={onBackToCart} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', color: '#64748b' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12 19 5 12 12 5" />
+          </svg>
         </button>
-        <h1 className="cart-title">Checkout</h1>
+        <h1 className="cart-title" style={{ margin: 0, fontSize: '1.25rem' }}>Order Summary</h1>
       </div>
 
       <div className="cart-populated-layout">

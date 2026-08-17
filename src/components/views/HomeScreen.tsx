@@ -35,7 +35,7 @@ interface HomeScreenProps {
 export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: HomeScreenProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>('home')
   const [cartItems, setCartItems] = useState<CartItem[]>([])
-  const [lastCreatedOrderId, setLastCreatedOrderId] = useState<number | null>(null)
+  const [lastCreatedOrderIds, setLastCreatedOrderIds] = useState<number[]>([])
   const [realOrders, setRealOrders] = useState<OrderItem[]>([])
 
   const fetchOrders = async () => {
@@ -138,7 +138,8 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
 
   const handleBook = (productName: string, price?: number, cylinderTypeId?: number) => {
     setCartItems((prev) => {
-      const existing = prev.find((item) => item.cylinderTypeId === cylinderTypeId || item.name.toLowerCase().includes(productName.toLowerCase()))
+      // Find existing exactly by cylinderTypeId if defined, or strictly fallback to name match if no ID provided.
+      const existing = prev.find((item) => cylinderTypeId ? item.cylinderTypeId === cylinderTypeId : item.name === productName)
       if (existing) {
         return prev.map((item) => (item.id === existing.id ? { ...item, quantity: item.quantity + 1 } : item))
       }
@@ -162,9 +163,9 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
     setActiveTab('cart')
   }
 
-  const handleOrderCreated = (orderId: number) => {
+  const handleOrderCreated = (orderIds: number[]) => {
     setCartItems([]) // Clear cart only after checkout order creation succeeds
-    setLastCreatedOrderId(orderId)
+    setLastCreatedOrderIds(orderIds)
     setActiveTab('order-success')
     void fetchOrders()
   }
@@ -214,10 +215,15 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
             onOrderCreated={handleOrderCreated}
           />
         )}
-        {activeTab === 'order-success' && (
+        {activeTab === 'order-success' && lastCreatedOrderIds.length > 0 && (
           <OrderSuccessView
-            orderId={lastCreatedOrderId || 0}
+            orderIds={lastCreatedOrderIds}
             onViewOrders={() => setActiveTab('orders')}
+            onTrackOrder={(id) => {
+              setTrackingBookingId(id)
+              setActiveTab('home') // Show tracking over home
+            }}
+            onBackToHome={() => setActiveTab('home')}
           />
         )}
         {activeTab === 'profile' && (
@@ -235,11 +241,13 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
         )}
 
         {/* Bottom Navigation */}
-        <BottomNavigation
-          activeTab={activeTab === 'checkout' || activeTab === 'order-success' ? 'cart' : activeTab}
-          cartCount={cartCount}
-          setActiveTab={setActiveTab}
-        />
+        {activeTab !== 'checkout' && activeTab !== 'order-success' && (
+          <BottomNavigation
+            activeTab={activeTab === 'explore' ? 'home' : activeTab}
+            cartCount={cartCount}
+            setActiveTab={setActiveTab}
+          />
+        )}
       </div>
     </div>
   )

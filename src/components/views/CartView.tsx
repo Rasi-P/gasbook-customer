@@ -38,8 +38,14 @@ export function CartView({
   return (
     <div className="cart-scroll-container">
       {/* 1. Header */}
-      <div className="cart-header">
-        <h1 className="cart-title">My Cart</h1>
+      <div className="cart-header" style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingBottom: '16px', borderBottom: '1px solid #f1f5f9', marginBottom: '16px' }}>
+        <button onClick={onNavigateToExplore} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', color: '#64748b' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12 19 5 12 12 5" />
+          </svg>
+        </button>
+        <h1 className="cart-title" style={{ margin: 0, fontSize: '1.25rem' }}>Cart</h1>
         {totalCount > 0 && (
           <div className="cart-header-icon-wrap" aria-label="Cart items">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -179,11 +185,14 @@ export function CartView({
 
           {/* 4. Checkout CTA Button */}
           <button className="proceed-checkout-btn" onClick={handleCheckout}>
-            <span>Proceed to Checkout</span>
+            <span>Proceed to Order Summary</span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="5" y1="12" x2="19" y2="12" />
               <polyline points="12 5 19 12 12 19" />
             </svg>
+          </button>
+          <button className="secondary-button" onClick={onNavigateToExplore} style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0', background: 'transparent', fontWeight: 600, color: '#3b82f6', cursor: 'pointer', marginTop: '12px' }}>
+            Continue Shopping
           </button>
         </div>
       ) : (
@@ -209,11 +218,11 @@ export function CartView({
             </svg>
           </div>
 
-          <h2 className="empty-title">Your cart is empty</h2>
-          <p className="empty-subtitle">Products you add will show up here.</p>
+          <h2 className="empty-title">Your Cart is Empty</h2>
+          <p className="empty-subtitle">Add a cylinder to your cart to continue.</p>
 
           <button className="empty-explore-btn" onClick={onNavigateToExplore}>
-            Explore Products
+            Book Cylinder
           </button>
         </div>
       )}
