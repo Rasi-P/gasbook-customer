@@ -37,7 +37,7 @@ interface HomeScreenProps {
 export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: HomeScreenProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>('home')
   const [cartItems, setCartItems] = useState<CartItem[]>([])
-  const [lastCreatedOrderId, setLastCreatedOrderId] = useState<number | null>(null)
+  const [lastCreatedOrderIds, setLastCreatedOrderIds] = useState<number[]>([])
   const [realOrders, setRealOrders] = useState<OrderItem[]>([])
   const [trackingBookingId, setTrackingBookingId] = useState<number | null>(null)
 
@@ -155,20 +155,26 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
   }
 
   const handleBook = (productName: string, price?: number, cylinderTypeId?: number) => {
-    // Overwrite the cart with the single newly selected item to support the linear flow
-    setCartItems([
-      {
-        id: `cart-${Date.now()}`,
-        cylinderTypeId: cylinderTypeId,
-        name: productName,
-        variant: productName.includes('KG') ? productName : `${productName}`,
-        unitPrice: price || 0,
-        quantity: 1,
-        type: 'cylinder',
-      },
-    ])
-    // Go straight to Checkout (Review Your Order) instead of Cart
-    setActiveTab('checkout')
+    setCartItems((prev) => {
+      // Find existing exactly by cylinderTypeId if defined, or strictly fallback to name match if no ID provided.
+      const existing = prev.find((item) => cylinderTypeId ? item.cylinderTypeId === cylinderTypeId : item.name === productName)
+      if (existing) {
+        return prev.map((item) => (item.id === existing.id ? { ...item, quantity: item.quantity + 1 } : item))
+      }
+      return [
+        ...prev,
+        {
+          id: `cart-${Date.now()}`,
+          cylinderTypeId: cylinderTypeId || 1,
+          name: productName,
+          variant: productName.includes('KG') ? productName : `${productName}`,
+          unitPrice: price || 1300,
+          quantity: 1,
+          type: 'cylinder',
+        },
+      ]
+    })
+    setActiveTab('cart')
   }
 
   // Removed old handleOrderAgain, OrdersView will call handleBook directly
@@ -178,9 +184,9 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
     setActiveTab('home')
   }
 
-  const handleOrderCreated = (orderId: number) => {
+  const handleOrderCreated = (orderIds: number[]) => {
     setCartItems([]) // Clear cart only after checkout order creation succeeds
-    setLastCreatedOrderId(orderId)
+    setLastCreatedOrderIds(orderIds)
     setActiveTab('order-success')
     void fetchActiveOrder()
   }
@@ -220,6 +226,8 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
             onNavigateToExplore={() => setActiveTab('explore')}
             onProceedToCheckout={() => setActiveTab('checkout')}
             customerProfile={customerProfile}
+            profileUser={profileUser}
+            onProfileUpdated={onProfileUpdated}
           />
         )}
         {activeTab === 'checkout' && (
@@ -230,10 +238,14 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
             onOrderCreated={handleOrderCreated}
           />
         )}
-        {activeTab === 'order-success' && (
+        {activeTab === 'order-success' && lastCreatedOrderIds.length > 0 && (
           <OrderSuccessView
-            orderId={lastCreatedOrderId || 0}
+            orderIds={lastCreatedOrderIds}
             onViewOrders={() => setActiveTab('orders')}
+            onTrackOrder={(id) => {
+              setTrackingBookingId(id)
+              setActiveTab('home') // Show tracking over home
+            }}
             onBackToHome={() => setActiveTab('home')}
           />
         )}
@@ -252,14 +264,13 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
         )}
 
         {/* Bottom Navigation */}
-        {activeTab !== 'checkout' && activeTab !== 'order-success' && activeTab !== 'cart' && (
+        {activeTab !== 'checkout' && activeTab !== 'order-success' && (
           <BottomNavigation
-            activeTab={activeTab === 'explore' ? 'home' : activeTab} // Hide explore as a tab visually if needed, but it's Book Cylinder now
-            cartCount={0}
+            activeTab={activeTab === 'explore' ? 'home' : activeTab}
+            cartCount={cartCount}
             setActiveTab={setActiveTab}
           />
-        )}
-        
+        )}       
         {/* Global Tracking Modal */}
         {trackingBookingId !== null && (
           <TrackingModal bookingId={trackingBookingId} onClose={() => setTrackingBookingId(null)} />
