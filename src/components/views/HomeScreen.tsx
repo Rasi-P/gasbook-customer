@@ -37,9 +37,13 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [lastCreatedOrderId, setLastCreatedOrderId] = useState<number | null>(null)
   const [realOrders, setRealOrders] = useState<OrderItem[]>([])
+  const [isLoadingOrders, setIsLoadingOrders] = useState(true)
+  const [ordersError, setOrdersError] = useState<string | null>(null)
 
   const fetchOrders = async () => {
     try {
+      setIsLoadingOrders(true)
+      setOrdersError(null)
       const items = await fetchCustomerBookings()
       const mapped: OrderItem[] = items.map((b: any) => {
         let statusLabel = 'Order Placed'
@@ -61,7 +65,11 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
         } else if (b.status === 'cancelled' || b.status === 'rejected') {
           statusLabel = b.status === 'rejected' ? 'Rejected' : 'Cancelled'
           statusKind = 'cancelled'
-          etaOrDate = b.status === 'rejected' ? 'Order rejected by administration' : 'Order cancelled'
+          if (b.status === 'rejected') {
+            etaOrDate = b.rejection_reason ? `Rejected: ${b.rejection_reason}` : 'Order rejected by administration'
+          } else {
+            etaOrDate = 'Order cancelled'
+          }
         }
 
         const rawName = b.cylinder_type_name || 'Domestic LPG'
@@ -95,24 +103,33 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
       })
       setRealOrders(mapped)
     } catch {
-      // Ignore network errors
+      setOrdersError('Could not load your orders. Please check your connection.')
+    } finally {
+      setIsLoadingOrders(false)
     }
   }
 
   function floatRate(b: any) {
-    return parseFloat(b.rate || '1300')
+    return parseFloat(b.rate || '0')
   }
 
   useEffect(() => {
     void fetchOrders()
   }, [activeTab])
 
+  // Safety guard: if cart is empty but we are on checkout, redirect to explore
+  useEffect(() => {
+    if (activeTab === 'checkout' && cartItems.length === 0) {
+      setActiveTab('explore')
+    }
+  }, [activeTab, cartItems])
+
   const profileUser: ProfileUser = {
     profileId: customerProfile?.id,
-    name: customerProfile?.name?.trim() || customerProfile?.full_name?.trim() || 'Customer',
-    email: customerProfile?.email?.trim() || 'Not available',
-    phone: customerProfile?.phone?.trim() || 'Not available',
-    address: customerProfile?.address?.trim() || 'Not available',
+    name: customerProfile?.name?.trim() || customerProfile?.full_name?.trim() || '',
+    email: customerProfile?.email?.trim() || '',
+    phone: customerProfile?.phone?.trim() || '',
+    address: customerProfile?.address?.trim() || '',
     memberSince: formatMemberSince(customerProfile?.created_at),
   }
 
@@ -137,29 +154,25 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
   }
 
   const handleBook = (productName: string, price?: number, cylinderTypeId?: number) => {
-    setCartItems((prev) => {
-      const existing = prev.find((item) => item.cylinderTypeId === cylinderTypeId || item.name.toLowerCase().includes(productName.toLowerCase()))
-      if (existing) {
-        return prev.map((item) => (item.id === existing.id ? { ...item, quantity: item.quantity + 1 } : item))
-      }
-      return [
-        ...prev,
-        {
-          id: `cart-${Date.now()}`,
-          cylinderTypeId: cylinderTypeId || 1,
-          name: productName,
-          variant: productName.includes('KG') ? productName : `${productName}`,
-          unitPrice: price || 1300,
-          quantity: 1,
-          type: 'cylinder',
-        },
-      ]
-    })
-    setActiveTab('cart')
+    // Overwrite the cart with the single newly selected item to support the linear flow
+    setCartItems([
+      {
+        id: `cart-${Date.now()}`,
+        cylinderTypeId: cylinderTypeId,
+        name: productName,
+        variant: productName.includes('KG') ? productName : `${productName}`,
+        unitPrice: price || 0,
+        quantity: 1,
+        type: 'cylinder',
+      },
+    ])
+    // Go straight to Checkout (Review Your Order) instead of Cart
+    setActiveTab('checkout')
   }
 
   const handleNavigateToCart = () => {
-    setActiveTab('cart')
+    // Actually, "Cart" is deprecated in this flow. We'll map this back to home if called
+    setActiveTab('home')
   }
 
   const handleOrderCreated = (orderId: number) => {
@@ -182,7 +195,7 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
         )}
         {activeTab === 'home' && (
           <HomeView
-            onBook={handleBook}
+            onNavigateToExplore={() => setActiveTab('explore')}
             customerProfile={customerProfile}
             latestActiveOrder={realOrders.find((o) => o.status === 'ongoing')}
             onViewOrders={() => setActiveTab('orders')}
@@ -191,6 +204,8 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
         {activeTab === 'orders' && (
           <OrdersView
             orders={realOrders}
+            isLoading={isLoadingOrders}
+            error={ordersError}
             onNavigateToExplore={() => setActiveTab('explore')}
             onTrackOrder={() => alert('Order details & live status')}
             onOrderAgain={(orderId: string) => alert(`Reordering items from ${orderId}`)}
@@ -210,7 +225,7 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
           <CheckoutView
             cartItems={cartItems}
             customerProfile={customerProfile}
-            onBackToCart={() => setActiveTab('cart')}
+            onBackToCart={() => setActiveTab('explore')}
             onOrderCreated={handleOrderCreated}
           />
         )}
@@ -218,6 +233,7 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
           <OrderSuccessView
             orderId={lastCreatedOrderId || 0}
             onViewOrders={() => setActiveTab('orders')}
+            onBackToHome={() => setActiveTab('home')}
           />
         )}
         {activeTab === 'profile' && (
@@ -235,11 +251,13 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
         )}
 
         {/* Bottom Navigation */}
-        <BottomNavigation
-          activeTab={activeTab === 'checkout' || activeTab === 'order-success' ? 'cart' : activeTab}
-          cartCount={cartCount}
-          setActiveTab={setActiveTab}
-        />
+        {activeTab !== 'checkout' && activeTab !== 'order-success' && activeTab !== 'cart' && (
+          <BottomNavigation
+            activeTab={activeTab === 'explore' ? 'home' : activeTab} // Hide explore as a tab visually if needed, but it's Book Cylinder now
+            cartCount={0}
+            setActiveTab={setActiveTab}
+          />
+        )}
       </div>
     </div>
   )

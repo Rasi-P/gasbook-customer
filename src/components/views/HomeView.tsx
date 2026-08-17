@@ -24,13 +24,13 @@ function getLocationText(customerProfile: CustomerProfile | null) {
 }
 
 interface HomeViewProps {
-  onBook: (productName: string) => void
+  onNavigateToExplore: () => void
   customerProfile: CustomerProfile | null
   latestActiveOrder?: OrderItem | null
   onViewOrders?: () => void
 }
 
-export function HomeView({ onBook, customerProfile, latestActiveOrder, onViewOrders }: HomeViewProps) {
+export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrder, onViewOrders }: HomeViewProps) {
   const [showNotifications, setShowNotifications] = useState(false)
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const hasActiveOrder = Boolean(latestActiveOrder)
@@ -100,7 +100,7 @@ export function HomeView({ onBook, customerProfile, latestActiveOrder, onViewOrd
           </h2>
           <p className="hero-subtitle">Safe. On time. Every time.</p>
 
-          <button className="book-now-btn" onClick={() => onBook('LPG Cylinder')}>
+          <button className="book-now-btn" onClick={onNavigateToExplore}>
             <span>Book Cylinder</span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="5" y1="12" x2="19" y2="12" />
@@ -116,7 +116,7 @@ export function HomeView({ onBook, customerProfile, latestActiveOrder, onViewOrd
       <div className="quick-actions-section">
         <h3 className="section-title">Quick Actions</h3>
         <div className="quick-actions-grid">
-          <button className="action-card" aria-label="Book Cylinder" onClick={() => onBook('LPG Cylinder')}>
+          <button className="action-card" aria-label="Book Cylinder" onClick={onNavigateToExplore}>
             <div className="action-icon-wrapper book-icon-bg">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 2v20M2 12h20" />
@@ -218,6 +218,43 @@ export function HomeView({ onBook, customerProfile, latestActiveOrder, onViewOrd
                 )}
               </div>
             </div>
+
+            {/* Live Order Status Timeline */}
+            <div className="timeline-container">
+              {[
+                {
+                  title: 'Order Placed',
+                  desc: 'Your order has been received',
+                  active: latestActiveOrder.statusCode !== 'cancelled' && latestActiveOrder.statusCode !== 'rejected'
+                },
+                {
+                  title: 'Order Confirmed',
+                  desc: latestActiveOrder.statusCode !== 'pending' && latestActiveOrder.statusCode !== 'cancelled' && latestActiveOrder.statusCode !== 'rejected' ? 'Assigned to delivery partner' : 'Awaiting confirmation',
+                  active: latestActiveOrder.statusCode !== 'pending' && latestActiveOrder.statusCode !== 'cancelled' && latestActiveOrder.statusCode !== 'rejected'
+                },
+                {
+                  title: 'Out for Delivery',
+                  desc: (latestActiveOrder.statusCode === 'accepted' || latestActiveOrder.statusCode === 'out_for_delivery' || latestActiveOrder.statusCode === 'delivered') ? 'Agent is on the way' : 'Pending dispatch',
+                  active: (latestActiveOrder.statusCode === 'accepted' || latestActiveOrder.statusCode === 'out_for_delivery' || latestActiveOrder.statusCode === 'delivered')
+                },
+                {
+                  title: 'Delivered',
+                  desc: latestActiveOrder.statusCode === 'delivered' ? 'Cylinder delivered successfully' : 'Pending delivery',
+                  active: latestActiveOrder.statusCode === 'delivered'
+                }
+              ].map((step, idx, arr) => (
+                <div key={step.title} className="timeline-step">
+                  <div className="timeline-indicator">
+                    <div className={`timeline-dot ${step.active ? 'active' : ''}`} />
+                    <div className={`timeline-line ${step.active && arr[idx + 1]?.active ? 'active' : ''}`} />
+                  </div>
+                  <div className="timeline-content">
+                    <h4 className={`timeline-title ${step.active ? 'active' : ''}`}>{step.title}</h4>
+                    <p className={`timeline-desc ${step.active ? 'active' : ''}`}>{step.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
           <div className="no-active-order-card">
@@ -233,7 +270,7 @@ export function HomeView({ onBook, customerProfile, latestActiveOrder, onViewOrd
                 <p className="no-order-subtitle">Need gas? Book your 14.2 KG cylinder now</p>
               </div>
             </div>
-            <button className="order-now-btn" onClick={() => onBook('14.2 KG Gas Cylinder')}>
+            <button className="order-now-btn" onClick={onNavigateToExplore}>
               <span>Order Now</span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12" />
