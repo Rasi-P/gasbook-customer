@@ -22,6 +22,7 @@ export function OrdersView({
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'ongoing' | 'completed' | 'cancelled'>('all')
   const [showNotifications, setShowNotifications] = useState(false)
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
+  const [detailsModalOrder, setDetailsModalOrder] = useState<OrderItem | null>(null)
 
   const loadNotifications = async () => {
     try {
@@ -53,6 +54,13 @@ export function OrdersView({
   })
 
   const getTimelineSteps = (code: string | undefined) => {
+    if (code === 'cancelled' || code === 'rejected') {
+      return [
+        { key: 'placed', title: 'Order Placed', isDone: true, isCurrent: false },
+        { key: 'terminated', title: code === 'rejected' ? 'Rejected' : 'Cancelled', isDone: true, isCurrent: true }
+      ]
+    }
+
     const steps = [
       { key: 'placed', title: 'Order Placed' },
       { key: 'confirmed', title: 'Order Confirmed' },
@@ -68,8 +76,8 @@ export function OrdersView({
 
     return steps.map((step, idx) => ({
       ...step,
-      isDone: idx <= currentIndex && code !== 'cancelled' && code !== 'rejected',
-      isCurrent: idx === currentIndex && code !== 'cancelled' && code !== 'rejected',
+      isDone: idx <= currentIndex,
+      isCurrent: idx === currentIndex,
     }))
   }
 
@@ -149,19 +157,27 @@ export function OrdersView({
                     <span>{order.etaOrDate}</span>
                   </div>
 
-                  <button
-                    className="order-action-outline-btn"
-                    onClick={() => {
-                      if (order.status !== 'ongoing') {
-                        onOrderAgain(order.id)
-                      } else {
-                        // Action for ongoing orders if needed, maybe scroll to timeline
-                        console.log('Track order clicked for', order.id)
-                      }
-                    }}
-                  >
-                    {order.actionLabel}
-                  </button>
+                  {order.statusCode === 'delivered' ? (
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button className="order-action-outline-btn" onClick={() => setDetailsModalOrder(order)}>View Details</button>
+                      <button className="order-action-outline-btn" onClick={() => onOrderAgain(order.id)}>Order Again</button>
+                    </div>
+                  ) : (
+                    <button
+                      className="order-action-outline-btn"
+                      onClick={() => {
+                        if (order.status !== 'ongoing') {
+                          setDetailsModalOrder(order)
+                        } else {
+                          // Scroll to inline timeline logic could go here, or just let them scroll.
+                          // But we can also open details if they click track order.
+                          setDetailsModalOrder(order)
+                        }
+                      }}
+                    >
+                      {order.actionLabel}
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -200,7 +216,80 @@ export function OrdersView({
         </div>
       )}
 
-      {/* Tracking Modal removed - timeline is now visible inline on the active orders */}
+      {/* Details Modal */}
+      {detailsModalOrder && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
+          <div style={{ background: '#FFF', width: '100%', maxWidth: '400px', maxHeight: '90vh', borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0, color: '#132B4F' }}>Booking Details</h2>
+              <button onClick={() => setDetailsModalOrder(null)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#132B4F' }}>✕</button>
+            </div>
+            
+            <div style={{ marginBottom: '20px', background: '#F8FAFC', padding: '16px', borderRadius: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ color: '#64748b', fontSize: '14px' }}>Order ID</span>
+                <span style={{ fontWeight: 600, color: '#1e293b' }}>{detailsModalOrder.orderNumber}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ color: '#64748b', fontSize: '14px' }}>Date</span>
+                <span style={{ fontWeight: 600, color: '#1e293b' }}>{detailsModalOrder.date}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ color: '#64748b', fontSize: '14px' }}>Cylinder</span>
+                <span style={{ fontWeight: 600, color: '#1e293b' }}>{detailsModalOrder.productName} ({detailsModalOrder.weight})</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ color: '#64748b', fontSize: '14px' }}>Quantity</span>
+                <span style={{ fontWeight: 600, color: '#1e293b' }}>{detailsModalOrder.rawBooking?.quantity || 1}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ color: '#64748b', fontSize: '14px' }}>Total Amount</span>
+                <span style={{ fontWeight: 600, color: '#1e293b' }}>{detailsModalOrder.price}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ color: '#64748b', fontSize: '14px' }}>Payment Method</span>
+                <span style={{ fontWeight: 600, color: '#1e293b' }}>Cash on Delivery</span>
+              </div>
+            </div>
+
+            <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: '#1e293b' }}>Status</h3>
+            <div style={{ marginBottom: '20px', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                <div className={`status-pill ${detailsModalOrder.statusCode === 'pending' ? 'pending' : 'ongoing'}`}>
+                  <span>{detailsModalOrder.statusLabel}</span>
+                </div>
+              </div>
+              
+              {detailsModalOrder.statusCode === 'rejected' && detailsModalOrder.rejectionReason && (
+                <div style={{ padding: '12px', background: '#FEF2F2', borderRadius: '8px', border: '1px solid #FECACA', color: '#991B1B', fontSize: '14px', marginBottom: '12px' }}>
+                  <strong>Reason:</strong> {detailsModalOrder.rejectionReason}
+                </div>
+              )}
+              
+              <div className="timeline-container" style={{ marginTop: '0', padding: '0', background: 'transparent', boxShadow: 'none' }}>
+                  {getTimelineSteps(detailsModalOrder.statusCode).map((step, idx, arr) => (
+                    <div key={step.key} className="timeline-step" style={{ minHeight: '40px' }}>
+                      <div className="timeline-indicator">
+                        <div className={`timeline-dot ${step.isDone ? 'active' : ''}`} />
+                        <div className={`timeline-line ${step.isDone && arr[idx + 1]?.isDone ? 'active' : ''}`} />
+                      </div>
+                      <div className="timeline-content">
+                        <h4 className={`timeline-title ${step.isDone ? 'active' : ''}`}>{step.title}</h4>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            <button
+              style={{ width: '100%', padding: '14px', background: '#F1F5F9', color: '#1e293b', border: 'none', borderRadius: '8px', fontWeight: 600, fontSize: '16px', cursor: 'pointer' }}
+              onClick={() => setDetailsModalOrder(null)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Notifications Drawer */}
       {showNotifications && (

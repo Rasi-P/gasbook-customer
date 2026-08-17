@@ -98,7 +98,9 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
           statusCode: b.status,
           statusLabel: statusLabel,
           etaOrDate: etaOrDate,
-          actionLabel: b.status === 'delivered' ? 'Order Again' : 'Track Order',
+          actionLabel: (b.status === 'rejected' || b.status === 'cancelled') ? 'View Details' : (b.status === 'delivered' ? 'Order Again' : 'Track Order'),
+          rawBooking: b,
+          rejectionReason: b.rejection_reason,
         }
       })
       setRealOrders(mapped)
@@ -170,6 +172,20 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
     setActiveTab('checkout')
   }
 
+  const handleOrderAgain = (orderId: string) => {
+    const order = realOrders.find((o) => o.id === orderId)
+    if (!order || !order.rawBooking) return
+    
+    const b = order.rawBooking
+    if (!b.cylinder_type_id) {
+      alert("This cylinder is currently unavailable.")
+      return
+    }
+    
+    // We pass the product name, price, and cylinder_type_id to handleBook to reuse existing flow
+    handleBook(order.productName, floatRate(b), b.cylinder_type_id)
+  }
+
   const handleNavigateToCart = () => {
     // Actually, "Cart" is deprecated in this flow. We'll map this back to home if called
     setActiveTab('home')
@@ -207,8 +223,8 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
             isLoading={isLoadingOrders}
             error={ordersError}
             onNavigateToExplore={() => setActiveTab('explore')}
-            onTrackOrder={() => alert('Order details & live status')}
-            onOrderAgain={(orderId: string) => alert(`Reordering items from ${orderId}`)}
+            onTrackOrder={() => {}} // Not needed here as OrdersView will handle it inline/modal
+            onOrderAgain={handleOrderAgain}
           />
         )}
         {activeTab === 'cart' && (
