@@ -132,7 +132,7 @@ export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrd
             aria-label="Track Order"
             onClick={() => {
               if (hasActiveOrder && latestActiveOrder?.rawBooking?.id) {
-                onTrackOrder(latestActiveOrder.rawBooking.id)
+                onTrackOrder?.(latestActiveOrder.rawBooking.id)
               } else {
                 alert('No active orders to track. Book a cylinder to start live tracking!')
               }

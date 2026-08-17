@@ -264,7 +264,7 @@ async function refreshTokens(): Promise<AuthTokens> {
   return refreshRequest
 }
 
-async function request<T>(
+export async function request<T>(
   path: string,
   init: RequestInit = {},
   options: { auth?: boolean; retryOnUnauthorized?: boolean } = {},
