@@ -331,8 +331,14 @@ export async function getCurrentUser(): Promise<CurrentUser> {
 }
 
 export async function getCustomerProfile(): Promise<CustomerProfile | null> {
-  const data = await request<CustomerProfile[]>('/customers/', { method: 'GET' })
-  return data[0] ?? null
+  const data = await request<any>('/customers/', { method: 'GET' })
+  if (data?.results && Array.isArray(data.results)) {
+    return data.results[0] ?? null
+  }
+  if (Array.isArray(data)) {
+    return data[0] ?? null
+  }
+  return null
 }
 
 export async function updateCustomerProfile(
