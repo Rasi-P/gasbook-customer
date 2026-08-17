@@ -5,7 +5,6 @@ import { updateCustomerProfile, getApiErrorDetails } from '../../lib/auth'
 interface ProfileViewProps {
   user?: ProfileUser
   onProfileUpdated?: () => void
-  onNavigateToAddresses?: () => void
   onLogout: () => void
 }
 
@@ -18,7 +17,6 @@ export function ProfileView({
     memberSince: 'May 2025',
   },
   onProfileUpdated,
-  onNavigateToAddresses,
   onLogout,
 }: ProfileViewProps) {
   const [isEditing, setIsEditing] = useState(false)
@@ -107,12 +105,7 @@ export function ProfileView({
     }
   }
 
-  const handleAddressClick = () => {
-    if (onNavigateToAddresses) {
-      onNavigateToAddresses()
-    }
-    handleOpenEdit()
-  }
+
 
   return (
     <div className="profile-scroll-container">

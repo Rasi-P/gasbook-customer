@@ -5,6 +5,8 @@ import { fetchCustomerNotifications, markNotificationRead, type NotificationItem
 
 interface OrdersViewProps {
   orders?: OrderItem[]
+  isLoading?: boolean
+  error?: string | null
   onNavigateToExplore: () => void
   onTrackOrder: (orderId: string) => void
   onOrderAgain: (orderId: string) => void
@@ -12,11 +14,12 @@ interface OrdersViewProps {
 
 export function OrdersView({
   orders = [],
+  isLoading = false,
+  error = null,
   onNavigateToExplore,
   onOrderAgain,
 }: OrdersViewProps) {
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'ongoing' | 'completed' | 'cancelled'>('all')
-  const [trackingOrder, setTrackingOrder] = useState<OrderItem | null>(null)
   const [showNotifications, setShowNotifications] = useState(false)
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
 
@@ -102,8 +105,22 @@ export function OrdersView({
         </div>
       )}
 
-      {/* 3. Populated Orders List */}
-      {filteredOrders.length > 0 ? (
+      {/* 3. Populated Orders List or States */}
+      {isLoading ? (
+        <div className="orders-loading-state" style={{ padding: '40px 20px', textAlign: 'center' }}>
+          <div className="spinner" style={{ margin: '0 auto 16px', width: '32px', height: '32px', border: '3px solid #e2e8f0', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <p style={{ color: '#64748b' }}>Loading your orders...</p>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      ) : error ? (
+        <div className="orders-error-state" style={{ padding: '40px 20px', textAlign: 'center' }}>
+          <h2 className="empty-title" style={{ color: '#ef4444' }}>Unable to load orders.</h2>
+          <p className="empty-subtitle">{error}</p>
+          <button className="empty-explore-btn" onClick={() => window.location.reload()} style={{ marginTop: '16px' }}>
+            <span>Try Again</span>
+          </button>
+        </div>
+      ) : filteredOrders.length > 0 ? (
         <div className="orders-list-container">
           {filteredOrders.map((order) => (
             <div key={order.id} className="order-item-card">
@@ -124,7 +141,7 @@ export function OrdersView({
                 </div>
 
                 <div className="order-status-action-right">
-                  <div className={`status-pill ${order.statusCode === 'pending' ? 'pending' : order.status}`}>
+                  <div className={`status-pill ${order.statusCode === 'pending' ? 'pending' : 'ongoing'}`}>
                     <span>{order.statusLabel}</span>
                   </div>
 
@@ -135,10 +152,11 @@ export function OrdersView({
                   <button
                     className="order-action-outline-btn"
                     onClick={() => {
-                      if (order.status === 'ongoing') {
-                        setTrackingOrder(order)
-                      } else {
+                      if (order.status !== 'ongoing') {
                         onOrderAgain(order.id)
+                      } else {
+                        // Action for ongoing orders if needed, maybe scroll to timeline
+                        console.log('Track order clicked for', order.id)
                       }
                     }}
                   >
@@ -146,54 +164,43 @@ export function OrdersView({
                   </button>
                 </div>
               </div>
+
+              {/* Inline Timeline for Ongoing Orders */}
+              {order.status === 'ongoing' && (
+                <div className="timeline-container">
+                  {getTimelineSteps(order.statusCode).map((step, idx, arr) => (
+                    <div key={step.key} className="timeline-step">
+                      <div className="timeline-indicator">
+                        <div className={`timeline-dot ${step.isDone ? 'active' : ''}`} />
+                        <div className={`timeline-line ${step.isDone && arr[idx + 1]?.isDone ? 'active' : ''}`} />
+                      </div>
+                      <div className="timeline-content">
+                        <h4 className={`timeline-title ${step.isDone ? 'active' : ''}`}>{step.title}</h4>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>
       ) : (
         <div className="orders-empty-state">
-          <h2 className="empty-title">No orders yet</h2>
-          <p className="empty-subtitle">Your gas cylinder orders will appear here.</p>
+          <h2 className="empty-title">
+            {selectedFilter === 'all' ? 'No orders yet' : `No ${selectedFilter} orders`}
+          </h2>
+          <p className="empty-subtitle">
+            {selectedFilter === 'all' 
+              ? "You haven't booked a gas cylinder yet." 
+              : `You have no ${selectedFilter} orders at the moment.`}
+          </p>
           <button className="empty-explore-btn" onClick={onNavigateToExplore}>
-            <span>Explore Products</span>
+            <span>Book Cylinder</span>
           </button>
         </div>
       )}
 
-      {/* Tracking Modal */}
-      {trackingOrder && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 420, padding: 24, boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h2 style={{ fontSize: 18, fontWeight: 700 }}>Order Live Tracking</h2>
-              <button onClick={() => setTrackingOrder(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer' }}>✕</button>
-            </div>
-            <p style={{ fontSize: 14, color: '#64748b', marginBottom: 20 }}>{trackingOrder.orderNumber} • {trackingOrder.productName}</p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {getTimelineSteps(trackingOrder.statusCode).map((step, i) => (
-                <div key={step.key} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{
-                    width: 24, height: 24, borderRadius: '50%',
-                    background: step.isDone ? '#2563eb' : '#e2e8f0',
-                    color: step.isDone ? '#fff' : '#64748b',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 12, fontWeight: 700
-                  }}>
-                    {step.isDone ? '✓' : i + 1}
-                  </div>
-                  <span style={{ fontSize: 14, fontWeight: step.isCurrent ? 700 : 500, color: step.isDone ? '#1e293b' : '#94a3b8' }}>
-                    {step.title}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            <button onClick={() => setTrackingOrder(null)} style={{ marginTop: 24, width: '100%', padding: 12, background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}>
-              Close
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Tracking Modal removed - timeline is now visible inline on the active orders */}
 
       {/* Notifications Drawer */}
       {showNotifications && (
