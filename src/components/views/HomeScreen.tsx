@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { fetchCustomerBookings, type CustomerProfile } from '../../lib/auth'
+import { type CustomerProfile } from '../../lib/auth'
 import type { ActiveTab, CartItem, OrderItem, ProfileUser } from '../../types'
 import { BottomNavigation } from '../layout/BottomNavigation'
 import { CartView } from './CartView'
@@ -10,6 +10,7 @@ import { OrdersView } from './OrdersView'
 import { OrderSuccessView } from './OrderSuccessView'
 import { ProfileView } from './ProfileView'
 import { TrackingModal } from './TrackingModal'
+import { fetchPaginatedBookings } from '../../lib/api-queries'
 
 function formatMemberSince(dateValue: string | undefined) {
   if (!dateValue) {
@@ -38,15 +39,13 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [lastCreatedOrderId, setLastCreatedOrderId] = useState<number | null>(null)
   const [realOrders, setRealOrders] = useState<OrderItem[]>([])
-  const [isLoadingOrders, setIsLoadingOrders] = useState(true)
-  const [ordersError, setOrdersError] = useState<string | null>(null)
   const [trackingBookingId, setTrackingBookingId] = useState<number | null>(null)
 
-  const fetchOrders = async () => {
+  const fetchActiveOrder = async () => {
     try {
-      setIsLoadingOrders(true)
-      setOrdersError(null)
-      const items = await fetchCustomerBookings()
+      // Fetch just the ongoing orders for the Home active order card
+      const response = await fetchPaginatedBookings({ status: 'pending,approved,accepted,out_for_delivery', page: 1 })
+      const items = response.results
       const mapped: OrderItem[] = items.map((b: any) => {
         let statusLabel = 'Order Placed'
         let statusKind: 'ongoing' | 'completed' | 'cancelled' = 'ongoing'
@@ -106,10 +105,8 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
         }
       })
       setRealOrders(mapped)
-    } catch {
-      setOrdersError('Could not load your orders. Please check your connection.')
-    } finally {
-      setIsLoadingOrders(false)
+    } catch (err) {
+      console.error(err)
     }
   }
 
@@ -118,7 +115,7 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
   }
 
   useEffect(() => {
-    void fetchOrders()
+    void fetchActiveOrder()
   }, [activeTab])
 
   // Safety guard: if cart is empty but we are on checkout, redirect to explore
@@ -174,19 +171,7 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
     setActiveTab('checkout')
   }
 
-  const handleOrderAgain = (orderId: string) => {
-    const order = realOrders.find((o) => o.id === orderId)
-    if (!order || !order.rawBooking) return
-    
-    const b = order.rawBooking
-    if (!b.cylinder_type_id) {
-      alert("This cylinder is currently unavailable.")
-      return
-    }
-    
-    // We pass the product name, price, and cylinder_type_id to handleBook to reuse existing flow
-    handleBook(order.productName, floatRate(b), b.cylinder_type_id)
-  }
+  // Removed old handleOrderAgain, OrdersView will call handleBook directly
 
   const handleNavigateToCart = () => {
     // Actually, "Cart" is deprecated in this flow. We'll map this back to home if called
@@ -197,7 +182,7 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
     setCartItems([]) // Clear cart only after checkout order creation succeeds
     setLastCreatedOrderId(orderId)
     setActiveTab('order-success')
-    void fetchOrders()
+    void fetchActiveOrder()
   }
 
   return (
@@ -215,24 +200,16 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
           <HomeView
             onNavigateToExplore={() => setActiveTab('explore')}
             customerProfile={customerProfile}
-            latestActiveOrder={realOrders.find((o) => o.status === 'ongoing')}
+            latestActiveOrder={realOrders[0]}
             onViewOrders={() => setActiveTab('orders')}
             onTrackOrder={(id: number) => setTrackingBookingId(id)}
           />
         )}
         {activeTab === 'orders' && (
           <OrdersView
-            orders={realOrders}
-            isLoading={isLoadingOrders}
-            error={ordersError}
             onNavigateToExplore={() => setActiveTab('explore')}
-            onTrackOrder={(id: string) => {
-              const order = realOrders.find((o) => o.id === id)
-              if (order && order.rawBooking) {
-                setTrackingBookingId(order.rawBooking.id)
-              }
-            }}
-            onOrderAgain={handleOrderAgain}
+            onTrackOrder={(id: number) => setTrackingBookingId(id)}
+            onOrderAgain={handleBook}
           />
         )}
         {activeTab === 'cart' && (

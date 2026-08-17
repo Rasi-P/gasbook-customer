@@ -1,56 +1,139 @@
 import { useState, useEffect } from 'react'
 import splashCylinder from '../../assets/splash_cylinder.png'
 import type { OrderItem } from '../../types'
-import { fetchCustomerNotifications, markNotificationRead, type NotificationItem } from '../../lib/auth'
+import { markNotificationRead } from '../../lib/auth'
+import { usePaginatedQuery } from '../../hooks/usePaginatedQuery'
+import { fetchPaginatedBookings, fetchPaginatedNotifications } from '../../lib/api-queries'
+import { Pagination } from '../common/Pagination'
 
 interface OrdersViewProps {
-  orders?: OrderItem[]
-  isLoading?: boolean
-  error?: string | null
   onNavigateToExplore: () => void
-  onTrackOrder: (orderId: string) => void
-  onOrderAgain: (orderId: string) => void
+  onTrackOrder: (orderId: number) => void
+  onOrderAgain: (productName: string, price?: number, cylinderTypeId?: number) => void
 }
 
 export function OrdersView({
-  orders = [],
-  isLoading = false,
-  error = null,
   onNavigateToExplore,
   onTrackOrder,
   onOrderAgain,
 }: OrdersViewProps) {
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'ongoing' | 'completed' | 'cancelled'>('all')
   const [showNotifications, setShowNotifications] = useState(false)
-  const [notifications, setNotifications] = useState<NotificationItem[]>([])
-
-  const loadNotifications = async () => {
-    try {
-      const items = await fetchCustomerNotifications()
-      setNotifications(items)
-    } catch {
-      // Ignore network errors
-    }
-  }
+  const {
+    data: notifications,
+    count: totalNotifications,
+    setPage: setNotificationPage,
+    params: notificationParams,
+    reload: reloadNotifications
+  } = usePaginatedQuery({
+    fetchFn: fetchPaginatedNotifications,
+    defaultParams: { page: 1 },
+  })
 
   useEffect(() => {
-    void loadNotifications()
+    // Initial fetch handled by usePaginatedQuery
   }, [])
 
   const handleMarkRead = async (id: number) => {
     try {
       await markNotificationRead(id)
-      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)))
+      reloadNotifications()
     } catch {
       // ignore
     }
   }
 
-  const unreadCount = notifications.filter((n) => !n.is_read).length
+  // To count unread, we technically need an unread filter or endpoint, but we'll approximate with the loaded page
+  const unreadCount = notifications.filter((n: any) => !n.is_read).length
 
-  const filteredOrders = orders.filter((order) => {
-    if (selectedFilter === 'all') return true
-    return order.status === selectedFilter
+  const {
+    data: rawOrders,
+    count: totalOrders,
+    isLoading,
+    error,
+    params,
+    setPage,
+    updateFilters,
+  } = usePaginatedQuery({
+    fetchFn: fetchPaginatedBookings,
+    defaultParams: { page: 1, status: '', search: '' },
+  })
+
+  const [searchQuery, setSearchQuery] = useState('')
+
+  // Map backend status correctly
+  const mapFilterToStatus = (filter: string) => {
+    switch (filter) {
+      case 'ongoing':
+        return 'pending,approved,accepted,out_for_delivery'
+      case 'completed':
+        return 'delivered'
+      case 'cancelled':
+        return 'cancelled,rejected'
+      default:
+        return ''
+    }
+  }
+
+  const handleFilterClick = (filter: 'all' | 'ongoing' | 'completed' | 'cancelled') => {
+    setSelectedFilter(filter)
+    updateFilters({ status: mapFilterToStatus(filter) })
+  }
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    updateFilters({ search: searchQuery })
+  }
+
+  // Map raw backend bookings to UI OrderItem format
+  const mappedOrders: OrderItem[] = rawOrders.map((b: any) => {
+    let statusLabel = 'Order Placed'
+    let statusKind: 'ongoing' | 'completed' | 'cancelled' = 'ongoing'
+    let etaOrDate = 'Order Placed — Awaiting staff assignment'
+
+    if (b.status === 'approved') {
+      statusLabel = 'Order Confirmed'
+      statusKind = 'ongoing'
+      etaOrDate = 'Order confirmed — awaiting dispatch'
+    } else if (b.status === 'accepted' || b.status === 'out_for_delivery') {
+      statusLabel = 'Out for Delivery'
+      statusKind = 'ongoing'
+      etaOrDate = `Out for delivery with ${b.assigned_staff_name || 'Delivery Staff'}`
+    } else if (b.status === 'delivered') {
+      statusLabel = 'Delivered'
+      statusKind = 'completed'
+      etaOrDate = 'Successfully delivered'
+    } else if (b.status === 'cancelled') {
+      statusLabel = 'Cancelled'
+      statusKind = 'cancelled'
+      etaOrDate = 'Order was cancelled'
+    } else if (b.status === 'rejected') {
+      statusLabel = 'Rejected'
+      statusKind = 'cancelled'
+      etaOrDate = 'Order was rejected by staff'
+    }
+
+    const priceNum = parseFloat(b.rate || '0')
+    const finalPrice = priceNum > 0 ? `₹${priceNum.toLocaleString('en-IN')}` : 'To be determined'
+
+    return {
+      id: b.id.toString(),
+      orderNumber: `Order #GB${b.id}`,
+      date: new Date(b.created_at).toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      }),
+      productName: b.cylinder_type_name || 'Gas Cylinder',
+      weight: 'Standard',
+      price: finalPrice,
+      status: statusKind,
+      statusCode: b.status,
+      statusLabel,
+      actionLabel: 'Track Order',
+      etaOrDate,
+      rawBooking: b,
+    }
   })
 
   const getTimelineSteps = (code: string | undefined) => {
@@ -91,7 +174,7 @@ export function OrdersView({
           aria-label="Notifications"
           onClick={() => {
             setShowNotifications(true)
-            void loadNotifications()
+            reloadNotifications()
           }}
           style={{ position: 'relative', cursor: 'pointer' }}
         >
@@ -104,14 +187,27 @@ export function OrdersView({
       </div>
 
       {/* 2. Filter Tabs */}
-      {orders.length > 0 && (
-        <div className="filter-tabs-row">
-          <button className={`filter-tab-btn ${selectedFilter === 'all' ? 'active' : ''}`} onClick={() => setSelectedFilter('all')}>All</button>
-          <button className={`filter-tab-btn ${selectedFilter === 'ongoing' ? 'active' : ''}`} onClick={() => setSelectedFilter('ongoing')}>Ongoing</button>
-          <button className={`filter-tab-btn ${selectedFilter === 'completed' ? 'active' : ''}`} onClick={() => setSelectedFilter('completed')}>Completed</button>
-          <button className={`filter-tab-btn ${selectedFilter === 'cancelled' ? 'active' : ''}`} onClick={() => setSelectedFilter('cancelled')}>Cancelled</button>
-        </div>
-      )}
+      <div className="filter-tabs-row">
+        <button className={`filter-tab-btn ${selectedFilter === 'all' ? 'active' : ''}`} onClick={() => handleFilterClick('all')}>All</button>
+        <button className={`filter-tab-btn ${selectedFilter === 'ongoing' ? 'active' : ''}`} onClick={() => handleFilterClick('ongoing')}>Ongoing</button>
+        <button className={`filter-tab-btn ${selectedFilter === 'completed' ? 'active' : ''}`} onClick={() => handleFilterClick('completed')}>Completed</button>
+        <button className={`filter-tab-btn ${selectedFilter === 'cancelled' ? 'active' : ''}`} onClick={() => handleFilterClick('cancelled')}>Cancelled</button>
+      </div>
+
+      <div style={{ padding: '0 16px', marginBottom: '16px' }}>
+        <form onSubmit={handleSearch} style={{ display: 'flex', gap: '8px' }}>
+          <input
+            type="text"
+            placeholder="Search orders (ID, Cylinder)"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{ flex: 1, padding: '10px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none' }}
+          />
+          <button type="submit" style={{ padding: '10px 16px', borderRadius: '8px', border: 'none', background: '#3b82f6', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>
+            Search
+          </button>
+        </form>
+      </div>
 
       {/* 3. Populated Orders List or States */}
       {isLoading ? (
@@ -128,9 +224,9 @@ export function OrdersView({
             <span>Try Again</span>
           </button>
         </div>
-      ) : filteredOrders.length > 0 ? (
+      ) : mappedOrders.length > 0 ? (
         <div className="orders-list-container">
-          {filteredOrders.map((order) => (
+          {mappedOrders.map((order) => (
             <div key={order.id} className="order-item-card">
               <div className="order-card-top">
                 <span className="order-card-id">{order.orderNumber}</span>
@@ -159,13 +255,19 @@ export function OrdersView({
 
                   {order.statusCode === 'delivered' ? (
                     <div style={{ display: 'flex', gap: '8px' }}>
-                      <button className="order-action-outline-btn" onClick={() => onTrackOrder(order.id)}>View Details</button>
-                      <button className="order-action-outline-btn" onClick={() => onOrderAgain(order.id)}>Order Again</button>
+                      <button className="order-action-outline-btn" onClick={() => onTrackOrder(order.rawBooking.id)}>View Details</button>
+                      <button className="order-action-outline-btn" onClick={() => {
+                        if (!order.rawBooking.cylinder_type_id) {
+                          alert("This cylinder is currently unavailable.")
+                          return
+                        }
+                        onOrderAgain(order.productName, parseFloat(order.rawBooking.rate || '0'), order.rawBooking.cylinder_type_id)
+                      }}>Order Again</button>
                     </div>
                   ) : (
                     <button
                       className="order-action-outline-btn"
-                      onClick={() => onTrackOrder(order.id)}
+                      onClick={() => onTrackOrder(order.rawBooking.id)}
                     >
                       {order.actionLabel}
                     </button>
@@ -191,6 +293,14 @@ export function OrdersView({
               )}
             </div>
           ))}
+          
+          <Pagination
+            currentPage={params.page || 1}
+            totalItems={totalOrders}
+            pageSize={10}
+            onPageChange={setPage}
+            disabled={isLoading}
+          />
         </div>
       ) : (
         <div className="orders-empty-state">
@@ -218,7 +328,7 @@ export function OrdersView({
             </div>
 
             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {notifications.map((n) => (
+              {notifications.map((n: any) => (
                 <div key={n.id} onClick={() => void handleMarkRead(n.id)} style={{ padding: 12, borderRadius: 8, background: n.is_read ? '#f8fafc' : '#eff6ff', border: n.is_read ? '1px solid #e2e8f0' : '1px solid #bfdbfe', cursor: 'pointer' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                     <strong style={{ fontSize: 14, color: '#1e293b' }}>{n.title}</strong>
@@ -229,6 +339,13 @@ export function OrdersView({
               ))}
               {notifications.length === 0 && <p style={{ textAlign: 'center', color: '#94a3b8', marginTop: 40 }}>No notifications yet.</p>}
             </div>
+            
+            <Pagination
+              currentPage={notificationParams.page || 1}
+              totalItems={totalNotifications}
+              pageSize={10}
+              onPageChange={setNotificationPage}
+            />
           </div>
         </div>
       )}
