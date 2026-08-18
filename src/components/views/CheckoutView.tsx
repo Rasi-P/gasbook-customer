@@ -6,7 +6,7 @@ interface CheckoutViewProps {
   cartItems: CartItem[]
   customerProfile: CustomerProfile | null
   onBackToCart: () => void
-  onOrderCreated: (orderIds: number[]) => void
+  onOrderCreated: (orderIds: number[], completedCart: CartItem[]) => void
 }
 
 import { calculateCartPricing } from '../../lib/pricing'
@@ -54,7 +54,7 @@ export function CheckoutView({
       
       // Extract the order IDs
       const orderIds = responses.map((res: any) => res.id)
-      onOrderCreated(orderIds)
+      onOrderCreated(orderIds, cartItems)
     } catch (err: unknown) {
       const details = getApiErrorDetails(err, 'Unable to place order. Please try again.')
       setError(details.message)
