@@ -9,7 +9,7 @@ import { HomeView } from './HomeView'
 import { OrdersView } from './OrdersView'
 import { OrderSuccessView } from './OrderSuccessView'
 import { ProfileView } from './ProfileView'
-import { TrackingModal } from './TrackingModal'
+import { TrackOrderView } from './TrackOrderView'
 import { fetchPaginatedBookings } from '../../lib/api-queries'
 
 function formatMemberSince(dateValue: string | undefined) {
@@ -40,6 +40,7 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
   const [lastCreatedOrderIds, setLastCreatedOrderIds] = useState<number[]>([])
   const [realOrders, setRealOrders] = useState<OrderItem[]>([])
   const [trackingBookingId, setTrackingBookingId] = useState<number | null>(null)
+  const [previousTab, setPreviousTab] = useState<ActiveTab>('home')
 
   const fetchActiveOrder = async () => {
     try {
@@ -208,13 +209,21 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
             customerProfile={customerProfile}
             latestActiveOrder={realOrders[0]}
             onViewOrders={() => setActiveTab('orders')}
-            onTrackOrder={(id: number) => setTrackingBookingId(id)}
+            onTrackOrder={(id: number) => {
+              setTrackingBookingId(id)
+              setPreviousTab(activeTab)
+              setActiveTab('track-order')
+            }}
           />
         )}
         {activeTab === 'orders' && (
           <OrdersView
             onNavigateToExplore={() => setActiveTab('explore')}
-            onTrackOrder={(id: number) => setTrackingBookingId(id)}
+            onTrackOrder={(id: number) => {
+              setTrackingBookingId(id)
+              setPreviousTab(activeTab)
+              setActiveTab('track-order')
+            }}
             onOrderAgain={handleBook}
           />
         )}
@@ -244,7 +253,8 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
             onViewOrders={() => setActiveTab('orders')}
             onTrackOrder={(id) => {
               setTrackingBookingId(id)
-              setActiveTab('home') // Show tracking over home
+              setPreviousTab('home')
+              setActiveTab('track-order')
             }}
             onBackToHome={() => setActiveTab('home')}
           />
@@ -271,9 +281,16 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
             setActiveTab={setActiveTab}
           />
         )}       
-        {/* Global Tracking Modal */}
-        {trackingBookingId !== null && (
-          <TrackingModal bookingId={trackingBookingId} onClose={() => setTrackingBookingId(null)} />
+        
+        {/* Track Order View */}
+        {activeTab === 'track-order' && trackingBookingId !== null && (
+          <TrackOrderView 
+            bookingId={trackingBookingId} 
+            onBack={() => {
+              setTrackingBookingId(null)
+              setActiveTab(previousTab)
+            }} 
+          />
         )}
       </div>
     </div>
