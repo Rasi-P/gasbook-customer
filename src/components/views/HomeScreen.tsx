@@ -245,7 +245,12 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
           <CheckoutView
             cartItems={cartItems}
             customerProfile={customerProfile}
-            onBackToCart={() => setActiveTab('explore')}
+            profileUser={profileUser}
+            onUpdateQuantity={handleUpdateQuantity}
+            onRemoveItem={handleRemoveItem}
+            onProfileUpdated={onProfileUpdated}
+            onNavigateToExplore={() => setActiveTab('explore')}
+            onBackToCart={() => setActiveTab('cart')}
             onOrderCreated={handleOrderCreated}
           />
         )}
@@ -277,7 +282,7 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
         )}
 
         {/* Bottom Navigation */}
-        {activeTab !== 'checkout' && activeTab !== 'order-success' && (
+        {activeTab !== 'order-success' && (
           <BottomNavigation
             activeTab={activeTab === 'explore' ? 'home' : activeTab}
             cartCount={cartCount}
