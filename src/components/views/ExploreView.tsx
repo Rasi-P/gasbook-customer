@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import splashCylinder from '../../assets/splash_cylinder.png'
 import { fetchCylinderTypes } from '../../lib/auth'
+import { getCylinderDisplay } from '../../lib/formatters'
 
 interface ExploreViewProps {
   cartCount: number
-  onBook: (productName: string, price?: number, cylinderTypeId?: number) => void
+  onBook: (productName: string, price?: number, cylinderTypeId?: number, weight?: string | number) => void
   onNavigateToCart: () => void
 }
 
@@ -23,15 +24,21 @@ export function ExploreView({
       .catch(() => undefined)
   }, [])
 
-  const products = cylinderTypes.map((c) => ({
-    id: c.id.toString(),
-    rawId: c.id,
-    name: c.name,
-    rawPrice: Number(c.selling_price) || 0,
-    price: `₹${Number(c.selling_price).toLocaleString('en-IN')}`,
-    category: 'cylinder',
-    isPopular: c.name.includes('14.2'),
-  }))
+  const products = cylinderTypes.map((c) => {
+    const display = getCylinderDisplay(c.name, c.weight)
+    return {
+      id: c.id.toString(),
+      rawId: c.id,
+      name: c.name,
+      displayTitle: display.title,
+      displayBadge: display.badge,
+      rawWeight: c.weight,
+      rawPrice: Number(c.selling_price) || 0,
+      price: `₹${Number(c.selling_price).toLocaleString('en-IN')}`,
+      category: 'cylinder',
+      isPopular: c.name.includes('14.2') || (c.weight && String(c.weight).includes('14.2')),
+    }
+  })
 
   const filteredProducts = products.filter((p) => {
     const matchesSearch =
@@ -162,9 +169,14 @@ export function ExploreView({
                 <img src={splashCylinder} className="product-cylinder-img" alt={prod.name} />
               </div>
               <div className="product-details">
-                <h3 className="product-name">{prod.name}</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <h3 className="product-name" style={{ margin: 0 }}>{prod.displayTitle}</h3>
+                  <span style={{ background: '#EEF2FF', color: '#4F46E5', fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                    {prod.displayBadge}
+                  </span>
+                </div>
                 <div className="product-price">{prod.price}</div>
-                <button className="product-book-btn" onClick={() => onBook(prod.name, prod.rawPrice, prod.rawId)}>
+                <button className="product-book-btn" onClick={() => onBook(prod.displayBadge, prod.rawPrice, prod.rawId, prod.displayTitle)}>
                   Book
                 </button>
               </div>
