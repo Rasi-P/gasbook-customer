@@ -15,6 +15,8 @@ interface CartViewProps {
   onProfileUpdated?: () => void
 }
 
+import { calculateCartPricing } from '../../lib/pricing'
+
 export function CartView({
   cartItems,
   onUpdateQuantity,
@@ -26,9 +28,8 @@ export function CartView({
   onProfileUpdated,
 }: CartViewProps) {
   const [isEditingAddress, setIsEditingAddress] = useState(false)
-  const subtotal = cartItems.reduce((acc, item) => acc + item.unitPrice * item.quantity, 0)
-  const deliveryFee = cartItems.length > 0 ? 40 : 0
-  const total = subtotal + deliveryFee
+  
+  const { subtotal, deliveryFee, total } = calculateCartPricing(cartItems)
   const totalCount = cartItems.reduce((acc, item) => acc + item.quantity, 0)
 
   const handleCheckout = () => {

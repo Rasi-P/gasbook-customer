@@ -9,6 +9,8 @@ interface CheckoutViewProps {
   onOrderCreated: (orderIds: number[]) => void
 }
 
+import { calculateCartPricing } from '../../lib/pricing'
+
 export function CheckoutView({
   cartItems,
   customerProfile,
@@ -18,8 +20,7 @@ export function CheckoutView({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const subtotal = cartItems.reduce((acc, item) => acc + item.unitPrice * item.quantity, 0)
-  const total = subtotal
+  const { subtotal, deliveryFee, total } = calculateCartPricing(cartItems)
 
   const customerName = customerProfile?.name?.trim() || customerProfile?.full_name?.trim() || ''
   const customerPhone = customerProfile?.phone?.trim() || ''
@@ -100,6 +101,10 @@ export function CheckoutView({
             <div className="price-row">
               <span className="price-label">Subtotal</span>
               <span className="price-val">₹{subtotal.toLocaleString('en-IN')}</span>
+            </div>
+            <div className="price-row">
+              <span className="price-label">Delivery Fee</span>
+              <span className="price-val">₹{deliveryFee.toLocaleString('en-IN')}</span>
             </div>
             <div className="price-divider" />
             <div className="price-row total-row">
