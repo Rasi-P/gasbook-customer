@@ -37,6 +37,7 @@ interface HomeScreenProps {
 export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: HomeScreenProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>('home')
   const [cartItems, setCartItems] = useState<CartItem[]>([])
+  const [completedCartSnapshot, setCompletedCartSnapshot] = useState<CartItem[]>([])
   const [lastCreatedOrderIds, setLastCreatedOrderIds] = useState<number[]>([])
   const [realOrders, setRealOrders] = useState<OrderItem[]>([])
   const [trackingBookingId, setTrackingBookingId] = useState<number | null>(null)
@@ -184,7 +185,8 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
     setActiveTab('home')
   }
 
-  const handleOrderCreated = (orderIds: number[]) => {
+  const handleOrderCreated = (orderIds: number[], completedCart: CartItem[]) => {
+    setCompletedCartSnapshot(completedCart)
     setCartItems([]) // Clear cart only after checkout order creation succeeds
     setLastCreatedOrderIds(orderIds)
     setActiveTab('order-success')
@@ -241,6 +243,7 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
         {activeTab === 'order-success' && lastCreatedOrderIds.length > 0 && (
           <OrderSuccessView
             orderIds={lastCreatedOrderIds}
+            cartItems={completedCartSnapshot}
             onViewOrders={() => setActiveTab('orders')}
             onTrackOrder={(id) => {
               setTrackingBookingId(id)
