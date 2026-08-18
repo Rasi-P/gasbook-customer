@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import splashCylinder from '../../assets/splash_cylinder.png'
-import type { CustomerProfile } from '../../lib/auth'
+import { previewBookings, type BookingPreviewResponse, type CustomerProfile } from '../../lib/auth'
 import type { CartItem, ProfileUser } from '../../types'
 import { EditProfileModal } from '../common/EditProfileModal'
+import { buildBookingPreviewPayload, createEmptyPreview, formatMoney, previewItemByCartId } from '../../lib/pricing'
 
 interface CartViewProps {
   cartItems: CartItem[]
@@ -15,8 +16,6 @@ interface CartViewProps {
   onProfileUpdated?: () => void
 }
 
-import { calculateCartPricing } from '../../lib/pricing'
-
 export function CartView({
   cartItems,
   onUpdateQuantity,
@@ -28,9 +27,29 @@ export function CartView({
   onProfileUpdated,
 }: CartViewProps) {
   const [isEditingAddress, setIsEditingAddress] = useState(false)
-  
-  const { subtotal, deliveryFee, total } = calculateCartPricing(cartItems)
+  const [pricingPreview, setPricingPreview] = useState<BookingPreviewResponse>(createEmptyPreview())
   const totalCount = cartItems.reduce((acc, item) => acc + item.quantity, 0)
+
+  useEffect(() => {
+    let ignore = false
+
+    if (cartItems.length === 0) {
+      setPricingPreview(createEmptyPreview())
+      return
+    }
+
+    previewBookings(buildBookingPreviewPayload(cartItems))
+      .then((data) => {
+        if (!ignore) setPricingPreview(data)
+      })
+      .catch(() => {
+        if (!ignore) setPricingPreview(createEmptyPreview())
+      })
+
+    return () => {
+      ignore = true
+    }
+  }, [cartItems])
 
   const handleCheckout = () => {
     onProceedToCheckout()
@@ -130,9 +149,16 @@ export function CartView({
                     </div>
 
                     {/* Price */}
-                    <span className="cart-item-price">
-                      ₹{(item.unitPrice * item.quantity).toLocaleString('en-IN')}
-                    </span>
+                    <div style={{ textAlign: 'right' }}>
+                      {previewItemByCartId(pricingPreview, item.id)?.has_discount && (
+                        <div style={{ fontSize: '0.78rem', color: '#94a3b8', textDecoration: 'line-through' }}>
+                          {formatMoney(previewItemByCartId(pricingPreview, item.id)?.original_amount)}
+                        </div>
+                      )}
+                      <span className="cart-item-price">
+                        {formatMoney(previewItemByCartId(pricingPreview, item.id)?.final_amount || item.unitPrice * item.quantity)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -165,19 +191,21 @@ export function CartView({
             {/* Price Breakdown */}
             <div className="price-breakdown-section">
               <div className="price-row">
-                <span className="price-label">Subtotal</span>
-                <span className="price-val">₹{subtotal.toLocaleString('en-IN')}</span>
+                <span className="price-label">Original Amount</span>
+                <span className="price-val">{formatMoney(pricingPreview.summary.original_amount)}</span>
               </div>
-              <div className="price-row">
-                <span className="price-label">Delivery Fee</span>
-                <span className="price-val">₹{deliveryFee.toLocaleString('en-IN')}</span>
-              </div>
+              {pricingPreview.summary.has_discount && (
+                <div className="price-row">
+                  <span className="price-label">Discount</span>
+                  <span className="price-val" style={{ color: '#16a34a' }}>- {formatMoney(pricingPreview.summary.discount_amount)}</span>
+                </div>
+              )}
 
               <div className="price-divider" />
 
               <div className="price-row total-row">
-                <span className="total-label">Total</span>
-                <span className="total-val">₹{total.toLocaleString('en-IN')}</span>
+                <span className="total-label">Final Amount</span>
+                <span className="total-val">{formatMoney(pricingPreview.summary.final_amount)}</span>
               </div>
             </div>
 

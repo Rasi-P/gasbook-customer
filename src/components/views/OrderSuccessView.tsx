@@ -1,17 +1,18 @@
-import { useEffect, useState } from 'react'
-import type { CartItem } from '../../types'
-import { calculateCartPricing } from '../../lib/pricing'
+import type { BookingRecord } from '../../lib/auth'
+import { formatMoney } from '../../lib/pricing'
 
 interface OrderSuccessViewProps {
-  orderIds: number[]
-  cartItems: CartItem[]
+  bookings: BookingRecord[]
   onViewOrders: () => void
   onTrackOrder?: (id: number) => void
   onBackToHome?: () => void
 }
 
-export function OrderSuccessView({ orderIds, cartItems, onViewOrders, onTrackOrder, onBackToHome }: OrderSuccessViewProps) {
-  const { subtotal, deliveryFee, total } = calculateCartPricing(cartItems)
+export function OrderSuccessView({ bookings, onViewOrders, onTrackOrder, onBackToHome }: OrderSuccessViewProps) {
+  const orderIds = bookings.map((booking) => booking.id)
+  const subtotal = bookings.reduce((sum, booking) => sum + Number(booking.original_amount || booking.total_amount || 0), 0)
+  const discount = bookings.reduce((sum, booking) => sum + Number(booking.discount_amount || 0), 0)
+  const total = bookings.reduce((sum, booking) => sum + Number(booking.final_amount || booking.total_amount || 0), 0)
 
   const handleCopyIds = () => {
     const text = orderIds.map(id => `#GB${id}`).join(', ')
@@ -146,19 +147,21 @@ export function OrderSuccessView({ orderIds, cartItems, onViewOrders, onTrackOrd
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '0.95rem' }}>
-            <span style={{ color: '#64748B' }}>Subtotal</span>
-            <span style={{ color: '#1E293B', fontWeight: 500 }}>₹{subtotal.toLocaleString('en-IN')}</span>
+            <span style={{ color: '#64748B' }}>Original Amount</span>
+            <span style={{ color: '#1E293B', fontWeight: 500 }}>{formatMoney(subtotal)}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', fontSize: '0.95rem' }}>
-            <span style={{ color: '#64748B' }}>Delivery Fee</span>
-            <span style={{ color: '#1E293B', fontWeight: 500 }}>₹{deliveryFee.toLocaleString('en-IN')}</span>
-          </div>
+          {discount > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', fontSize: '0.95rem' }}>
+              <span style={{ color: '#64748B' }}>Discount</span>
+              <span style={{ color: '#16a34a', fontWeight: 500 }}>- {formatMoney(discount)}</span>
+            </div>
+          )}
           
           <div style={{ borderTop: '1px solid #F1F5F9', margin: '0 -20px 16px', borderStyle: 'dashed' }}></div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: '#1E293B', fontWeight: 700, fontSize: '1.05rem' }}>Total Amount</span>
-            <span style={{ color: '#22C55E', fontWeight: 700, fontSize: '1.2rem' }}>₹{total.toLocaleString('en-IN')}</span>
+            <span style={{ color: '#1E293B', fontWeight: 700, fontSize: '1.05rem' }}>Final Amount</span>
+            <span style={{ color: '#22C55E', fontWeight: 700, fontSize: '1.2rem' }}>{formatMoney(total)}</span>
           </div>
 
           {/* Payment Method */}

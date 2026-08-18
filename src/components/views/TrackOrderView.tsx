@@ -153,10 +153,19 @@ export function TrackOrderView({ bookingId, onBack }: TrackOrderViewProps) {
                 <div style={{ fontWeight: 600, color: '#1E293B', fontSize: '0.95rem' }}>{booking.quantity || 1}</div>
               </div>
               <div style={{ flex: 1, textAlign: 'right' }}>
-                <div style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: '4px' }}>Total Amount</div>
-                <div style={{ fontWeight: 600, color: '#1E293B', fontSize: '0.95rem' }}>₹{booking.total_amount || 0}</div>
+                <div style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: '4px' }}>Final Amount</div>
+                {Number(booking.discount_amount || 0) > 0 && (
+                  <div style={{ fontSize: '0.75rem', color: '#94a3b8', textDecoration: 'line-through' }}>₹{booking.original_amount || 0}</div>
+                )}
+                <div style={{ fontWeight: 600, color: '#1E293B', fontSize: '0.95rem' }}>₹{booking.final_amount || booking.total_amount || 0}</div>
               </div>
             </div>
+            {Number(booking.discount_amount || 0) > 0 && (
+              <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px dashed #E2E8F0', display: 'flex', justifyContent: 'space-between', color: '#16a34a', fontSize: '0.88rem', fontWeight: 600 }}>
+                <span>Discount Applied</span>
+                <span>- ₹{booking.discount_amount}</span>
+              </div>
+            )}
           </div>
 
           {/* Timeline Card */}

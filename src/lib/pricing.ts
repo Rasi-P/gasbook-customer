@@ -1,13 +1,36 @@
+import type { BookingPreviewItem, BookingPreviewResponse } from './auth'
 import type { CartItem } from '../types'
 
-export function calculateCartPricing(cartItems: CartItem[]) {
-  const subtotal = cartItems.reduce((acc, item) => acc + item.unitPrice * item.quantity, 0)
-  const deliveryFee = cartItems.length > 0 ? 40 : 0
-  const total = subtotal + deliveryFee
-  
+export function amountToNumber(value: number | string | undefined | null) {
+  return Number(value || 0)
+}
+
+export function formatMoney(value: number | string | undefined | null) {
+  return `₹${amountToNumber(value).toLocaleString('en-IN')}`
+}
+
+export function buildBookingPreviewPayload(cartItems: CartItem[]) {
   return {
-    subtotal,
-    deliveryFee,
-    total
+    items: cartItems.map((item) => ({
+      client_item_id: item.id,
+      cylinder_type: item.cylinderTypeId || 1,
+      quantity: item.quantity || 1,
+    })),
   }
+}
+
+export function createEmptyPreview(): BookingPreviewResponse {
+  return {
+    items: [],
+    summary: {
+      original_amount: '0',
+      discount_amount: '0',
+      final_amount: '0',
+      has_discount: false,
+    },
+  }
+}
+
+export function previewItemByCartId(preview: BookingPreviewResponse | null, cartItemId: string): BookingPreviewItem | undefined {
+  return preview?.items.find((item) => item.client_item_id === cartItemId)
 }

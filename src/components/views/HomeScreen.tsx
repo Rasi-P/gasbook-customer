@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { type CustomerProfile } from '../../lib/auth'
+import { type BookingRecord, type CustomerProfile } from '../../lib/auth'
 import type { ActiveTab, CartItem, OrderItem, ProfileUser } from '../../types'
 import { BottomNavigation } from '../layout/BottomNavigation'
 import { CartView } from './CartView'
@@ -38,8 +38,7 @@ interface HomeScreenProps {
 export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: HomeScreenProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>('home')
   const [cartItems, setCartItems] = useState<CartItem[]>([])
-  const [completedCartSnapshot, setCompletedCartSnapshot] = useState<CartItem[]>([])
-  const [lastCreatedOrderIds, setLastCreatedOrderIds] = useState<number[]>([])
+  const [lastCreatedBookings, setLastCreatedBookings] = useState<BookingRecord[]>([])
   const [realOrders, setRealOrders] = useState<OrderItem[]>([])
   const [trackingBookingId, setTrackingBookingId] = useState<number | null>(null)
   const [previousTab, setPreviousTab] = useState<ActiveTab>('home')
@@ -84,7 +83,8 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
           date: b.created_at ? new Date(b.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Today',
           productName: display.title,
           weight: display.badge,
-          price: `₹${(floatRate(b) * b.quantity).toLocaleString('en-IN')}`,
+          price: `₹${Number(b.final_amount || b.total_amount || floatRate(b) * b.quantity).toLocaleString('en-IN')}`,
+          originalPrice: Number(b.discount_amount || 0) > 0 ? `₹${Number(b.original_amount || floatRate(b) * b.quantity).toLocaleString('en-IN')}` : undefined,
           status: statusKind,
           statusCode: b.status,
           statusLabel: statusLabel,
@@ -174,10 +174,9 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
     setActiveTab('home')
   }
 
-  const handleOrderCreated = (orderIds: number[], completedCart: CartItem[]) => {
-    setCompletedCartSnapshot(completedCart)
+  const handleOrderCreated = (bookings: BookingRecord[]) => {
     setCartItems([]) // Clear cart only after checkout order creation succeeds
-    setLastCreatedOrderIds(orderIds)
+    setLastCreatedBookings(bookings)
     setActiveTab('order-success')
     void fetchActiveOrder()
   }
@@ -242,12 +241,11 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
             onOrderCreated={handleOrderCreated}
           />
         )}
-        {activeTab === 'order-success' && lastCreatedOrderIds.length > 0 && (
+        {activeTab === 'order-success' && lastCreatedBookings.length > 0 && (
           <OrderSuccessView
-            orderIds={lastCreatedOrderIds}
-            cartItems={completedCartSnapshot}
+            bookings={lastCreatedBookings}
             onViewOrders={() => setActiveTab('orders')}
-            onTrackOrder={(id) => {
+            onTrackOrder={(id: number) => {
               setTrackingBookingId(id)
               setPreviousTab('home')
               setActiveTab('track-order')
