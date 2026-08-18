@@ -5,6 +5,7 @@ import { markNotificationRead } from '../../lib/auth'
 import { usePaginatedQuery } from '../../hooks/usePaginatedQuery'
 import { fetchPaginatedBookings, fetchPaginatedNotifications } from '../../lib/api-queries'
 import { Pagination } from '../common/Pagination'
+import { getCylinderDisplay } from '../../lib/formatters'
 
 interface OrdersViewProps {
   onNavigateToExplore: () => void
@@ -116,6 +117,8 @@ export function OrdersView({
     const priceNum = parseFloat(b.rate || '0')
     const finalPrice = priceNum > 0 ? `₹${priceNum.toLocaleString('en-IN')}` : 'To be determined'
 
+    const display = getCylinderDisplay(b.cylinder_type_name, b.cylinder_type_weight)
+
     return {
       id: b.id.toString(),
       orderNumber: `Order #GB${b.id}`,
@@ -124,8 +127,8 @@ export function OrdersView({
         month: 'short',
         year: 'numeric',
       }),
-      productName: b.cylinder_type_name || 'Gas Cylinder',
-      weight: 'Standard',
+      productName: display.title,
+      weight: display.badge,
       price: finalPrice,
       status: statusKind,
       statusCode: b.status,

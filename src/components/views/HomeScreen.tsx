@@ -8,6 +8,7 @@ import { ExploreView } from './ExploreView'
 import { HomeView } from './HomeView'
 import { OrdersView } from './OrdersView'
 import { OrderSuccessView } from './OrderSuccessView'
+import { getCylinderDisplay } from '../../lib/formatters'
 import { ProfileView } from './ProfileView'
 import { TrackOrderView } from './TrackOrderView'
 import { fetchPaginatedBookings } from '../../lib/api-queries'
@@ -75,27 +76,14 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
           }
         }
 
-        const rawName = b.cylinder_type_name || 'Domestic LPG'
-        let displayTitle = rawName
-        let weightStr = '14.2 KG'
-        
-        const kgMatch = rawName.match(/^(\d+(?:\.\d+)?)\s*kg/i)
-        if (kgMatch) {
-          weightStr = `${kgMatch[1]} KG`
-          displayTitle = 'Gas Cylinder'
-        } else {
-          const anyKg = rawName.match(/(\d+(?:\.\d+)?)\s*kg/i)
-          if (anyKg) {
-            weightStr = `${anyKg[1]} KG`
-          }
-        }
+        const display = getCylinderDisplay(b.cylinder_type_name, b.cylinder_type_weight)
 
         return {
           id: `ord-${b.id}`,
           orderNumber: `Order #GB${b.id}`,
           date: b.created_at ? new Date(b.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Today',
-          productName: displayTitle,
-          weight: weightStr,
+          productName: display.title,
+          weight: display.badge,
           price: `₹${(floatRate(b) * b.quantity).toLocaleString('en-IN')}`,
           status: statusKind,
           statusCode: b.status,
@@ -156,10 +144,10 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
     setCartItems((prev) => prev.filter((item) => item.id !== id))
   }
 
-  const handleBook = (productName: string, price?: number, cylinderTypeId?: number) => {
+  const handleBook = (productName: string, price?: number, cylinderTypeId?: number, weight?: string | number) => {
     setCartItems((prev) => {
       // Find existing exactly by cylinderTypeId if defined, or strictly fallback to name match if no ID provided.
-      const existing = prev.find((item) => cylinderTypeId ? item.cylinderTypeId === cylinderTypeId : item.name === productName)
+      const existing = prev.find((item) => cylinderTypeId ? item.cylinderTypeId === cylinderTypeId : item.variant === productName && item.name === weight)
       if (existing) {
         return prev.map((item) => (item.id === existing.id ? { ...item, quantity: item.quantity + 1 } : item))
       }
@@ -168,8 +156,8 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
         {
           id: `cart-${Date.now()}`,
           cylinderTypeId: cylinderTypeId || 1,
-          name: productName,
-          variant: productName.includes('KG') ? productName : `${productName}`,
+          name: weight ? weight.toString() : 'Gas Cylinder',
+          variant: productName || 'Cylinder',
           unitPrice: price || 1300,
           quantity: 1,
           type: 'cylinder',
