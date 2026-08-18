@@ -175,14 +175,14 @@ export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrd
       </div>
 
       {/* 4. Order Status / Booking Card */}
-      <div className="recent-order-section">
-        <div className="section-header">
-          <h3 className="section-title">
+      <div className="recent-order-section" style={{ margin: '0 20px' }}>
+        <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h3 className="section-title" style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: '#132B4F' }}>
             {hasActiveOrder ? 'Your Active Order' : 'Gas Booking Status'}
           </h3>
           {onViewOrders && (
-            <button className="view-all-btn" onClick={onViewOrders}>
-              <span>View all</span>
+            <button className="view-all-btn" onClick={onViewOrders} style={{ background: 'none', border: 'none', color: '#2563EB', fontWeight: 600, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', padding: 0 }}>
+              <span>View All</span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12" />
                 <polyline points="12 5 19 12 12 19" />
@@ -192,97 +192,118 @@ export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrd
         </div>
 
         {hasActiveOrder && latestActiveOrder ? (
-          <div className="order-item-card" style={{ marginTop: '12px' }}>
-            <div className="order-card-top">
-              <span className="order-card-id">{latestActiveOrder.orderNumber}</span>
-              <span className="order-card-date">{latestActiveOrder.date}</span>
+          <div className="active-order-card" style={{ background: '#FFF', borderRadius: '16px', padding: '20px', boxShadow: '0 4px 16px rgba(0,0,0,0.05)', border: '1px solid #F1F5F9' }}>
+            
+            {/* Top row: Order # and Date */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#1E293B' }}>{latestActiveOrder.orderNumber}</div>
+              <div style={{ color: '#64748B', fontSize: '0.85rem' }}>{latestActiveOrder.date}</div>
             </div>
 
-            <div className="order-card-main">
-              <div className="order-cylinder-wrap">
-                <img src={splashCylinder} className="order-cylinder-img" alt={latestActiveOrder.productName} />
+            {/* Middle: Cylinder + Price + Status */}
+            <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', marginBottom: '24px' }}>
+              <div style={{ width: '60px', height: '60px', background: '#F8FAFC', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <img src={splashCylinder} alt={latestActiveOrder.productName} style={{ height: '45px' }} />
               </div>
-
-              <div className="order-info-center">
-                <h3 className="order-product-name">{latestActiveOrder.productName}</h3>
-                <span className="order-weight-badge">{latestActiveOrder.weight}</span>
-                <span className="order-price-tag">{latestActiveOrder.price}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600, color: '#1E293B', fontSize: '1rem', marginBottom: '4px' }}>{latestActiveOrder.productName}</div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ background: '#EEF2FF', color: '#4F46E5', fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>{latestActiveOrder.weight}</span>
+                </div>
+                <div style={{ fontWeight: 700, color: '#1E293B', fontSize: '1.1rem' }}>{latestActiveOrder.price}</div>
               </div>
-
-              <div className="order-status-action-right">
-                <div className={`status-pill ${latestActiveOrder.statusCode === 'pending' ? 'pending' : 'ongoing'}`}>
-                  <span>{latestActiveOrder.statusLabel}</span>
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <div style={{ background: latestActiveOrder.statusCode === 'pending' ? '#FEF3C7' : '#DCFCE7', color: latestActiveOrder.statusCode === 'pending' ? '#92400E' : '#166534', padding: '6px 12px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 600, marginBottom: '6px', display: 'inline-block' }}>
+                  {latestActiveOrder.statusLabel}
                 </div>
-
-                <div className="status-detail-text">
-                  <span>{latestActiveOrder.etaOrDate}</span>
+                <div style={{ color: '#64748B', fontSize: '0.75rem', maxWidth: '100px', lineHeight: '1.3' }}>
+                  {latestActiveOrder.statusCode === 'pending' ? 'Awaiting assignment' : (latestActiveOrder.statusCode === 'accepted' ? 'Staff assigned' : (latestActiveOrder.statusCode === 'out_for_delivery' ? 'On the way' : 'Completed'))}
                 </div>
-
-                {onTrackOrder && (
-                  <button className="order-action-outline-btn" onClick={() => onTrackOrder(latestActiveOrder.rawBooking.id)}>
-                    Track Order
-                  </button>
-                )}
               </div>
             </div>
 
-            {/* Live Order Status Timeline */}
-            <div className="timeline-container">
+            {/* Horizontal Divider */}
+            <div style={{ height: '1px', background: '#F1F5F9', margin: '0 -20px 20px -20px' }}></div>
+
+            {/* Compact Progress Indicator */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative', marginBottom: '24px', padding: '0 10px' }}>
+              <div style={{ position: 'absolute', top: '10px', left: '20px', right: '20px', height: '2px', background: '#E2E8F0', zIndex: 1 }}></div>
+              <div style={{ position: 'absolute', top: '10px', left: '20px', right: '20px', height: '2px', background: '#22C55E', zIndex: 1, width: latestActiveOrder.statusCode === 'pending' ? '0%' : latestActiveOrder.statusCode === 'accepted' ? '33%' : latestActiveOrder.statusCode === 'out_for_delivery' ? '66%' : '100%', transition: 'width 0.3s ease' }}></div>
+              
               {[
-                {
-                  title: 'Order Placed',
-                  desc: 'Your order has been received',
-                  active: latestActiveOrder.statusCode !== 'cancelled' && latestActiveOrder.statusCode !== 'rejected'
-                },
-                {
-                  title: 'Order Confirmed',
-                  desc: latestActiveOrder.statusCode !== 'pending' && latestActiveOrder.statusCode !== 'cancelled' && latestActiveOrder.statusCode !== 'rejected' ? 'Assigned to delivery partner' : 'Awaiting confirmation',
-                  active: latestActiveOrder.statusCode !== 'pending' && latestActiveOrder.statusCode !== 'cancelled' && latestActiveOrder.statusCode !== 'rejected'
-                },
-                {
-                  title: 'Out for Delivery',
-                  desc: (latestActiveOrder.statusCode === 'accepted' || latestActiveOrder.statusCode === 'out_for_delivery' || latestActiveOrder.statusCode === 'delivered') ? 'Agent is on the way' : 'Pending dispatch',
-                  active: (latestActiveOrder.statusCode === 'accepted' || latestActiveOrder.statusCode === 'out_for_delivery' || latestActiveOrder.statusCode === 'delivered')
-                },
-                {
-                  title: 'Delivered',
-                  desc: latestActiveOrder.statusCode === 'delivered' ? 'Cylinder delivered successfully' : 'Pending delivery',
-                  active: latestActiveOrder.statusCode === 'delivered'
-                }
-              ].map((step, idx, arr) => (
-                <div key={step.title} className="timeline-step">
-                  <div className="timeline-indicator">
-                    <div className={`timeline-dot ${step.active ? 'active' : ''}`} />
-                    <div className={`timeline-line ${step.active && arr[idx + 1]?.active ? 'active' : ''}`} />
+                { label: 'Placed', active: true },
+                { label: 'Assigned', active: latestActiveOrder.statusCode !== 'pending' && latestActiveOrder.statusCode !== 'rejected' && latestActiveOrder.statusCode !== 'cancelled' },
+                { label: 'Delivery', active: latestActiveOrder.statusCode === 'out_for_delivery' || latestActiveOrder.statusCode === 'delivered' },
+                { label: 'Delivered', active: latestActiveOrder.statusCode === 'delivered' }
+              ].map((step, idx) => (
+                <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 2, background: '#FFF' }}>
+                  <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: step.active ? '#22C55E' : '#F1F5F9', border: step.active ? 'none' : '2px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px', color: '#FFF' }}>
+                    {step.active && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
                   </div>
-                  <div className="timeline-content">
-                    <h4 className={`timeline-title ${step.active ? 'active' : ''}`}>{step.title}</h4>
-                    <p className={`timeline-desc ${step.active ? 'active' : ''}`}>{step.desc}</p>
-                  </div>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 600, color: step.active ? '#1E293B' : '#94A3B8' }}>{step.label}</span>
                 </div>
               ))}
             </div>
+
+            {/* Delivery Agent Section */}
+            <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
+              <div style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: 600, marginBottom: '12px' }}>Delivery Agent</div>
+              
+              {latestActiveOrder.rawBooking?.assigned_staff_name ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#E0F2FE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0369A1' }}>
+                      <span style={{ fontSize: '1.2rem' }}>👤</span>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.95rem', color: '#1E293B', fontWeight: 700 }}>{latestActiveOrder.rawBooking.assigned_staff_name}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 500 }}>Your delivery partner</div>
+                    </div>
+                  </div>
+                  {latestActiveOrder.rawBooking?.assigned_staff_phone && (
+                    <a href={`tel:${latestActiveOrder.rawBooking.assigned_staff_phone}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none', color: '#2563EB', gap: '4px' }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ fontSize: '1rem' }}>📞</span>
+                      </div>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>Call</span>
+                    </a>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <div style={{ fontSize: '0.9rem', color: '#1E293B', fontWeight: 600, marginBottom: '4px' }}>Staff assignment pending</div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748B' }}>We'll show your delivery partner here once assigned.</div>
+                </div>
+              )}
+            </div>
+
+            {/* Track Order Button */}
+            <button 
+              onClick={() => {
+                if (onTrackOrder && latestActiveOrder?.rawBooking?.id) {
+                  onTrackOrder(latestActiveOrder.rawBooking.id)
+                }
+              }}
+              style={{ width: '100%', background: '#FFF', color: '#4F46E5', border: '1px solid #4F46E5', borderRadius: '12px', padding: '12px', fontSize: '0.95rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer' }}
+            >
+              Track Order
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+            </button>
+
           </div>
         ) : (
-          <div className="no-active-order-card">
-            <div className="no-order-left">
-              <div className="no-order-icon-circle">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
-              </div>
-              <div className="no-order-text">
-                <h4 className="no-order-title">No Active Deliveries</h4>
-                <p className="no-order-subtitle">Need gas? Book your 14.2 KG cylinder now</p>
-              </div>
+          <div className="no-active-order-card" style={{ background: '#FFF', borderRadius: '16px', padding: '32px 20px', textAlign: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.05)', border: '1px solid #F1F5F9' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', color: '#94A3B8' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
             </div>
-            <button className="order-now-btn" onClick={onNavigateToExplore}>
-              <span>Order Now</span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
-              </svg>
+            <h4 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', fontWeight: 700, color: '#1E293B' }}>No active orders</h4>
+            <p style={{ margin: '0 0 24px 0', fontSize: '0.9rem', color: '#64748B' }}>Book a cylinder to see your order status here.</p>
+            <button 
+              onClick={onNavigateToExplore}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#2563EB', color: '#FFF', border: 'none', padding: '10px 20px', borderRadius: '8px', fontSize: '0.95rem', fontWeight: 600, cursor: 'pointer' }}
+            >
+              Book Cylinder
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
             </button>
           </div>
         )}
@@ -338,10 +359,11 @@ export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrd
         </div>
       </div>
 
+      {/* Notifications Drawer */}
       {showNotifications && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
-          <div style={{ background: '#FFF', width: '100%', maxWidth: '360px', maxHeight: '80vh', borderRadius: '16px', padding: '20px', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #F1F5F9', paddingBottom: '12px' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2000, display: 'flex', justifyContent: 'flex-end', overflow: 'hidden' }}>
+          <div style={{ background: '#fff', width: '85%', maxWidth: 360, height: '100%', padding: 20, display: 'flex', flexDirection: 'column', boxShadow: '-5px 0 25px rgba(0,0,0,0.1)', animation: 'slideInRight 0.3s ease-out' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottom: '1px solid #f1f5f9', paddingBottom: 12 }}>
               <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: '#132B4F' }}>Notifications</h3>
               <button onClick={() => setShowNotifications(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#132B4F' }}>✕</button>
             </div>

@@ -278,22 +278,6 @@ export function OrdersView({
                 </div>
               </div>
 
-              {/* Inline Timeline for Ongoing Orders */}
-              {order.status === 'ongoing' && (
-                <div className="timeline-container">
-                  {getTimelineSteps(order.statusCode).map((step, idx, arr) => (
-                    <div key={step.key} className="timeline-step">
-                      <div className="timeline-indicator">
-                        <div className={`timeline-dot ${step.isDone ? 'active' : ''}`} />
-                        <div className={`timeline-line ${step.isDone && arr[idx + 1]?.isDone ? 'active' : ''}`} />
-                      </div>
-                      <div className="timeline-content">
-                        <h4 className={`timeline-title ${step.isDone ? 'active' : ''}`}>{step.title}</h4>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           ))}
           
@@ -323,8 +307,8 @@ export function OrdersView({
 
       {/* Notifications Drawer */}
       {showNotifications && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', justifyContent: 'flex-end' }}>
-          <div style={{ background: '#fff', width: '100%', maxWidth: 360, height: '100%', padding: 20, display: 'flex', flexDirection: 'column', boxShadow: '-5px 0 25px rgba(0,0,0,0.1)' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', justifyContent: 'flex-end', overflow: 'hidden' }}>
+          <div style={{ background: '#fff', width: '85%', maxWidth: 360, height: '100%', padding: 20, display: 'flex', flexDirection: 'column', boxShadow: '-5px 0 25px rgba(0,0,0,0.1)', animation: 'slideInRight 0.3s ease-out' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottom: '1px solid #f1f5f9', paddingBottom: 12 }}>
               <h2 style={{ fontSize: 18, fontWeight: 700 }}>Notifications</h2>
               <button onClick={() => setShowNotifications(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer' }}>✕</button>

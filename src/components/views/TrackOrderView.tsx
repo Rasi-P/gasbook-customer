@@ -47,7 +47,7 @@ export function TrackOrderView({ bookingId, onBack }: TrackOrderViewProps) {
         },
         { 
           key: 'terminated', 
-          title: code === 'rejected' ? 'Rejected' : 'Cancelled', 
+          title: code === 'rejected' ? 'Order Rejected' : 'Cancelled', 
           isDone: true, 
           isCurrent: true,
           subtitle: bookingData?.rejection_reason || 'Order was cancelled.'
@@ -84,10 +84,10 @@ export function TrackOrderView({ bookingId, onBack }: TrackOrderViewProps) {
     switch (status) {
       case 'pending': return 'Order Placed'
       case 'approved': return 'Order Confirmed'
-      case 'accepted': return 'Accepted'
+      case 'accepted': return 'Order Confirmed'
       case 'out_for_delivery': return 'Out for Delivery'
       case 'delivered': return 'Delivered'
-      case 'rejected': return 'Rejected'
+      case 'rejected': return 'Order Rejected'
       case 'cancelled': return 'Cancelled'
       default: return 'Processing'
     }
