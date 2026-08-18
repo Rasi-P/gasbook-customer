@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { fetchBookingById } from '../../lib/auth'
+import { getCylinderDisplay } from '../../lib/formatters'
 
 interface TrackOrderViewProps {
   bookingId: number
@@ -144,7 +145,8 @@ export function TrackOrderView({ bookingId, onBack }: TrackOrderViewProps) {
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: '4px' }}>Cylinder</div>
-                <div style={{ fontWeight: 600, color: '#1E293B', fontSize: '0.95rem' }}>{booking.cylinder_type_name || 'Gas Cylinder'}</div>
+                <div style={{ fontWeight: 600, color: '#1E293B', fontSize: '0.95rem' }}>{getCylinderDisplay(booking.cylinder_type_name, booking.cylinder_type_weight).title}</div>
+                <div style={{ fontSize: '0.75rem', color: '#4F46E5', fontWeight: 500, marginTop: '2px' }}>{getCylinderDisplay(booking.cylinder_type_name, booking.cylinder_type_weight).badge}</div>
               </div>
               <div style={{ flex: 1, textAlign: 'center' }}>
                 <div style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: '4px' }}>Quantity</div>
