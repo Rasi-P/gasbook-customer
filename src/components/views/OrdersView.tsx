@@ -121,7 +121,7 @@ export function OrdersView({
 
     return {
       id: b.id.toString(),
-      orderNumber: `Order #GB${b.id}`,
+      orderNumber: `Order #${b.order_id}`,
       date: new Date(b.created_at).toLocaleDateString('en-IN', {
         day: 'numeric',
         month: 'short',
