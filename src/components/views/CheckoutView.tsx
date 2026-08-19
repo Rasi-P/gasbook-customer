@@ -22,7 +22,6 @@ export function CheckoutView({
   customerProfile,
   profileUser,
   onUpdateQuantity,
-  onRemoveItem,
   onProfileUpdated,
   onNavigateToExplore,
   onBackToCart,
