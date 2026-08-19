@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+
 import type { CartItem } from '../../types'
 import { calculateCartPricing } from '../../lib/pricing'
 

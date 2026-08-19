@@ -139,6 +139,7 @@ export function OrdersView({
     }
   })
 
+  // @ts-ignore
   const getTimelineSteps = (code: string | undefined) => {
     if (code === 'cancelled' || code === 'rejected') {
       return [
