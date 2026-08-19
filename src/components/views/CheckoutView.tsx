@@ -14,7 +14,7 @@ interface CheckoutViewProps {
   onProfileUpdated?: () => void
   onNavigateToExplore: () => void
   onBackToCart: () => void
-  onOrderCreated: (orderIds: number[], completedCart: CartItem[]) => void
+  onOrderCreated: (orders: {id: number, order_id: string}[], completedCart: CartItem[]) => void
 }
 
 export function CheckoutView({
@@ -59,8 +59,8 @@ export function CheckoutView({
       })
 
       const responses = await Promise.all(bookingPromises)
-      const orderIds = responses.map((res: any) => res.id)
-      onOrderCreated(orderIds, cartItems)
+      const createdOrders = responses.map((res: any) => ({ id: res.id, order_id: res.order_id }))
+      onOrderCreated(createdOrders, cartItems)
     } catch (err: unknown) {
       const details = getApiErrorDetails(err, 'Unable to place order. Please try again.')
       setError(details.message)

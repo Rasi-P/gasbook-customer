@@ -39,7 +39,7 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
   const [activeTab, setActiveTab] = useState<ActiveTab>('home')
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [completedCartSnapshot, setCompletedCartSnapshot] = useState<CartItem[]>([])
-  const [lastCreatedOrderIds, setLastCreatedOrderIds] = useState<number[]>([])
+  const [lastCreatedOrders, setLastCreatedOrders] = useState<{id: number, order_id: string}[]>([])
   const [realOrders, setRealOrders] = useState<OrderItem[]>([])
   const [trackingBookingId, setTrackingBookingId] = useState<number | null>(null)
   const [previousTab, setPreviousTab] = useState<ActiveTab>('home')
@@ -80,7 +80,7 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
 
         return {
           id: `ord-${b.id}`,
-          orderNumber: `Order #GB${b.id}`,
+          orderNumber: `Order #${b.order_id}`,
           date: b.created_at ? new Date(b.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Today',
           productName: display.title,
           weight: display.badge,
@@ -174,10 +174,10 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
     setActiveTab('home')
   }
 
-  const handleOrderCreated = (orderIds: number[], completedCart: CartItem[]) => {
+  const handleOrderCreated = (orders: {id: number, order_id: string}[], completedCart: CartItem[]) => {
     setCompletedCartSnapshot(completedCart)
     setCartItems([]) // Clear cart only after checkout order creation succeeds
-    setLastCreatedOrderIds(orderIds)
+    setLastCreatedOrders(orders)
     setActiveTab('order-success')
     void fetchActiveOrder()
   }
@@ -242,9 +242,9 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
             onOrderCreated={handleOrderCreated}
           />
         )}
-        {activeTab === 'order-success' && lastCreatedOrderIds.length > 0 && (
+        {activeTab === 'order-success' && lastCreatedOrders.length > 0 && (
           <OrderSuccessView
-            orderIds={lastCreatedOrderIds}
+            orders={lastCreatedOrders}
             cartItems={completedCartSnapshot}
             onViewOrders={() => setActiveTab('orders')}
             onTrackOrder={(id) => {
