@@ -39,7 +39,7 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
   const [activeTab, setActiveTab] = useState<ActiveTab>('home')
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [completedCartSnapshot, setCompletedCartSnapshot] = useState<CartItem[]>([])
-  const [lastCreatedOrders, setLastCreatedOrders] = useState<{ id: number, order_id: string }[]>([])
+  const [lastCreatedOrders, setLastCreatedOrders] = useState<{id: number, order_id: string}[]>([])
   const [realOrders, setRealOrders] = useState<OrderItem[]>([])
   const [trackingBookingId, setTrackingBookingId] = useState<number | null>(null)
   const [previousTab, setPreviousTab] = useState<ActiveTab>('home')
@@ -52,7 +52,7 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
       const mapped: OrderItem[] = items.map((b: any) => {
         let statusLabel = 'Order Placed'
         let statusKind: 'ongoing' | 'completed' | 'cancelled' = 'ongoing'
-        let etaOrDate = 'Order Placed — Awaiting staff assignment'
+        let etaOrDate = 'Order Placed — Preparing for delivery'
 
         if (b.status === 'approved') {
           statusLabel = 'Order Confirmed'
@@ -174,7 +174,7 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
     setActiveTab('home')
   }
 
-  const handleOrderCreated = (orders: { id: number, order_id: string }[], completedCart: CartItem[]) => {
+  const handleOrderCreated = (orders: {id: number, order_id: string}[], completedCart: CartItem[]) => {
     setCompletedCartSnapshot(completedCart)
     setCartItems([]) // Clear cart only after checkout order creation succeeds
     setLastCreatedOrders(orders)
@@ -276,16 +276,16 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
             cartCount={cartCount}
             setActiveTab={setActiveTab}
           />
-        )}
-
+        )}       
+        
         {/* Track Order View */}
         {activeTab === 'track-order' && trackingBookingId !== null && (
-          <TrackOrderView
-            bookingId={trackingBookingId}
+          <TrackOrderView 
+            bookingId={trackingBookingId} 
             onBack={() => {
               setTrackingBookingId(null)
               setActiveTab(previousTab)
-            }}
+            }} 
           />
         )}
       </div>
