@@ -170,7 +170,9 @@ export function OrdersView({
   }
 
   return (
-    <div className="orders-scroll-container">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#F8FAFC', paddingBottom: '68px', boxSizing: 'border-box', position: 'relative' }}>
+      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        <div className="orders-scroll-container" style={{ minHeight: 'auto', paddingBottom: '32px' }}>
       {/* 1. Header */}
       <div className="orders-header">
         <h1 className="orders-title">My Orders</h1>
@@ -345,11 +347,13 @@ export function OrdersView({
           </div>
         </div>
       )}
+      </div>
+      </div>
 
       {/* Rejection Details Bottom Sheet */}
       {selectedRejectionOrder && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2000, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', animation: 'fadeIn 0.2s ease-out' }}>
-          <div style={{ background: '#fff', width: '100%', padding: '24px', borderTopLeftRadius: '20px', borderTopRightRadius: '20px', animation: 'slideUp 0.3s ease-out', boxShadow: '0 -10px 40px rgba(0,0,0,0.1)' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2000, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', animation: 'fadeIn 0.2s ease-out' }}>
+          <div style={{ background: '#fff', width: '100%', padding: '24px', borderTopLeftRadius: '20px', borderTopRightRadius: '20px', animation: 'slideUp 0.3s ease-out', boxShadow: '0 -10px 40px rgba(0,0,0,0.1)', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>Rejection Details</h2>
               <button onClick={() => setSelectedRejectionOrder(null)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#64748b' }}>✕</button>
