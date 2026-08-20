@@ -52,7 +52,7 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
       const mapped: OrderItem[] = items.map((b: any) => {
         let statusLabel = 'Order Placed'
         let statusKind: 'ongoing' | 'completed' | 'cancelled' = 'ongoing'
-        let etaOrDate = 'Order Placed — Awaiting staff assignment'
+        let etaOrDate = 'Order Placed — Preparing for delivery'
 
         if (b.status === 'approved') {
           statusLabel = 'Order Confirmed'
