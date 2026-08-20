@@ -39,7 +39,7 @@ export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrd
   const locationText = getLocationText(customerProfile)
 
   useEffect(() => {
-    fetchCustomerNotifications().then(setNotifications).catch(() => {})
+    fetchCustomerNotifications().then(setNotifications).catch(() => { })
   }, [])
 
   const handleMarkRead = async (id: number) => {
@@ -193,7 +193,7 @@ export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrd
 
         {hasActiveOrder && latestActiveOrder ? (
           <div className="active-order-card" style={{ background: '#FFF', borderRadius: '16px', padding: '20px', boxShadow: '0 4px 16px rgba(0,0,0,0.05)', border: '1px solid #F1F5F9' }}>
-            
+
             {/* Top row: Order # and Date */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#1E293B' }}>{latestActiveOrder.orderNumber}</div>
@@ -229,7 +229,7 @@ export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrd
             <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative', marginBottom: '24px', padding: '0 10px' }}>
               <div style={{ position: 'absolute', top: '10px', left: '20px', right: '20px', height: '2px', background: '#E2E8F0', zIndex: 1 }}></div>
               <div style={{ position: 'absolute', top: '10px', left: '20px', right: '20px', height: '2px', background: '#22C55E', zIndex: 1, width: latestActiveOrder.statusCode === 'pending' ? '0%' : latestActiveOrder.statusCode === 'accepted' ? '33%' : latestActiveOrder.statusCode === 'out_for_delivery' ? '66%' : '100%', transition: 'width 0.3s ease' }}></div>
-              
+
               {[
                 { label: 'Placed', active: true },
                 { label: 'Assigned', active: latestActiveOrder.statusCode !== 'pending' && latestActiveOrder.statusCode !== 'rejected' && latestActiveOrder.statusCode !== 'cancelled' },
@@ -248,7 +248,7 @@ export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrd
             {/* Delivery Agent Section */}
             <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
               <div style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: 600, marginBottom: '12px' }}>Delivery Agent</div>
-              
+
               {latestActiveOrder.rawBooking?.assigned_staff_name ? (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -278,7 +278,7 @@ export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrd
             </div>
 
             {/* Track Order Button */}
-            <button 
+            <button
               onClick={() => {
                 if (onTrackOrder && latestActiveOrder?.rawBooking?.id) {
                   onTrackOrder(latestActiveOrder.rawBooking.id)
@@ -298,7 +298,7 @@ export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrd
             </div>
             <h4 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', fontWeight: 700, color: '#1E293B' }}>No active orders</h4>
             <p style={{ margin: '0 0 24px 0', fontSize: '0.9rem', color: '#64748B' }}>Book a cylinder to see your order status here.</p>
-            <button 
+            <button
               onClick={onNavigateToExplore}
               style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#2563EB', color: '#FFF', border: 'none', padding: '10px 20px', borderRadius: '8px', fontSize: '0.95rem', fontWeight: 600, cursor: 'pointer' }}
             >
