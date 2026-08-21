@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createBooking, getApiErrorDetails, previewBookings, type BookingPreviewResponse, type BookingRecord, type CustomerProfile } from '../../lib/auth'
 import type { CartItem, ProfileUser } from '../../types'
-import { buildBookingPreviewPayload, createEmptyPreview, formatMoney, previewItemByCartId } from '../../lib/pricing'
+import { buildBookingPreviewPayload, createEmptyPreview, formatMoney, previewItemByCartId, previewUnitRates } from '../../lib/pricing'
 import { getCylinderImage } from '../../lib/formatters'
 import { EditProfileModal } from '../common/EditProfileModal'
 
@@ -190,14 +190,19 @@ export function DesktopCheckoutView({
                           {item.variant}
                         </span>
                       </div>
-                      <div style={{ fontSize: '12.5px', color: '#64748b' }}>
-                        {previewItemByCartId(pricingPreview, item.id)?.has_discount && (
-                          <span style={{ color: '#94a3b8', textDecoration: 'line-through', marginRight: '6px' }}>
-                            {formatMoney(previewItemByCartId(pricingPreview, item.id)?.original_amount)}
-                          </span>
-                        )}
-                        {formatMoney(previewItemByCartId(pricingPreview, item.id)?.rate || item.unitPrice)} × {item.quantity}
-                      </div>
+                      {(() => {
+                        const rates = previewUnitRates(previewItemByCartId(pricingPreview, item.id), item.unitPrice)
+                        return (
+                          <div style={{ fontSize: '12.5px', color: '#64748b' }}>
+                            {rates.hasDiscount && (
+                              <span style={{ color: '#94a3b8', textDecoration: 'line-through', marginRight: '6px' }}>
+                                {formatMoney(rates.original)}
+                              </span>
+                            )}
+                            {formatMoney(rates.effective)} × {item.quantity}
+                          </div>
+                        )
+                      })()}
                     </div>
                   </div>
 

@@ -34,3 +34,12 @@ export function createEmptyPreview(): BookingPreviewResponse {
 export function previewItemByCartId(preview: BookingPreviewResponse | null, cartItemId: string): BookingPreviewItem | undefined {
   return preview?.items.find((item) => item.client_item_id === cartItemId)
 }
+
+// `rate` from the preview API is the pre-discount unit rate; the discounted unit
+// rate has to be derived from the line total, which is what customers actually pay.
+export function previewUnitRates(item: BookingPreviewItem | undefined, fallbackUnitPrice: number) {
+  const quantity = Number(item?.quantity || 0)
+  const original = item ? amountToNumber(item.rate) : fallbackUnitPrice
+  const effective = item && quantity > 0 ? amountToNumber(item.final_amount) / quantity : original
+  return { original, effective, hasDiscount: Boolean(item?.has_discount) }
+}

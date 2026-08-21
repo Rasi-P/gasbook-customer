@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { previewBookings, type BookingPreviewResponse, type CustomerProfile } from '../../lib/auth'
 import type { CartItem, ProfileUser } from '../../types'
-import { buildBookingPreviewPayload, createEmptyPreview, formatMoney, previewItemByCartId } from '../../lib/pricing'
+import { buildBookingPreviewPayload, createEmptyPreview, formatMoney, previewItemByCartId, previewUnitRates } from '../../lib/pricing'
 import { getCylinderImage } from '../../lib/formatters'
 import { EditProfileModal } from '../common/EditProfileModal'
 
@@ -139,17 +139,20 @@ export function DesktopCartView({
                   <h3 style={{ margin: '0 0 6px', fontSize: '16.5px', fontWeight: 700, color: '#1e293b' }}>
                     {item.name}
                   </h3>
-                  <div style={{ fontSize: '13.5px', color: '#64748b' }}>
-                    Unit Price:{' '}
-                    {previewItemByCartId(pricingPreview, item.id)?.has_discount && (
-                      <span style={{ color: '#94a3b8', textDecoration: 'line-through', marginRight: '6px' }}>
-                        {formatMoney(item.unitPrice)}
-                      </span>
-                    )}
-                    <strong style={{ color: '#1e293b' }}>
-                      {formatMoney(previewItemByCartId(pricingPreview, item.id)?.rate || item.unitPrice)}
-                    </strong>
-                  </div>
+                  {(() => {
+                    const rates = previewUnitRates(previewItemByCartId(pricingPreview, item.id), item.unitPrice)
+                    return (
+                      <div style={{ fontSize: '13.5px', color: '#64748b' }}>
+                        Unit Price:{' '}
+                        {rates.hasDiscount && (
+                          <span style={{ color: '#94a3b8', textDecoration: 'line-through', marginRight: '6px' }}>
+                            {formatMoney(rates.original)}
+                          </span>
+                        )}
+                        <strong style={{ color: '#1e293b' }}>{formatMoney(rates.effective)}</strong>
+                      </div>
+                    )
+                  })()}
                 </div>
 
                 {/* Quantity Stepper */}

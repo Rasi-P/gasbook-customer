@@ -30,7 +30,9 @@ export function DesktopExploreView({
       displayBadge: display.badge,
       rawWeight: c.weight,
       rawPrice: Number(c.selling_price) || 0,
-      price: `₹${Number(c.selling_price).toLocaleString('en-IN')}`,
+      finalPrice: Number(c.final_price || c.selling_price) || 0,
+      originalPrice: Number(c.customer_rate || c.selling_price) || 0,
+      hasDiscount: Boolean(c.has_discount),
       category: 'cylinder',
       isPopular: c.name.includes('14.2') || (c.weight && String(c.weight).includes('14.2')),
     }
@@ -266,7 +268,14 @@ export function DesktopExploreView({
             >
               <div>
                 <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block' }}>Refill Price</span>
-                <span style={{ fontSize: '20px', fontWeight: 800, color: '#1e293b' }}>{prod.price}</span>
+                {prod.hasDiscount && (
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#94a3b8', textDecoration: 'line-through', display: 'block' }}>
+                    ₹{prod.originalPrice.toLocaleString('en-IN')}
+                  </span>
+                )}
+                <span style={{ fontSize: '20px', fontWeight: 800, color: '#1e293b' }}>
+                  ₹{prod.finalPrice.toLocaleString('en-IN')}
+                </span>
               </div>
               <button
                 onClick={() => onBook(prod.displayBadge, prod.rawPrice, prod.rawId, prod.displayTitle)}
