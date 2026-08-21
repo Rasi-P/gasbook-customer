@@ -1,7 +1,7 @@
-import { useState } from 'react'
-import { createBooking, getApiErrorDetails, type CustomerProfile } from '../../lib/auth'
+import { useEffect, useState } from 'react'
+import { createBooking, getApiErrorDetails, previewBookings, type BookingPreviewResponse, type BookingRecord, type CustomerProfile } from '../../lib/auth'
 import type { CartItem, ProfileUser } from '../../types'
-import { calculateCartPricing } from '../../lib/pricing'
+import { buildBookingPreviewPayload, createEmptyPreview, formatMoney, previewItemByCartId } from '../../lib/pricing'
 import { getCylinderImage } from '../../lib/formatters'
 import { EditProfileModal } from '../common/EditProfileModal'
 
@@ -14,7 +14,7 @@ interface CheckoutViewProps {
   onProfileUpdated?: () => void
   onNavigateToExplore: () => void
   onBackToCart: () => void
-  onOrderCreated: (orders: {id: number, order_id: string}[], completedCart: CartItem[]) => void
+  onOrderCreated: (bookings: BookingRecord[]) => void
 }
 
 export function CheckoutView({
@@ -30,13 +30,33 @@ export function CheckoutView({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isEditingAddress, setIsEditingAddress] = useState(false)
-
-  const { subtotal, deliveryFee, total } = calculateCartPricing(cartItems)
+  const [pricingPreview, setPricingPreview] = useState<BookingPreviewResponse>(createEmptyPreview())
 
   const customerName = customerProfile?.name?.trim() || customerProfile?.full_name?.trim() || 'Customer'
   const customerPhone = customerProfile?.phone?.trim() || ''
   const customerAddress = customerProfile?.address?.trim() || ''
   const hasValidAddress = Boolean(customerAddress)
+
+  useEffect(() => {
+    let ignore = false
+
+    if (cartItems.length === 0) {
+      setPricingPreview(createEmptyPreview())
+      return
+    }
+
+    previewBookings(buildBookingPreviewPayload(cartItems))
+      .then((data) => {
+        if (!ignore) setPricingPreview(data)
+      })
+      .catch(() => {
+        if (!ignore) setPricingPreview(createEmptyPreview())
+      })
+
+    return () => {
+      ignore = true
+    }
+  }, [cartItems])
 
   const handlePlaceOrder = async () => {
     if (submitting) return
@@ -58,8 +78,7 @@ export function CheckoutView({
       })
 
       const responses = await Promise.all(bookingPromises)
-      const createdOrders = responses.map((res: any) => ({ id: res.id, order_id: res.order_id }))
-      onOrderCreated(createdOrders, cartItems)
+      onOrderCreated(responses)
     } catch (err: unknown) {
       const details = getApiErrorDetails(err, 'Unable to place order. Please try again.')
       setError(details.message)
@@ -129,7 +148,16 @@ export function CheckoutView({
                         <span style={{ fontWeight: 600, color: '#1E293B', fontSize: '0.95rem' }}>{item.name}</span>
                         <span style={{ background: '#EEF2FF', color: '#4F46E5', fontSize: '0.75rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 500 }}>{item.variant}</span>
                       </div>
-                      <span style={{ color: '#1E293B', fontSize: '0.95rem', textAlign: 'right' }}>₹{item.unitPrice.toLocaleString('en-IN')}</span>
+                      <div style={{ textAlign: 'right' }}>
+                        {previewItemByCartId(pricingPreview, item.id)?.has_discount && (
+                          <div style={{ fontSize: '0.78rem', color: '#94a3b8', textDecoration: 'line-through' }}>
+                            {formatMoney(previewItemByCartId(pricingPreview, item.id)?.original_amount)}
+                          </div>
+                        )}
+                        <span style={{ color: '#1E293B', fontSize: '0.95rem' }}>
+                          {formatMoney(previewItemByCartId(pricingPreview, item.id)?.final_amount || item.unitPrice)}
+                        </span>
+                      </div>
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
@@ -138,7 +166,9 @@ export function CheckoutView({
                         <span style={{ width: '32px', textAlign: 'center', fontSize: '0.9rem', fontWeight: 500, color: '#1E293B' }}>{item.quantity}</span>
                         <button onClick={() => onUpdateQuantity(item.id, 1)} style={{ width: '32px', height: '32px', background: '#FFF', border: 'none', color: '#64748B', cursor: 'pointer', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
                       </div>
-                      <span style={{ fontWeight: 600, color: '#1E293B', textAlign: 'right' }}>₹{(item.unitPrice * item.quantity).toLocaleString('en-IN')}</span>
+                      <span style={{ fontWeight: 600, color: '#1E293B' }}>
+                        {formatMoney(previewItemByCartId(pricingPreview, item.id)?.final_amount || item.unitPrice * item.quantity)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -198,19 +228,21 @@ export function CheckoutView({
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '0.95rem', color: '#64748B' }}>
-            <span>Subtotal</span>
-            <span style={{ color: '#1E293B' }}>₹{subtotal.toLocaleString('en-IN')}</span>
+            <span>Original Amount</span>
+            <span style={{ color: '#1E293B' }}>{formatMoney(pricingPreview.summary.original_amount)}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', fontSize: '0.95rem', color: '#64748B' }}>
-            <span>Delivery Fee</span>
-            <span style={{ color: '#1E293B' }}>₹{deliveryFee.toLocaleString('en-IN')}</span>
-          </div>
+          {pricingPreview.summary.has_discount && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', fontSize: '0.95rem', color: '#64748B' }}>
+              <span>Discount</span>
+              <span style={{ color: '#16a34a' }}>- {formatMoney(pricingPreview.summary.discount_amount)}</span>
+            </div>
+          )}
           
           <div style={{ borderTop: '1px dashed #E2E8F0', margin: '0 0 16px 0', width: '100%' }} />
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: '#1E293B', fontWeight: 600, fontSize: '1.05rem' }}>Total Amount</span>
-            <span style={{ color: '#2563EB', fontWeight: 700, fontSize: '1.15rem' }}>₹{total.toLocaleString('en-IN')}</span>
+            <span style={{ color: '#1E293B', fontWeight: 600, fontSize: '1.05rem' }}>Final Amount</span>
+            <span style={{ color: '#2563EB', fontWeight: 700, fontSize: '1.15rem' }}>{formatMoney(pricingPreview.summary.final_amount)}</span>
           </div>
         </div>
 
@@ -234,7 +266,7 @@ export function CheckoutView({
             </div>
             <div>
               <div style={{ fontWeight: 600, color: '#1E293B', fontSize: '0.95rem' }}>Cash on Delivery (COD)</div>
-              <div style={{ fontSize: '0.85rem', color: '#64748B', marginTop: '2px' }}>Pay ₹{total.toLocaleString('en-IN')} upon delivery</div>
+              <div style={{ fontSize: '0.85rem', color: '#64748B', marginTop: '2px' }}>Pay {formatMoney(pricingPreview.summary.final_amount)} upon delivery</div>
             </div>
           </div>
         </div>

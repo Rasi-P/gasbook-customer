@@ -114,8 +114,9 @@ export function OrdersView({
       etaOrDate = 'Order rejected'
     }
 
-    const priceNum = parseFloat(b.rate || '0')
-    const finalPrice = priceNum > 0 ? `₹${priceNum.toLocaleString('en-IN')}` : 'To be determined'
+    const finalPriceNum = parseFloat(b.final_amount || b.total_amount || '0')
+    const originalPriceNum = parseFloat(b.original_amount || '0')
+    const finalPrice = finalPriceNum > 0 ? `₹${finalPriceNum.toLocaleString('en-IN')}` : 'To be determined'
 
     const display = getCylinderDisplay(b.cylinder_type_name, b.cylinder_type_weight)
 
@@ -130,6 +131,7 @@ export function OrdersView({
       productName: display.title,
       weight: display.badge,
       price: finalPrice,
+      originalPrice: parseFloat(b.discount_amount || '0') > 0 ? `₹${originalPriceNum.toLocaleString('en-IN')}` : undefined,
       status: statusKind,
       statusCode: b.status,
       statusLabel,
@@ -138,35 +140,6 @@ export function OrdersView({
       rawBooking: b,
     }
   })
-
-  // @ts-ignore
-  const getTimelineSteps = (code: string | undefined) => {
-    if (code === 'cancelled' || code === 'rejected') {
-      return [
-        { key: 'placed', title: 'Order Placed', isDone: true, isCurrent: false },
-        { key: 'terminated', title: code === 'rejected' ? 'Rejected' : 'Cancelled', isDone: true, isCurrent: true }
-      ]
-    }
-
-    const steps = [
-      { key: 'placed', title: 'Order Placed' },
-      { key: 'confirmed', title: 'Order Confirmed' },
-      { key: 'out_for_delivery', title: 'Out for Delivery' },
-      { key: 'delivered', title: 'Delivered' },
-    ]
-
-    let currentIndex = 0
-    if (code === 'pending') currentIndex = 0
-    else if (code === 'approved') currentIndex = 1
-    else if (code === 'accepted' || code === 'out_for_delivery') currentIndex = 2
-    else if (code === 'delivered') currentIndex = 3
-
-    return steps.map((step, idx) => ({
-      ...step,
-      isDone: idx <= currentIndex,
-      isCurrent: idx === currentIndex,
-    }))
-  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#F8FAFC', paddingBottom: '68px', boxSizing: 'border-box', position: 'relative' }}>
@@ -247,6 +220,9 @@ export function OrdersView({
                 <div className="order-info-center">
                   <h3 className="order-product-name">{order.productName}</h3>
                   <span className="order-weight-badge">{order.weight}</span>
+                  {order.originalPrice && (
+                    <span className="order-price-tag" style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '0.82rem' }}>{order.originalPrice}</span>
+                  )}
                   <span className="order-price-tag">{order.price}</span>
                 </div>
 

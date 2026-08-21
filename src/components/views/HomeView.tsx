@@ -210,6 +210,9 @@ export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrd
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
                   <span style={{ background: '#EEF2FF', color: '#4F46E5', fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>{latestActiveOrder.weight}</span>
                 </div>
+                {latestActiveOrder.originalPrice && (
+                  <div style={{ color: '#94a3b8', fontSize: '0.82rem', textDecoration: 'line-through', marginBottom: '3px' }}>{latestActiveOrder.originalPrice}</div>
+                )}
                 <div style={{ fontWeight: 700, color: '#1E293B', fontSize: '1.1rem' }}>{latestActiveOrder.price}</div>
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0 }}>

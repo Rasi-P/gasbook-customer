@@ -14,6 +14,7 @@ export interface OrderItem {
   productName: string
   weight: string
   price: string
+  originalPrice?: string
   status: 'ongoing' | 'completed' | 'cancelled'
   statusCode?: 'pending' | 'approved' | 'accepted' | 'out_for_delivery' | 'delivered' | 'cancelled' | 'rejected'
   statusLabel: string
@@ -29,6 +30,7 @@ export interface CartItem {
   name: string
   variant: string
   unitPrice: number
+  displayPrice?: number
   quantity: number
   type: 'cylinder' | 'accessory'
 }

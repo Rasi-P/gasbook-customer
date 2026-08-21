@@ -1,7 +1,7 @@
-import { useState } from 'react'
-import type { CustomerProfile } from '../../lib/auth'
+import { useEffect, useState } from 'react'
+import { previewBookings, type BookingPreviewResponse, type CustomerProfile } from '../../lib/auth'
 import type { CartItem, ProfileUser } from '../../types'
-import { calculateCartPricing } from '../../lib/pricing'
+import { buildBookingPreviewPayload, createEmptyPreview, formatMoney, previewItemByCartId, previewUnitRates } from '../../lib/pricing'
 import { getCylinderImage } from '../../lib/formatters'
 import { EditProfileModal } from '../common/EditProfileModal'
 
@@ -28,8 +28,29 @@ export function DesktopCartView({
 }: DesktopCartViewProps) {
   const [isEditingAddress, setIsEditingAddress] = useState(false)
 
-  const { subtotal, deliveryFee, total } = calculateCartPricing(cartItems)
+  const [pricingPreview, setPricingPreview] = useState<BookingPreviewResponse>(createEmptyPreview())
   const totalCount = cartItems.reduce((acc, item) => acc + item.quantity, 0)
+
+  useEffect(() => {
+    let ignore = false
+
+    if (cartItems.length === 0) {
+      setPricingPreview(createEmptyPreview())
+      return
+    }
+
+    previewBookings(buildBookingPreviewPayload(cartItems))
+      .then((data) => {
+        if (!ignore) setPricingPreview(data)
+      })
+      .catch(() => {
+        if (!ignore) setPricingPreview(createEmptyPreview())
+      })
+
+    return () => {
+      ignore = true
+    }
+  }, [cartItems])
 
   const deliveryName = customerProfile?.name?.trim() || customerProfile?.full_name?.trim() || 'Customer'
   const deliveryAddress = customerProfile?.address?.trim() || 'Add your delivery address'
@@ -118,9 +139,20 @@ export function DesktopCartView({
                   <h3 style={{ margin: '0 0 6px', fontSize: '16.5px', fontWeight: 700, color: '#1e293b' }}>
                     {item.name}
                   </h3>
-                  <div style={{ fontSize: '13.5px', color: '#64748b' }}>
-                    Unit Price: <strong style={{ color: '#1e293b' }}>₹{item.unitPrice.toLocaleString('en-IN')}</strong>
-                  </div>
+                  {(() => {
+                    const rates = previewUnitRates(previewItemByCartId(pricingPreview, item.id), item.unitPrice)
+                    return (
+                      <div style={{ fontSize: '13.5px', color: '#64748b' }}>
+                        Unit Price:{' '}
+                        {rates.hasDiscount && (
+                          <span style={{ color: '#94a3b8', textDecoration: 'line-through', marginRight: '6px' }}>
+                            {formatMoney(rates.original)}
+                          </span>
+                        )}
+                        <strong style={{ color: '#1e293b' }}>{formatMoney(rates.effective)}</strong>
+                      </div>
+                    )
+                  })()}
                 </div>
 
                 {/* Quantity Stepper */}
@@ -145,7 +177,7 @@ export function DesktopCartView({
                 {/* Total Item Price */}
                 <div style={{ minWidth: '100px', textAlign: 'right' }}>
                   <span style={{ fontSize: '18px', fontWeight: 800, color: '#1e293b' }}>
-                    ₹{(item.unitPrice * item.quantity).toLocaleString('en-IN')}
+                    {formatMoney(previewItemByCartId(pricingPreview, item.id)?.final_amount || item.unitPrice * item.quantity)}
                   </span>
                 </div>
 
@@ -225,21 +257,21 @@ export function DesktopCartView({
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#64748b' }}>
-                  <span>Subtotal</span>
-                  <span style={{ fontWeight: 600, color: '#1e293b' }}>₹{subtotal.toLocaleString('en-IN')}</span>
+                  <span>Original Amount</span>
+                  <span style={{ fontWeight: 600, color: '#1e293b' }}>{formatMoney(pricingPreview.summary.original_amount)}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#64748b' }}>
-                  <span>Delivery Charges</span>
-                  <span style={{ fontWeight: 600, color: '#16a34a' }}>
-                    {deliveryFee === 0 ? 'FREE' : `₹${deliveryFee.toLocaleString('en-IN')}`}
-                  </span>
-                </div>
+                {pricingPreview.summary.has_discount && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#64748b' }}>
+                    <span>Discount</span>
+                    <span style={{ fontWeight: 600, color: '#16a34a' }}>- {formatMoney(pricingPreview.summary.discount_amount)}</span>
+                  </div>
+                )}
 
                 <div style={{ height: '1px', background: '#f1f5f9', margin: '4px 0' }} />
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontWeight: 800 }}>
                   <span style={{ color: '#1e293b' }}>Total Payable</span>
-                  <span style={{ color: '#1052be' }}>₹{total.toLocaleString('en-IN')}</span>
+                  <span style={{ color: '#1052be' }}>{formatMoney(pricingPreview.summary.final_amount)}</span>
                 </div>
               </div>
 

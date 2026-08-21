@@ -35,8 +35,63 @@ export interface CustomerProfile {
   phone: string
   email: string
   address: string
+  global_discount_type?: 'percentage' | 'fixed' | null
+  global_discount_value?: string
+  global_discount_is_active?: boolean
   created_at: string
   updated_at: string
+}
+
+export interface BookingRecord {
+  id: number
+  order_id: string
+  cylinder_type: number
+  cylinder_type_name: string
+  cylinder_type_weight?: string
+  quantity: number
+  status: string
+  rate: string
+  original_amount?: string
+  discount_amount?: string
+  final_amount?: string
+  total_amount?: string
+  has_discount?: boolean
+  applied_discount_type?: 'percentage' | 'fixed' | null
+  applied_discount_value?: string
+  assigned_staff_name?: string | null
+  assigned_staff_phone?: string | null
+  rejection_reason?: string | null
+  created_at: string
+  updated_at?: string
+  approved_at?: string | null
+  delivered_at?: string | null
+  payment_method?: string
+  payment_status?: string
+}
+
+export interface BookingPreviewItem {
+  client_item_id?: string
+  cylinder_type: number
+  cylinder_type_name: string
+  cylinder_type_weight?: string
+  quantity: number
+  rate: string
+  original_amount: string
+  discount_amount: string
+  final_amount: string
+  has_discount: boolean
+  applied_discount_type?: 'percentage' | 'fixed' | null
+  applied_discount_value?: string
+}
+
+export interface BookingPreviewResponse {
+  items: BookingPreviewItem[]
+  summary: {
+    original_amount: string
+    discount_amount: string
+    final_amount: string
+    has_discount: boolean
+  }
 }
 
 interface PaginatedResponse<T> {
@@ -362,6 +417,10 @@ export interface CylinderTypeItem {
   name: string
   weight: string
   selling_price: string
+  customer_rate?: string
+  discount_amount?: string
+  final_price?: string
+  has_discount?: boolean
   is_active: boolean
 }
 
@@ -370,20 +429,29 @@ export async function fetchCylinderTypes(): Promise<CylinderTypeItem[]> {
   return data.results || data || []
 }
 
-export async function createBooking(payload: Record<string, unknown>): Promise<{ id: number }> {
-  return request<{ id: number }>('/bookings/', {
+export async function createBooking(payload: Record<string, unknown>): Promise<BookingRecord> {
+  return request<BookingRecord>('/bookings/', {
     method: 'POST',
     body: JSON.stringify(payload),
   })
 }
 
-export async function fetchCustomerBookings(): Promise<any[]> {
-  const data = await request<any>('/bookings/', { method: 'GET' })
-  return data.results || data || []
+export async function previewBookings(payload: {
+  items: Array<{ client_item_id?: string; cylinder_type: number; quantity: number }>
+}): Promise<BookingPreviewResponse> {
+  return request<BookingPreviewResponse>('/bookings/preview/', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
 }
 
-export async function fetchBookingById(id: number): Promise<any> {
-  return request<any>(`/bookings/${id}/`, { method: 'GET' })
+export async function fetchCustomerBookings(): Promise<BookingRecord[]> {
+  const data = await request<PaginatedResponse<BookingRecord> | BookingRecord[]>('/bookings/', { method: 'GET' })
+  return Array.isArray(data) ? data : data?.results || []
+}
+
+export async function fetchBookingById(id: number): Promise<BookingRecord> {
+  return request<BookingRecord>(`/bookings/${id}/`, { method: 'GET' })
 }
 
 export interface NotificationItem {

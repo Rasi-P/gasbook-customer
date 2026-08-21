@@ -48,7 +48,9 @@ export function DesktopHomeView({
       displayBadge: display.badge,
       rawWeight: c.weight,
       rawPrice: Number(c.selling_price) || 0,
-      price: `₹${Number(c.selling_price).toLocaleString('en-IN')}`,
+      finalPrice: Number(c.final_price || c.selling_price) || 0,
+      originalPrice: Number(c.customer_rate || c.selling_price) || 0,
+      hasDiscount: Boolean(c.has_discount),
     }
   })
 
@@ -330,7 +332,14 @@ export function DesktopHomeView({
                 <h4 className="desktop-cylinder-title">{prod.displayTitle}</h4>
               </div>
               <div className="desktop-cylinder-bottom">
-                <span className="desktop-cylinder-price">{prod.price}</span>
+                <div className="desktop-cylinder-price-wrap">
+                  {prod.hasDiscount && (
+                    <span className="desktop-cylinder-price-original">
+                      ₹{prod.originalPrice.toLocaleString('en-IN')}
+                    </span>
+                  )}
+                  <span className="desktop-cylinder-price">₹{prod.finalPrice.toLocaleString('en-IN')}</span>
+                </div>
                 <button
                   className="desktop-book-btn"
                   onClick={() => onBook(prod.displayBadge, prod.rawPrice, prod.rawId, prod.displayTitle)}
