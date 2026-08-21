@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react'
-import splashCylinder from '../../assets/splash_cylinder.png'
 import type { OrderItem } from '../../types'
 import { markNotificationRead } from '../../lib/auth'
 import { usePaginatedQuery } from '../../hooks/usePaginatedQuery'
 import { fetchPaginatedBookings, fetchPaginatedNotifications } from '../../lib/api-queries'
 import { Pagination } from '../common/Pagination'
-import { getCylinderDisplay } from '../../lib/formatters'
+import { getCylinderDisplay, getCylinderImage } from '../../lib/formatters'
 
 interface OrdersViewProps {
   onNavigateToExplore: () => void
@@ -242,7 +241,7 @@ export function OrdersView({
 
               <div className="order-card-main">
                 <div className="order-cylinder-wrap">
-                  <img src={splashCylinder} className="order-cylinder-img" alt={order.productName} />
+                  <img src={getCylinderImage(order.productName, order.weight)} className="order-cylinder-img" alt={order.productName} />
                 </div>
 
                 <div className="order-info-center">

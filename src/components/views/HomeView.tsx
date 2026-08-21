@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { OrderItem } from '../../types'
 import { fetchCustomerNotifications, markNotificationRead, type NotificationItem } from '../../lib/auth'
-import splashCylinder from '../../assets/splash_cylinder.png'
+import { getCylinderImage } from '../../lib/formatters'
 import heroBg from '../../assets/hero_bg.png'
 import type { CustomerProfile } from '../../lib/auth'
 
@@ -203,7 +203,7 @@ export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrd
             {/* Middle: Cylinder + Price + Status */}
             <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', marginBottom: '24px' }}>
               <div style={{ width: '60px', height: '60px', background: '#F8FAFC', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <img src={splashCylinder} alt={latestActiveOrder.productName} style={{ height: '45px' }} />
+                <img src={getCylinderImage(latestActiveOrder.productName, latestActiveOrder.weight)} alt={latestActiveOrder.productName} style={{ height: '45px' }} />
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 600, color: '#1E293B', fontSize: '1rem', marginBottom: '4px' }}>{latestActiveOrder.productName}</div>

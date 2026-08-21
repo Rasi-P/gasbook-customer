@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { createBooking, getApiErrorDetails, type CustomerProfile } from '../../lib/auth'
 import type { CartItem, ProfileUser } from '../../types'
 import { calculateCartPricing } from '../../lib/pricing'
-import splashCylinder from '../../assets/splash_cylinder.png'
+import { getCylinderImage } from '../../lib/formatters'
 import { EditProfileModal } from '../common/EditProfileModal'
 
 interface CheckoutViewProps {
@@ -121,7 +121,7 @@ export function CheckoutView({
                 {idx > 0 && <div style={{ borderTop: '1px solid #F1F5F9', margin: '0 0 16px 0' }} />}
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <div style={{ width: '60px', height: '60px', background: '#F8FAFC', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
-                    <img src={splashCylinder} alt={item.name} style={{ width: '40px', objectFit: 'contain' }} />
+                    <img src={getCylinderImage(item.name, item.variant)} alt={item.name} style={{ width: '40px', objectFit: 'contain' }} />
                   </div>
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
