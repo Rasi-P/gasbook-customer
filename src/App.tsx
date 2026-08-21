@@ -38,8 +38,14 @@ function buildFallbackUser(username: string, userId: number | undefined, mustCha
   }
 }
 
+function isDesktopView(): boolean {
+  return typeof window !== 'undefined' && window.innerWidth >= 1024
+}
+
 function App() {
-  const [currentScreen, setCurrentScreen] = useState<ScreenType>('splash')
+  const [currentScreen, setCurrentScreen] = useState<ScreenType>(() => {
+    return isDesktopView() ? 'login' : 'splash'
+  })
   const [postSplashScreen, setPostSplashScreen] = useState<NextScreen>('login')
   const [isSplashReady, setIsSplashReady] = useState(false)
   const [isBootstrapComplete, setIsBootstrapComplete] = useState(false)
@@ -76,6 +82,16 @@ function App() {
   }, [])
 
   useEffect(() => {
+    const handleResize = () => {
+      if (typeof window !== 'undefined' && window.innerWidth >= 1024 && currentScreen === 'splash') {
+        setCurrentScreen(postSplashScreen)
+      }
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [currentScreen, postSplashScreen])
+
+  useEffect(() => {
     let isCancelled = false
 
     const bootstrapSession = async () => {
@@ -108,6 +124,11 @@ function App() {
       setPostSplashScreen(nextScreen)
       setLoginError(restoreError)
       setIsBootstrapComplete(true)
+
+      // On desktop, navigate straight to authenticated screen or login
+      if (isDesktopView()) {
+        setCurrentScreen(nextScreen)
+      }
     }
 
     void bootstrapSession()
@@ -298,6 +319,20 @@ function App() {
   }
 
   if (currentScreen === 'splash') {
+    if (isDesktopView()) {
+      return (
+        <LoginScreen
+          loginForm={loginForm}
+          showLoginPassword={showLoginPassword}
+          isLoginSubmitting={isLoginSubmitting}
+          loginError={loginError}
+          updateLoginField={updateLoginField}
+          setShowLoginPassword={setShowLoginPassword}
+          setLoginForm={setLoginForm}
+          handleLoginSubmit={handleLoginSubmit}
+        />
+      )
+    }
     return <SplashScreen onSplashClick={() => setIsSplashReady(true)} />
   }
 

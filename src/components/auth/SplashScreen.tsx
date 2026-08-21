@@ -1,37 +1,34 @@
-import splashBg from '../../assets/splash_bg.png'
-import splashCylinder from '../../assets/splash_cylinder.png'
-import sabcoLogo from '../../assets/sabco_logo.png'
+import splashBgMobile from '../../assets/splash_bg_mobile.png'
+import sabcoLogoBlue from '../../assets/sabco_logo_blue.svg'
 
 export function SplashScreen({ onSplashClick }: { onSplashClick: () => void }) {
   return (
-    <div className="app-container">
+    <div className="app-container splash-screen-root">
       <div className="app-screen">
-        <div className="splash-screen" onClick={onSplashClick}>
-          <img src={splashBg} className="splash-bg-layer" alt="" />
-          <div className="splash-screen-interactive-area" />
+        <div className="splash-screen-container" onClick={onSplashClick} role="presentation">
+          {/* SEAMLESS FULL-BLEED BACKGROUND SCENE (TRUCK + CYLINDERS + ROAD + SKYLINE + CLOUDS) */}
+          <img
+            src={splashBgMobile}
+            className="splash-full-bleed-scene"
+            alt=""
+            aria-hidden="true"
+          />
 
-          <div className="splash-branding">
-            <img src={sabcoLogo} className="brand-logo-img" alt="Sabco logo" />
-          </div>
-
-          <div className="splash-cylinder-layer">
-            <img src={splashCylinder} className="cylinder-hero-img" alt="Sabco LPG Cylinder" />
-          </div>
-
-          <div className="splash-content-layer">
-            <div className="splash-tagline">
-              <h2>Safe. Reliable. Always.</h2>
-              <p>
-                Your trusted gas partner
-                <br />
-                for every home.
-              </p>
+          {/* TOP BRAND & MESSAGE OVERLAY */}
+          <div className="splash-brand-overlay">
+            <div className="splash-logo-wrap">
+              <img
+                src={sabcoLogoBlue}
+                className="splash-sabco-logo"
+                alt="Sabco Gas Cylinders"
+              />
             </div>
 
-            <div className="dots-indicator">
-              <span className="dot active" />
-              <span className="dot" />
-              <span className="dot" />
+            <h1 className="splash-tagline-text">Safe. Reliable. Always.</h1>
+
+            {/* MINIMAL ANIMATED LOADING BAR */}
+            <div className="splash-loading-track" aria-hidden="true">
+              <div className="splash-loading-bar" />
             </div>
           </div>
         </div>
