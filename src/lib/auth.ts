@@ -44,6 +44,7 @@ export interface CustomerProfile {
 
 export interface BookingRecord {
   id: number
+  order_id: string
   cylinder_type: number
   cylinder_type_name: string
   cylinder_type_weight?: string

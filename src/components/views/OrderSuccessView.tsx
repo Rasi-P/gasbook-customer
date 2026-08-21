@@ -2,20 +2,19 @@ import type { BookingRecord } from '../../lib/auth'
 import { formatMoney } from '../../lib/pricing'
 
 interface OrderSuccessViewProps {
-  bookings: BookingRecord[]
+  orders: BookingRecord[]
   onViewOrders: () => void
   onTrackOrder?: (id: number) => void
   onBackToHome?: () => void
 }
 
-export function OrderSuccessView({ bookings, onViewOrders, onTrackOrder, onBackToHome }: OrderSuccessViewProps) {
-  const orderIds = bookings.map((booking) => booking.id)
-  const subtotal = bookings.reduce((sum, booking) => sum + Number(booking.original_amount || booking.total_amount || 0), 0)
-  const discount = bookings.reduce((sum, booking) => sum + Number(booking.discount_amount || 0), 0)
-  const total = bookings.reduce((sum, booking) => sum + Number(booking.final_amount || booking.total_amount || 0), 0)
+export function OrderSuccessView({ orders, onViewOrders, onTrackOrder, onBackToHome }: OrderSuccessViewProps) {
+  const subtotal = orders.reduce((sum, order) => sum + Number(order.original_amount || order.total_amount || 0), 0)
+  const discount = orders.reduce((sum, order) => sum + Number(order.discount_amount || 0), 0)
+  const total = orders.reduce((sum, order) => sum + Number(order.final_amount || order.total_amount || 0), 0)
 
   const handleCopyIds = () => {
-    const text = orderIds.map(id => `#GB${id}`).join(', ')
+    const text = orders.map(o => `#${o.order_id}`).join(', ')
     navigator.clipboard.writeText(text)
   }
 
@@ -119,10 +118,10 @@ export function OrderSuccessView({ bookings, onViewOrders, onTrackOrder, onBackT
         <div style={{ border: '1px solid #F1F5F9', borderRadius: '16px', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
           <div>
             <div style={{ fontSize: '0.85rem', color: '#64748B', marginBottom: '4px' }}>
-              {orderIds.length > 1 ? 'Booking ID(s)' : 'Booking ID'}
+              {orders.length > 1 ? 'Booking ID(s)' : 'Booking ID'}
             </div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#22C55E' }}>
-              {orderIds.map(id => `#GB${id}`).join(', ')}
+            <div style={{ color: '#1E293B', fontWeight: 600 }}>
+              {orders.map(o => `#${o.order_id}`).join(', ')}
             </div>
           </div>
           <button onClick={handleCopyIds} style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer', padding: '8px' }}>
@@ -183,9 +182,9 @@ export function OrderSuccessView({ bookings, onViewOrders, onTrackOrder, onBackT
 
         {/* Actions */}
         <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {onTrackOrder && orderIds.length > 0 && (
+          {onTrackOrder && orders.length > 0 && (
             <button 
-              onClick={() => onTrackOrder(orderIds[0])}
+              onClick={() => onTrackOrder(orders[0].id)}
               style={{ width: '100%', padding: '16px', background: '#EA580C', color: '#FFF', border: 'none', borderRadius: '12px', fontSize: '1rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
             >
               Track Order

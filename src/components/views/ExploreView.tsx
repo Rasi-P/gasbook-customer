@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
-import splashCylinder from '../../assets/splash_cylinder.png'
 import { fetchCylinderTypes } from '../../lib/auth'
-import { getCylinderDisplay } from '../../lib/formatters'
+import { getCylinderDisplay, getCylinderImage } from '../../lib/formatters'
 
 interface ExploreViewProps {
   cartCount: number
@@ -108,7 +107,7 @@ export function ExploreView({
             tabIndex={0}
           >
             <div className="category-img-wrapper">
-              <img src={splashCylinder} className="category-cylinder-img" alt="Gas Cylinder" />
+              <img src={getCylinderImage()} className="category-cylinder-img" alt="Gas Cylinder" />
             </div>
             <span className="category-name">Gas Cylinder</span>
           </div>
@@ -168,7 +167,7 @@ export function ExploreView({
                 </div>
               )}
               <div className="product-img-container">
-                <img src={splashCylinder} className="product-cylinder-img" alt={prod.name} />
+                <img src={getCylinderImage(prod.name, prod.rawWeight)} className="product-cylinder-img" alt={prod.name} />
               </div>
               <div className="product-details">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>

@@ -126,7 +126,7 @@ export function TrackOrderView({ bookingId, onBack }: TrackOrderViewProps) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div>
                 <div style={{ fontSize: '0.85rem', color: '#64748B', marginBottom: '4px' }}>Order ID</div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1E293B' }}>#GB{booking.id}</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1E293B' }}>#{booking.order_id}</div>
               </div>
               <div style={{ 
                 background: booking.status === 'delivered' ? '#DCFCE7' : (booking.status === 'rejected' || booking.status === 'cancelled') ? '#FEE2E2' : '#E0F2FE', 

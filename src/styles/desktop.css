@@ -1,0 +1,820 @@
+/* ==========================================================================
+   GASBOOK CUSTOMER PORTAL - DESKTOP / WEB ONLY STYLESHEET
+   Scope: @media (min-width: 1024px)
+   ========================================================================== */
+
+/* By default on mobile screens (< 1024px), hide desktop wrapper */
+.desktop-view-wrapper {
+  display: none !important;
+}
+
+.mobile-view-wrapper {
+  display: flex !important;
+  flex-direction: column;
+  width: 100%;
+  min-height: 100vh;
+}
+
+@media (min-width: 1024px) {
+  /* Hide mobile frame and bottom navigation on desktop */
+  .mobile-view-wrapper {
+    display: none !important;
+  }
+
+  /* Show desktop wrapper on desktop */
+  .desktop-view-wrapper {
+    display: flex !important;
+    flex-direction: column;
+    width: 100%;
+    min-height: 100vh;
+    background: #f8fafc;
+    color: #1e293b;
+    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+  }
+
+  .home-root {
+    background: #f8fafc !important;
+    display: block !important;
+    width: 100% !important;
+    min-height: 100vh !important;
+  }
+
+  .home-reference-frame {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 100vh !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  /* --------------------------------------------------------------------------
+     Desktop Main Layout Container
+     -------------------------------------------------------------------------- */
+  .desktop-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 24px 32px 64px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* --------------------------------------------------------------------------
+     Desktop Header & Navigation Bar
+     -------------------------------------------------------------------------- */
+  .desktop-header-bar {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+
+  .desktop-header-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 32px;
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  .desktop-brand-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  .desktop-brand-logo {
+    height: 38px;
+    width: auto;
+    object-fit: contain;
+  }
+
+  .desktop-brand-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: #1052be;
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+
+  .desktop-nav-links {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .desktop-nav-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-size: 14.5px;
+    font-weight: 600;
+    color: #64748b;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .desktop-nav-item:hover {
+    color: #1052be;
+    background: #eff6ff;
+  }
+
+  .desktop-nav-item.active {
+    color: #1052be;
+    background: #e0edff;
+    font-weight: 700;
+  }
+
+  .desktop-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .desktop-location-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f1f5f9;
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    max-width: 220px;
+  }
+
+  .desktop-location-pill .loc-icon {
+    color: #1052be;
+    flex-shrink: 0;
+  }
+
+  .desktop-location-pill .loc-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .desktop-icon-btn {
+    position: relative;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    color: #334155;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .desktop-icon-btn:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #1052be;
+    transform: translateY(-1px);
+  }
+
+  .desktop-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #ff7a00;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    border: 2px solid #ffffff;
+  }
+
+  .desktop-profile-chip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px 6px 6px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 24px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .desktop-profile-chip:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+
+  .desktop-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1052be 0%, #1e40af 100%);
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .desktop-profile-name {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #1e293b;
+    max-width: 120px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* --------------------------------------------------------------------------
+     Desktop Home View
+     -------------------------------------------------------------------------- */
+  .desktop-home-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 28px;
+    margin-bottom: 32px;
+  }
+
+  .desktop-hero-banner {
+    position: relative;
+    background: linear-gradient(135deg, #0d3b8f 0%, #1052be 50%, #1d4ed8 100%);
+    border-radius: 24px;
+    padding: 40px 36px;
+    color: #ffffff;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 16px 36px rgba(16, 82, 190, 0.2);
+    min-height: 280px;
+  }
+
+  .desktop-hero-bg-overlay {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 50%;
+    background-size: cover;
+    background-position: center right;
+    opacity: 0.25;
+    pointer-events: none;
+  }
+
+  .desktop-hero-content {
+    position: relative;
+    z-index: 2;
+    max-width: 480px;
+  }
+
+  .desktop-hero-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(8px);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #ffffff;
+    margin-bottom: 16px;
+  }
+
+  .desktop-hero-title {
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1.15;
+    margin: 0 0 12px;
+    letter-spacing: -0.02em;
+    color: #ffffff;
+  }
+
+  .desktop-hero-desc {
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.5;
+    margin: 0 0 24px;
+  }
+
+  .desktop-hero-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: #ff7a00;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 13px 26px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(255, 122, 0, 0.35);
+    transition: all 0.2s ease;
+  }
+
+  .desktop-hero-cta:hover {
+    background: #ea6b00;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(255, 122, 0, 0.45);
+  }
+
+  /* Desktop Active Order Widget */
+  .desktop-active-order-card {
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 28px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .desktop-active-order-empty {
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 32px 24px;
+    border: 1px dashed #cbd5e1;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 280px;
+  }
+
+  /* Quick Actions Row */
+  .desktop-quick-actions-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    margin-bottom: 36px;
+  }
+
+  .desktop-action-btn {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 20px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+  }
+
+  .desktop-action-btn:hover {
+    border-color: #93c5fd;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(16, 82, 190, 0.08);
+  }
+
+  .desktop-action-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .desktop-action-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 2px;
+  }
+
+  .desktop-action-desc {
+    font-size: 12.5px;
+    color: #64748b;
+    margin: 0;
+  }
+
+  /* Catalog Grid */
+  .desktop-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .desktop-section-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+
+  .desktop-section-link {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1052be;
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .desktop-section-link:hover {
+    text-decoration: underline;
+  }
+
+  .desktop-cylinder-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 36px;
+  }
+
+  .desktop-cylinder-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    transition: all 0.25s ease;
+  }
+
+  .desktop-cylinder-card:hover {
+    border-color: #93c5fd;
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(16, 82, 190, 0.1);
+  }
+
+  .desktop-cylinder-img-wrap {
+    height: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+
+  .desktop-cylinder-img {
+    max-height: 120px;
+    width: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.1));
+    transition: transform 0.25s ease;
+  }
+
+  .desktop-cylinder-card:hover .desktop-cylinder-img {
+    transform: scale(1.05);
+  }
+
+  .desktop-cylinder-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .desktop-cylinder-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 6px;
+  }
+
+  .desktop-cylinder-badge {
+    display: inline-block;
+    align-self: flex-start;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    margin-bottom: 14px;
+  }
+
+  .desktop-cylinder-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid #f1f5f9;
+  }
+
+  .desktop-cylinder-price {
+    font-size: 18px;
+    font-weight: 800;
+    color: #1e293b;
+  }
+
+  .desktop-book-btn {
+    background: #ff7a00;
+    color: #ffffff;
+    font-size: 13.5px;
+    font-weight: 700;
+    padding: 8px 18px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .desktop-book-btn:hover {
+    background: #ea6b00;
+    transform: scale(1.02);
+  }
+
+  /* Offers & Safety 2-Column Banner */
+  .desktop-promo-safety-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+
+  .desktop-promo-card {
+    background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+    border: 1px solid #fed7aa;
+    border-radius: 20px;
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .desktop-safety-card {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border: 1px solid #bbf7d0;
+    border-radius: 20px;
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* --------------------------------------------------------------------------
+     Desktop Orders View
+     -------------------------------------------------------------------------- */
+  .desktop-orders-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    gap: 20px;
+  }
+
+  .desktop-filter-pills {
+    display: flex;
+    gap: 8px;
+  }
+
+  .desktop-filter-pill {
+    padding: 8px 18px;
+    border-radius: 20px;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .desktop-filter-pill:hover {
+    border-color: #cbd5e1;
+    color: #1e293b;
+  }
+
+  .desktop-filter-pill.active {
+    background: #1052be;
+    border-color: #1052be;
+    color: #ffffff;
+    font-weight: 700;
+  }
+
+  .desktop-search-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 8px 14px;
+    width: 300px;
+  }
+
+  .desktop-search-input {
+    border: none;
+    outline: none;
+    font-size: 13.5px;
+    width: 100%;
+    color: #1e293b;
+    background: transparent;
+  }
+
+  .desktop-orders-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-bottom: 32px;
+  }
+
+  .desktop-order-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+    transition: all 0.2s ease;
+  }
+
+  .desktop-order-card:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  }
+
+  .desktop-order-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .desktop-order-id {
+    font-size: 15px;
+    font-weight: 800;
+    color: #1e293b;
+  }
+
+  .desktop-order-date {
+    font-size: 13px;
+    color: #64748b;
+  }
+
+  .desktop-order-body {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .desktop-order-img-wrap {
+    width: 68px;
+    height: 68px;
+    border-radius: 14px;
+    background: #f8fafc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .desktop-order-info {
+    flex: 1;
+  }
+
+  .desktop-order-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 4px;
+  }
+
+  .desktop-order-price {
+    font-size: 16px;
+    font-weight: 800;
+    color: #1e293b;
+  }
+
+  .desktop-order-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 14px;
+    border-top: 1px solid #f1f5f9;
+    gap: 12px;
+  }
+
+  /* --------------------------------------------------------------------------
+     Desktop Cart & Checkout 2-Column Layout
+     -------------------------------------------------------------------------- */
+  .desktop-cart-layout {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 32px;
+    align-items: start;
+  }
+
+  .desktop-cart-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+  }
+
+  .desktop-sticky-summary {
+    position: sticky;
+    top: 96px;
+  }
+
+  .desktop-qty-stepper {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #ffffff;
+  }
+
+  .desktop-qty-btn {
+    width: 32px;
+    height: 32px;
+    background: #f8fafc;
+    border: none;
+    font-size: 15px;
+    font-weight: 700;
+    color: #334155;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease;
+  }
+
+  .desktop-qty-btn:hover {
+    background: #e2e8f0;
+  }
+
+  .desktop-qty-value {
+    width: 36px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e293b;
+  }
+
+  /* --------------------------------------------------------------------------
+     Desktop Modal Dialogs
+     -------------------------------------------------------------------------- */
+  .desktop-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    animation: desktopFadeIn 0.2s ease-out;
+  }
+
+  .desktop-modal-dialog {
+    background: #ffffff;
+    border-radius: 24px;
+    width: 100%;
+    max-width: 480px;
+    padding: 32px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    animation: desktopScaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes desktopFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes desktopScaleIn {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+}

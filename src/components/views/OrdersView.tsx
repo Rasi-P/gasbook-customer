@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react'
-import splashCylinder from '../../assets/splash_cylinder.png'
 import type { OrderItem } from '../../types'
 import { markNotificationRead } from '../../lib/auth'
 import { usePaginatedQuery } from '../../hooks/usePaginatedQuery'
 import { fetchPaginatedBookings, fetchPaginatedNotifications } from '../../lib/api-queries'
 import { Pagination } from '../common/Pagination'
-import { getCylinderDisplay } from '../../lib/formatters'
+import { getCylinderDisplay, getCylinderImage } from '../../lib/formatters'
 
 interface OrdersViewProps {
   onNavigateToExplore: () => void
@@ -20,6 +19,7 @@ export function OrdersView({
 }: OrdersViewProps) {
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'ongoing' | 'completed' | 'cancelled'>('all')
   const [showNotifications, setShowNotifications] = useState(false)
+  const [selectedRejectionOrder, setSelectedRejectionOrder] = useState<any | null>(null)
   const {
     data: notifications,
     count: totalNotifications,
@@ -90,7 +90,7 @@ export function OrdersView({
   const mappedOrders: OrderItem[] = rawOrders.map((b: any) => {
     let statusLabel = 'Order Placed'
     let statusKind: 'ongoing' | 'completed' | 'cancelled' = 'ongoing'
-    let etaOrDate = 'Order Placed — Awaiting staff assignment'
+    let etaOrDate = 'Order Placed — Preparing for delivery'
 
     if (b.status === 'approved') {
       statusLabel = 'Order Confirmed'
@@ -111,7 +111,7 @@ export function OrdersView({
     } else if (b.status === 'rejected') {
       statusLabel = 'Rejected'
       statusKind = 'cancelled'
-      etaOrDate = 'Order was rejected by staff'
+      etaOrDate = 'Order rejected'
     }
 
     const finalPriceNum = parseFloat(b.final_amount || b.total_amount || '0')
@@ -122,7 +122,7 @@ export function OrdersView({
 
     return {
       id: b.id.toString(),
-      orderNumber: `Order #GB${b.id}`,
+      orderNumber: `Order #${b.order_id}`,
       date: new Date(b.created_at).toLocaleDateString('en-IN', {
         day: 'numeric',
         month: 'short',
@@ -142,7 +142,9 @@ export function OrdersView({
   })
 
   return (
-    <div className="orders-scroll-container">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#F8FAFC', paddingBottom: '68px', boxSizing: 'border-box', position: 'relative' }}>
+      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        <div className="orders-scroll-container" style={{ minHeight: 'auto', paddingBottom: '32px' }}>
       {/* 1. Header */}
       <div className="orders-header">
         <h1 className="orders-title">My Orders</h1>
@@ -212,7 +214,7 @@ export function OrdersView({
 
               <div className="order-card-main">
                 <div className="order-cylinder-wrap">
-                  <img src={splashCylinder} className="order-cylinder-img" alt={order.productName} />
+                  <img src={getCylinderImage(order.productName, order.weight)} className="order-cylinder-img" alt={order.productName} />
                 </div>
 
                 <div className="order-info-center">
@@ -244,6 +246,13 @@ export function OrdersView({
                         onOrderAgain(order.productName, parseFloat(order.rawBooking.rate || '0'), order.rawBooking.cylinder_type_id)
                       }}>Order Again</button>
                     </div>
+                  ) : order.statusCode === 'rejected' ? (
+                    <button
+                      className="order-action-outline-btn"
+                      onClick={() => setSelectedRejectionOrder(order)}
+                    >
+                      View Details →
+                    </button>
                   ) : (
                     <button
                       className="order-action-outline-btn"
@@ -311,6 +320,68 @@ export function OrdersView({
               onPageChange={setNotificationPage}
             />
           </div>
+        </div>
+      )}
+      </div>
+      </div>
+
+      {/* Rejection Details Bottom Sheet */}
+      {selectedRejectionOrder && (
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2000, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', animation: 'fadeIn 0.2s ease-out' }}>
+          <div style={{ background: '#fff', width: '100%', padding: '24px', borderTopLeftRadius: '20px', borderTopRightRadius: '20px', animation: 'slideUp 0.3s ease-out', boxShadow: '0 -10px 40px rgba(0,0,0,0.1)', boxSizing: 'border-box' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>Rejection Details</h2>
+              <button onClick={() => setSelectedRejectionOrder(null)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#64748b' }}>✕</button>
+            </div>
+            
+            <div style={{ marginBottom: '16px' }}>
+              <span style={{ fontSize: '14px', color: '#64748b', fontWeight: 600 }}>{selectedRejectionOrder.orderNumber}</span>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#ef4444', margin: '4px 0' }}>Order Rejected</h3>
+            </div>
+
+            <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', marginBottom: '24px' }}>
+              <div style={{ marginBottom: '12px' }}>
+                <div style={{ fontSize: '12px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '4px' }}>Reason</div>
+                <div style={{ fontSize: '15px', color: '#1e293b' }}>{selectedRejectionOrder.rawBooking.rejection_reason || 'No reason provided'}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '13px', color: '#94a3b8' }}>
+                  {selectedRejectionOrder.rawBooking.rejected_at ? new Date(selectedRejectionOrder.rawBooking.rejected_at).toLocaleString('en-IN', {
+                    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                  }) : selectedRejectionOrder.date}
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                const booking = selectedRejectionOrder.rawBooking;
+                if (!booking.cylinder_type_id) {
+                  alert("This cylinder is currently unavailable.");
+                  return;
+                }
+                setSelectedRejectionOrder(null);
+                onOrderAgain(selectedRejectionOrder.productName, parseFloat(booking.rate || '0'), booking.cylinder_type_id);
+              }}
+              style={{
+                width: '100%',
+                padding: '16px',
+                background: '#3b82f6',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '12px',
+                fontSize: '16px',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              Book Again
+            </button>
+          </div>
+          <style>{`
+            @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+            @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+          `}</style>
         </div>
       )}
     </div>

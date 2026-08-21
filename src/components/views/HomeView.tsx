@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { OrderItem } from '../../types'
 import { fetchCustomerNotifications, markNotificationRead, type NotificationItem } from '../../lib/auth'
-import splashCylinder from '../../assets/splash_cylinder.png'
+import { getCylinderImage } from '../../lib/formatters'
 import heroBg from '../../assets/hero_bg.png'
 import type { CustomerProfile } from '../../lib/auth'
 
@@ -203,7 +203,7 @@ export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrd
             {/* Middle: Cylinder + Price + Status */}
             <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', marginBottom: '24px' }}>
               <div style={{ width: '60px', height: '60px', background: '#F8FAFC', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <img src={splashCylinder} alt={latestActiveOrder.productName} style={{ height: '45px' }} />
+                <img src={getCylinderImage(latestActiveOrder.productName, latestActiveOrder.weight)} alt={latestActiveOrder.productName} style={{ height: '45px' }} />
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 600, color: '#1E293B', fontSize: '1rem', marginBottom: '4px' }}>{latestActiveOrder.productName}</div>
@@ -295,18 +295,18 @@ export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrd
 
           </div>
         ) : (
-          <div className="no-active-order-card" style={{ background: '#FFF', borderRadius: '16px', padding: '32px 20px', textAlign: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.05)', border: '1px solid #F1F5F9' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', color: '#94A3B8' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+          <div style={{ background: '#FFF', borderRadius: '16px', padding: '40px 20px', textAlign: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.05)', border: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#F8FAFC', border: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: '#94A3B8' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
             </div>
-            <h4 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', fontWeight: 700, color: '#1E293B' }}>No active orders</h4>
-            <p style={{ margin: '0 0 24px 0', fontSize: '0.9rem', color: '#64748B' }}>Book a cylinder to see your order status here.</p>
+            <h4 style={{ margin: '0 0 8px 0', fontSize: '1.15rem', fontWeight: 700, color: '#1E293B' }}>No active orders to track</h4>
+            <p style={{ margin: '0 auto 28px', fontSize: '0.95rem', color: '#64748B', maxWidth: '240px', lineHeight: '1.4' }}>Your active bookings will appear here.</p>
             <button 
               onClick={onNavigateToExplore}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#2563EB', color: '#FFF', border: 'none', padding: '10px 20px', borderRadius: '8px', fontSize: '0.95rem', fontWeight: 600, cursor: 'pointer' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#2563EB', color: '#FFF', border: 'none', padding: '12px 28px', borderRadius: '10px', fontSize: '1rem', fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 12px rgba(37,99,235,0.2)' }}
             >
               Book Cylinder
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
             </button>
           </div>
         )}
