@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { createBooking, getApiErrorDetails, type CustomerProfile } from '../../lib/auth'
 import type { CartItem, ProfileUser } from '../../types'
 import { calculateCartPricing } from '../../lib/pricing'
-import splashCylinder from '../../assets/splash_cylinder.png'
+import { getCylinderImage } from '../../lib/formatters'
 import { EditProfileModal } from '../common/EditProfileModal'
 
 interface CheckoutViewProps {
@@ -14,7 +14,7 @@ interface CheckoutViewProps {
   onProfileUpdated?: () => void
   onNavigateToExplore: () => void
   onBackToCart: () => void
-  onOrderCreated: (orderIds: number[], completedCart: CartItem[]) => void
+  onOrderCreated: (orders: {id: number, order_id: string}[], completedCart: CartItem[]) => void
 }
 
 export function CheckoutView({
@@ -22,7 +22,6 @@ export function CheckoutView({
   customerProfile,
   profileUser,
   onUpdateQuantity,
-  onRemoveItem,
   onProfileUpdated,
   onNavigateToExplore,
   onBackToCart,
@@ -59,8 +58,8 @@ export function CheckoutView({
       })
 
       const responses = await Promise.all(bookingPromises)
-      const orderIds = responses.map((res: any) => res.id)
-      onOrderCreated(orderIds, cartItems)
+      const createdOrders = responses.map((res: any) => ({ id: res.id, order_id: res.order_id }))
+      onOrderCreated(createdOrders, cartItems)
     } catch (err: unknown) {
       const details = getApiErrorDetails(err, 'Unable to place order. Please try again.')
       setError(details.message)
@@ -90,7 +89,7 @@ export function CheckoutView({
   }
 
   return (
-    <div style={{ background: '#F8FAFC', minHeight: '100vh', paddingBottom: '160px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F8FAFC', paddingBottom: '68px', boxSizing: 'border-box' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', padding: '20px', background: '#FFF', position: 'sticky', top: 0, zIndex: 10, borderBottom: '1px solid #F1F5F9' }}>
         <button onClick={onBackToCart} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', color: '#1E293B' }}>
@@ -104,7 +103,8 @@ export function CheckoutView({
         </h1>
       </div>
 
-      <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ width: '100%', maxWidth: '480px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         
         {/* Your Order Card */}
         <div style={{ background: '#FFF', borderRadius: '16px', padding: '16px', border: '1px solid #F1F5F9', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
@@ -120,25 +120,25 @@ export function CheckoutView({
               <div key={item.id}>
                 {idx > 0 && <div style={{ borderTop: '1px solid #F1F5F9', margin: '0 0 16px 0' }} />}
                 <div style={{ display: 'flex', gap: '12px' }}>
-                  <div style={{ width: '60px', height: '60px', background: '#F8FAFC', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                    <img src={splashCylinder} alt={item.name} style={{ width: '40px', objectFit: 'contain' }} />
+                  <div style={{ width: '60px', height: '60px', background: '#F8FAFC', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                    <img src={getCylinderImage(item.name, item.variant)} alt={item.name} style={{ width: '40px', objectFit: 'contain' }} />
                   </div>
-                  <div style={{ flex: 1 }}>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ fontWeight: 600, color: '#1E293B', fontSize: '0.95rem' }}>{item.name}</span>
                         <span style={{ background: '#EEF2FF', color: '#4F46E5', fontSize: '0.75rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 500 }}>{item.variant}</span>
                       </div>
-                      <span style={{ color: '#1E293B', fontSize: '0.95rem' }}>₹{item.unitPrice.toLocaleString('en-IN')}</span>
+                      <span style={{ color: '#1E293B', fontSize: '0.95rem', textAlign: 'right' }}>₹{item.unitPrice.toLocaleString('en-IN')}</span>
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '8px', overflow: 'hidden' }}>
                         <button onClick={() => onUpdateQuantity(item.id, -1)} style={{ width: '32px', height: '32px', background: '#FFF', border: 'none', color: '#64748B', cursor: 'pointer', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
                         <span style={{ width: '32px', textAlign: 'center', fontSize: '0.9rem', fontWeight: 500, color: '#1E293B' }}>{item.quantity}</span>
                         <button onClick={() => onUpdateQuantity(item.id, 1)} style={{ width: '32px', height: '32px', background: '#FFF', border: 'none', color: '#64748B', cursor: 'pointer', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
                       </div>
-                      <span style={{ fontWeight: 600, color: '#1E293B' }}>₹{(item.unitPrice * item.quantity).toLocaleString('en-IN')}</span>
+                      <span style={{ fontWeight: 600, color: '#1E293B', textAlign: 'right' }}>₹{(item.unitPrice * item.quantity).toLocaleString('en-IN')}</span>
                     </div>
                   </div>
                 </div>
@@ -146,27 +146,27 @@ export function CheckoutView({
             ))}
           </div>
 
-          <div style={{ borderTop: '1px solid #F1F5F9', margin: '16px 0', borderStyle: 'dashed' }} />
+          <div style={{ borderTop: '1px dashed #E2E8F0', margin: '16px 0', width: '100%' }} />
           
-          <button onClick={onBackToCart} style={{ width: '100%', background: 'none', border: 'none', color: '#2563EB', fontWeight: 500, fontSize: '0.95rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+          <button onClick={onNavigateToExplore} style={{ width: '100%', background: 'none', border: 'none', color: '#2563EB', fontWeight: 500, fontSize: '0.95rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
             <span style={{ fontSize: '1.2rem' }}>+</span> Add more items
           </button>
         </div>
 
         {/* Delivery Address Card */}
         <div style={{ background: '#FFF', borderRadius: '16px', padding: '16px', border: '1px solid #F1F5F9', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                 <circle cx="12" cy="10" r="3" />
               </svg>
               <h3 style={{ margin: 0, fontSize: '1rem', color: '#1E293B' }}>Delivery Address</h3>
             </div>
-            <button onClick={() => setIsEditingAddress(true)} style={{ background: 'none', border: 'none', color: '#2563EB', fontSize: '0.9rem', fontWeight: 500, cursor: 'pointer' }}>Edit</button>
+            <button onClick={() => setIsEditingAddress(true)} style={{ background: 'none', border: 'none', color: '#2563EB', fontSize: '0.9rem', fontWeight: 500, cursor: 'pointer', padding: 0 }}>Edit</button>
           </div>
 
-          <div style={{ paddingLeft: '28px' }}>
+          <div style={{ paddingLeft: '28px', display: 'flex', flexDirection: 'column' }}>
             {hasValidAddress ? (
               <>
                 <div style={{ fontWeight: 600, color: '#1E293B', fontSize: '0.95rem', marginBottom: '4px' }}>
@@ -206,7 +206,7 @@ export function CheckoutView({
             <span style={{ color: '#1E293B' }}>₹{deliveryFee.toLocaleString('en-IN')}</span>
           </div>
           
-          <div style={{ borderTop: '1px solid #F1F5F9', margin: '0 -16px 16px', borderStyle: 'dashed' }} />
+          <div style={{ borderTop: '1px dashed #E2E8F0', margin: '0 0 16px 0', width: '100%' }} />
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ color: '#1E293B', fontWeight: 600, fontSize: '1.05rem' }}>Total Amount</span>
@@ -224,8 +224,8 @@ export function CheckoutView({
             <h3 style={{ margin: 0, fontSize: '1rem', color: '#1E293B' }}>Payment Method</h3>
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <div style={{ background: '#DCFCE7', borderRadius: '8px', width: '40px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+            <div style={{ background: '#DCFCE7', borderRadius: '8px', width: '40px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '2px' }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="2" y="6" width="20" height="12" rx="2" />
                 <circle cx="12" cy="12" r="2" />
@@ -244,23 +244,26 @@ export function CheckoutView({
             {error}
           </div>
         )}
+        </div>
       </div>
 
-      {/* Sticky Confirm Button */}
-      <div style={{ position: 'fixed', bottom: '68px', left: 0, right: 0, margin: '0 auto', maxWidth: '480px', background: '#FFF', padding: '16px 20px', borderTop: '1px solid #F1F5F9', boxShadow: '0 -4px 10px rgba(0,0,0,0.05)', zIndex: 10 }}>
-        <button 
-          onClick={handlePlaceOrder}
-          disabled={submitting || !hasValidAddress}
-          style={{ width: '100%', padding: '16px', background: '#EA580C', color: '#FFF', border: 'none', borderRadius: '12px', fontSize: '1.05rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: (submitting || !hasValidAddress) ? 0.6 : 1 }}
-        >
-          {submitting ? 'Placing Order...' : 'Confirm Booking'}
-          {!submitting && (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="5" y1="12" x2="19" y2="12" />
-              <polyline points="12 5 19 12 12 19" />
-            </svg>
-          )}
-        </button>
+      {/* Action Bar */}
+      <div style={{ background: '#FFF', padding: '16px 20px', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ width: '100%', maxWidth: '480px' }}>
+          <button 
+            onClick={handlePlaceOrder}
+            disabled={submitting || !hasValidAddress}
+            style={{ width: '100%', padding: '16px', background: '#EA580C', color: '#FFF', border: 'none', borderRadius: '12px', fontSize: '1.05rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: (submitting || !hasValidAddress) ? 0.6 : 1 }}
+          >
+            {submitting ? 'Placing Order...' : 'Confirm Booking'}
+            {!submitting && (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Edit Profile Modal */}

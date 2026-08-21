@@ -1,20 +1,20 @@
-import { useEffect, useState } from 'react'
+
 import type { CartItem } from '../../types'
 import { calculateCartPricing } from '../../lib/pricing'
 
 interface OrderSuccessViewProps {
-  orderIds: number[]
+  orders: {id: number, order_id: string}[]
   cartItems: CartItem[]
   onViewOrders: () => void
   onTrackOrder?: (id: number) => void
   onBackToHome?: () => void
 }
 
-export function OrderSuccessView({ orderIds, cartItems, onViewOrders, onTrackOrder, onBackToHome }: OrderSuccessViewProps) {
+export function OrderSuccessView({ orders, cartItems, onViewOrders, onTrackOrder, onBackToHome }: OrderSuccessViewProps) {
   const { subtotal, deliveryFee, total } = calculateCartPricing(cartItems)
 
   const handleCopyIds = () => {
-    const text = orderIds.map(id => `#GB${id}`).join(', ')
+    const text = orders.map(o => `#${o.order_id}`).join(', ')
     navigator.clipboard.writeText(text)
   }
 
@@ -118,10 +118,10 @@ export function OrderSuccessView({ orderIds, cartItems, onViewOrders, onTrackOrd
         <div style={{ border: '1px solid #F1F5F9', borderRadius: '16px', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
           <div>
             <div style={{ fontSize: '0.85rem', color: '#64748B', marginBottom: '4px' }}>
-              {orderIds.length > 1 ? 'Booking ID(s)' : 'Booking ID'}
+              {orders.length > 1 ? 'Booking ID(s)' : 'Booking ID'}
             </div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#22C55E' }}>
-              {orderIds.map(id => `#GB${id}`).join(', ')}
+            <div style={{ color: '#1E293B', fontWeight: 600 }}>
+              {orders.map(o => `#${o.order_id}`).join(', ')}
             </div>
           </div>
           <button onClick={handleCopyIds} style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer', padding: '8px' }}>
@@ -180,9 +180,9 @@ export function OrderSuccessView({ orderIds, cartItems, onViewOrders, onTrackOrd
 
         {/* Actions */}
         <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {onTrackOrder && orderIds.length > 0 && (
+          {onTrackOrder && orders.length > 0 && (
             <button 
-              onClick={() => onTrackOrder(orderIds[0])}
+              onClick={() => onTrackOrder(orders[0].id)}
               style={{ width: '100%', padding: '16px', background: '#EA580C', color: '#FFF', border: 'none', borderRadius: '12px', fontSize: '1rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
             >
               Track Order
