@@ -12,6 +12,15 @@ import { getCylinderDisplay } from '../../lib/formatters'
 import { ProfileView } from './ProfileView'
 import { TrackOrderView } from './TrackOrderView'
 import { fetchPaginatedBookings } from '../../lib/api-queries'
+import { DesktopHeader } from '../desktop/DesktopHeader'
+import { DesktopHomeView } from '../desktop/DesktopHomeView'
+import { DesktopExploreView } from '../desktop/DesktopExploreView'
+import { DesktopOrdersView } from '../desktop/DesktopOrdersView'
+import { DesktopCartView } from '../desktop/DesktopCartView'
+import { DesktopCheckoutView } from '../desktop/DesktopCheckoutView'
+import { DesktopTrackOrderView } from '../desktop/DesktopTrackOrderView'
+import { DesktopProfileView } from '../desktop/DesktopProfileView'
+import { DesktopOrderSuccessView } from '../desktop/DesktopOrderSuccessView'
 
 function formatMemberSince(dateValue: string | undefined) {
   if (!dateValue) {
@@ -184,110 +193,225 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
 
   return (
     <div className="home-root">
-      <div className="home-reference-frame">
-        {/* Render Tab Content based on activeTab */}
-        {activeTab === 'explore' && (
-          <ExploreView
-            cartCount={cartCount}
-            onBook={handleBook}
-            onNavigateToCart={handleNavigateToCart}
-          />
-        )}
-        {activeTab === 'home' && (
-          <HomeView
-            onNavigateToExplore={() => setActiveTab('explore')}
-            customerProfile={customerProfile}
-            latestActiveOrder={realOrders[0]}
-            onViewOrders={() => setActiveTab('orders')}
-            onTrackOrder={(id: number) => {
-              setTrackingBookingId(id)
-              setPreviousTab(activeTab)
-              setActiveTab('track-order')
-            }}
-          />
-        )}
-        {activeTab === 'orders' && (
-          <OrdersView
-            onNavigateToExplore={() => setActiveTab('explore')}
-            onTrackOrder={(id: number) => {
-              setTrackingBookingId(id)
-              setPreviousTab(activeTab)
-              setActiveTab('track-order')
-            }}
-            onOrderAgain={handleBook}
-          />
-        )}
-        {activeTab === 'cart' && (
-          <CartView
-            cartItems={cartItems}
-            onUpdateQuantity={handleUpdateQuantity}
-            onRemoveItem={handleRemoveItem}
-            onNavigateToExplore={() => setActiveTab('explore')}
-            onProceedToCheckout={() => setActiveTab('checkout')}
-            customerProfile={customerProfile}
-            profileUser={profileUser}
-            onProfileUpdated={onProfileUpdated}
-          />
-        )}
-        {activeTab === 'checkout' && (
-          <CheckoutView
-            cartItems={cartItems}
-            customerProfile={customerProfile}
-            profileUser={profileUser}
-            onUpdateQuantity={handleUpdateQuantity}
-            onRemoveItem={handleRemoveItem}
-            onProfileUpdated={onProfileUpdated}
-            onNavigateToExplore={() => setActiveTab('explore')}
-            onBackToCart={() => setActiveTab('cart')}
-            onOrderCreated={handleOrderCreated}
-          />
-        )}
-        {activeTab === 'order-success' && lastCreatedOrders.length > 0 && (
-          <OrderSuccessView
-            orders={lastCreatedOrders}
-            cartItems={completedCartSnapshot}
-            onViewOrders={() => setActiveTab('orders')}
-            onTrackOrder={(id) => {
-              setTrackingBookingId(id)
-              setPreviousTab('home')
-              setActiveTab('track-order')
-            }}
-            onBackToHome={() => setActiveTab('home')}
-          />
-        )}
-        {activeTab === 'profile' && (
-          <ProfileView
-            user={profileUser}
-            onProfileUpdated={onProfileUpdated}
-            onLogout={() => {
-              if (onLogout) {
-                onLogout()
-              } else {
-                alert('Logging out...')
-              }
-            }}
-          />
-        )}
+      {/* MOBILE / PWA VIEW (LOCKED & UNTOUCHED) */}
+      <div className="mobile-view-wrapper">
+        <div className="home-reference-frame">
+          {/* Render Tab Content based on activeTab */}
+          {activeTab === 'explore' && (
+            <ExploreView
+              cartCount={cartCount}
+              onBook={handleBook}
+              onNavigateToCart={handleNavigateToCart}
+            />
+          )}
+          {activeTab === 'home' && (
+            <HomeView
+              onNavigateToExplore={() => setActiveTab('explore')}
+              customerProfile={customerProfile}
+              latestActiveOrder={realOrders[0]}
+              onViewOrders={() => setActiveTab('orders')}
+              onTrackOrder={(id: number) => {
+                setTrackingBookingId(id)
+                setPreviousTab(activeTab)
+                setActiveTab('track-order')
+              }}
+            />
+          )}
+          {activeTab === 'orders' && (
+            <OrdersView
+              onNavigateToExplore={() => setActiveTab('explore')}
+              onTrackOrder={(id: number) => {
+                setTrackingBookingId(id)
+                setPreviousTab(activeTab)
+                setActiveTab('track-order')
+              }}
+              onOrderAgain={handleBook}
+            />
+          )}
+          {activeTab === 'cart' && (
+            <CartView
+              cartItems={cartItems}
+              onUpdateQuantity={handleUpdateQuantity}
+              onRemoveItem={handleRemoveItem}
+              onNavigateToExplore={() => setActiveTab('explore')}
+              onProceedToCheckout={() => setActiveTab('checkout')}
+              customerProfile={customerProfile}
+              profileUser={profileUser}
+              onProfileUpdated={onProfileUpdated}
+            />
+          )}
+          {activeTab === 'checkout' && (
+            <CheckoutView
+              cartItems={cartItems}
+              customerProfile={customerProfile}
+              profileUser={profileUser}
+              onUpdateQuantity={handleUpdateQuantity}
+              onRemoveItem={handleRemoveItem}
+              onProfileUpdated={onProfileUpdated}
+              onNavigateToExplore={() => setActiveTab('explore')}
+              onBackToCart={() => setActiveTab('cart')}
+              onOrderCreated={handleOrderCreated}
+            />
+          )}
+          {activeTab === 'order-success' && lastCreatedOrders.length > 0 && (
+            <OrderSuccessView
+              orders={lastCreatedOrders}
+              cartItems={completedCartSnapshot}
+              onViewOrders={() => setActiveTab('orders')}
+              onTrackOrder={(id) => {
+                setTrackingBookingId(id)
+                setPreviousTab('home')
+                setActiveTab('track-order')
+              }}
+              onBackToHome={() => setActiveTab('home')}
+            />
+          )}
+          {activeTab === 'profile' && (
+            <ProfileView
+              user={profileUser}
+              onProfileUpdated={onProfileUpdated}
+              onLogout={() => {
+                if (onLogout) {
+                  onLogout()
+                } else {
+                  alert('Logging out...')
+                }
+              }}
+            />
+          )}
 
-        {/* Bottom Navigation */}
-        {activeTab !== 'order-success' && (
-          <BottomNavigation
-            activeTab={activeTab === 'explore' ? 'home' : activeTab}
-            cartCount={cartCount}
-            setActiveTab={setActiveTab}
-          />
-        )}       
-        
-        {/* Track Order View */}
-        {activeTab === 'track-order' && trackingBookingId !== null && (
-          <TrackOrderView 
-            bookingId={trackingBookingId} 
-            onBack={() => {
-              setTrackingBookingId(null)
-              setActiveTab(previousTab)
-            }} 
-          />
-        )}
+          {/* Bottom Navigation */}
+          {activeTab !== 'order-success' && (
+            <BottomNavigation
+              activeTab={activeTab === 'explore' ? 'home' : activeTab}
+              cartCount={cartCount}
+              setActiveTab={setActiveTab}
+            />
+          )}
+
+          {/* Track Order View */}
+          {activeTab === 'track-order' && trackingBookingId !== null && (
+            <TrackOrderView
+              bookingId={trackingBookingId}
+              onBack={() => {
+                setTrackingBookingId(null)
+                setActiveTab(previousTab)
+              }}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* DESKTOP / WEB VIEW (MODERN CUSTOMER LPG PORTAL) */}
+      <div className="desktop-view-wrapper">
+        <DesktopHeader
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          customerProfile={customerProfile}
+          cartCount={cartCount}
+          onLogout={onLogout}
+        />
+
+        <main style={{ flex: 1 }}>
+          {activeTab === 'home' && (
+            <DesktopHomeView
+              onNavigateToExplore={() => setActiveTab('explore')}
+              customerProfile={customerProfile}
+              latestActiveOrder={realOrders[0]}
+              onViewOrders={() => setActiveTab('orders')}
+              onTrackOrder={(id: number) => {
+                setTrackingBookingId(id)
+                setPreviousTab('home')
+                setActiveTab('track-order')
+              }}
+              onBook={handleBook}
+            />
+          )}
+
+          {activeTab === 'explore' && (
+            <DesktopExploreView
+              onBook={handleBook}
+              onNavigateToCart={() => setActiveTab('cart')}
+            />
+          )}
+
+          {activeTab === 'orders' && (
+            <DesktopOrdersView
+              onNavigateToExplore={() => setActiveTab('explore')}
+              onTrackOrder={(id: number) => {
+                setTrackingBookingId(id)
+                setPreviousTab('orders')
+                setActiveTab('track-order')
+              }}
+              onOrderAgain={handleBook}
+            />
+          )}
+
+          {activeTab === 'cart' && (
+            <DesktopCartView
+              cartItems={cartItems}
+              onUpdateQuantity={handleUpdateQuantity}
+              onRemoveItem={handleRemoveItem}
+              onNavigateToExplore={() => setActiveTab('explore')}
+              onProceedToCheckout={() => setActiveTab('checkout')}
+              customerProfile={customerProfile}
+              profileUser={profileUser}
+              onProfileUpdated={onProfileUpdated}
+            />
+          )}
+
+          {activeTab === 'checkout' && (
+            <DesktopCheckoutView
+              cartItems={cartItems}
+              customerProfile={customerProfile}
+              profileUser={profileUser}
+              onUpdateQuantity={handleUpdateQuantity}
+              onRemoveItem={handleRemoveItem}
+              onProfileUpdated={onProfileUpdated}
+              onNavigateToExplore={() => setActiveTab('explore')}
+              onBackToCart={() => setActiveTab('cart')}
+              onOrderCreated={handleOrderCreated}
+            />
+          )}
+
+          {activeTab === 'order-success' && lastCreatedOrders.length > 0 && (
+            <DesktopOrderSuccessView
+              orders={lastCreatedOrders}
+              cartItems={completedCartSnapshot}
+              onViewOrders={() => setActiveTab('orders')}
+              onTrackOrder={(id) => {
+                setTrackingBookingId(id)
+                setPreviousTab('home')
+                setActiveTab('track-order')
+              }}
+              onBackToHome={() => setActiveTab('home')}
+            />
+          )}
+
+          {activeTab === 'profile' && (
+            <DesktopProfileView
+              user={profileUser}
+              onProfileUpdated={onProfileUpdated}
+              onLogout={() => {
+                if (onLogout) {
+                  onLogout()
+                } else {
+                  alert('Logging out...')
+                }
+              }}
+            />
+          )}
+
+          {activeTab === 'track-order' && trackingBookingId !== null && (
+            <DesktopTrackOrderView
+              bookingId={trackingBookingId}
+              onBack={() => {
+                setTrackingBookingId(null)
+                setActiveTab(previousTab)
+              }}
+            />
+          )}
+        </main>
       </div>
     </div>
   )

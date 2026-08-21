@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import splashCylinder from '../../assets/splash_cylinder.png'
 import type { CustomerProfile } from '../../lib/auth'
 import type { CartItem, ProfileUser } from '../../types'
+import { getCylinderImage } from '../../lib/formatters'
 import { EditProfileModal } from '../common/EditProfileModal'
 
 interface CartViewProps {
@@ -75,7 +75,7 @@ export function CartView({
                 {/* Left: Product Image */}
                 <div className="cart-product-img-wrap">
                   {item.type === 'cylinder' ? (
-                    <img src={splashCylinder} className="cart-cylinder-img" alt={item.name} />
+                    <img src={getCylinderImage(item.name, item.variant)} className="cart-cylinder-img" alt={item.name} />
                   ) : (
                     <div className="cart-accessory-svg">
                       <svg width="68" height="68" viewBox="0 0 100 100" fill="none">
