@@ -14,6 +14,7 @@ import {
 import type { NextScreen, PasswordFieldErrors, ScreenType } from './types'
 import { SplashScreen } from './components/auth/SplashScreen'
 import { LoginScreen } from './components/auth/LoginScreen'
+import { ForgotPasswordRequestScreen } from './components/auth/ForgotPasswordRequestScreen'
 import { ChangePasswordScreen } from './components/auth/ChangePasswordScreen'
 import { PasswordSuccessScreen } from './components/auth/PasswordSuccessScreen'
 import { HomeScreen } from './components/views/HomeScreen'
@@ -40,6 +41,29 @@ function buildFallbackUser(username: string, userId: number | undefined, mustCha
 
 function isDesktopView(): boolean {
   return typeof window !== 'undefined' && window.innerWidth >= 1024
+}
+
+const SUPPORT_CONTACT_NAME = (import.meta.env.VITE_SUPPORT_CONTACT_NAME || 'Admin').trim() || 'Admin'
+const SUPPORT_WHATSAPP_NUMBER = (import.meta.env.VITE_SUPPORT_WHATSAPP_NUMBER || '').trim()
+
+function sanitizePhoneNumber(value: string): string {
+  return value.replace(/[^\d]/g, '')
+}
+
+function buildSupportWhatsappLink(username: string): string | null {
+  const phone = sanitizePhoneNumber(SUPPORT_WHATSAPP_NUMBER)
+  const cleanUsername = username.trim()
+
+  if (!phone || !cleanUsername) {
+    return null
+  }
+
+  const message =
+    `Hello ${SUPPORT_CONTACT_NAME}, I forgot my GasBook customer password.` +
+    ` Please send a temporary password for username: ${cleanUsername}.` +
+    ` I will change it immediately after login.`
+
+  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
 }
 
 function App() {
@@ -72,6 +96,9 @@ function App() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+
+  const supportWhatsappAvailable = Boolean(sanitizePhoneNumber(SUPPORT_WHATSAPP_NUMBER))
+  const supportWhatsappLink = buildSupportWhatsappLink(loginForm.username)
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -297,6 +324,19 @@ function App() {
     }
   }
 
+  const handleOpenForgotPassword = () => {
+    setLoginError(null)
+    setCurrentScreen('forgot-password')
+  }
+
+  const handleOpenSupportWhatsapp = () => {
+    if (!supportWhatsappLink) {
+      return
+    }
+
+    window.location.assign(supportWhatsappLink)
+  }
+
   const handleLogout = async () => {
     await logout()
     setAuthUser(null)
@@ -330,6 +370,8 @@ function App() {
           setShowLoginPassword={setShowLoginPassword}
           setLoginForm={setLoginForm}
           handleLoginSubmit={handleLoginSubmit}
+          onForgotPassword={handleOpenForgotPassword}
+          onContactSupport={handleOpenForgotPassword}
         />
       )
     }
@@ -347,6 +389,22 @@ function App() {
         setShowLoginPassword={setShowLoginPassword}
         setLoginForm={setLoginForm}
         handleLoginSubmit={handleLoginSubmit}
+        onForgotPassword={handleOpenForgotPassword}
+        onContactSupport={handleOpenForgotPassword}
+      />
+    )
+  }
+
+  if (currentScreen === 'forgot-password') {
+    return (
+      <ForgotPasswordRequestScreen
+        username={loginForm.username}
+        supportContactName={SUPPORT_CONTACT_NAME}
+        supportWhatsappLink={supportWhatsappLink}
+        supportWhatsappAvailable={supportWhatsappAvailable}
+        onUsernameChange={updateLoginField('username')}
+        onBackToLogin={() => setCurrentScreen('login')}
+        onOpenWhatsapp={handleOpenSupportWhatsapp}
       />
     )
   }
