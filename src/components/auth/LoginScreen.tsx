@@ -16,6 +16,8 @@ interface LoginScreenProps {
   setShowLoginPassword: (value: boolean | ((prev: boolean) => boolean)) => void
   setLoginForm: React.Dispatch<React.SetStateAction<{ username: string; password: string; rememberMe: boolean }>>
   handleLoginSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>
+  onForgotPassword: () => void
+  onContactSupport: () => void
 }
 
 export function LoginScreen({
@@ -27,6 +29,8 @@ export function LoginScreen({
   setShowLoginPassword,
   setLoginForm,
   handleLoginSubmit,
+  onForgotPassword,
+  onContactSupport,
 }: LoginScreenProps) {
   return (
     <div className="legacy-auth-shell">
@@ -85,7 +89,7 @@ export function LoginScreen({
                 />
                 <span>Remember me</span>
               </label>
-              <button type="button" className="forgot-link">
+              <button type="button" className="forgot-link" onClick={onForgotPassword}>
                 Forgot Password?
               </button>
             </div>
@@ -99,7 +103,7 @@ export function LoginScreen({
 
           <div className="login-footer">
             <p>Need Help?</p>
-            <button type="button" className="contact-link">
+            <button type="button" className="contact-link" onClick={onContactSupport}>
               Distributor Contact
             </button>
           </div>

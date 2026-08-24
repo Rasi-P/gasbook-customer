@@ -1,4 +1,4 @@
-export type ScreenType = 'splash' | 'login' | 'change-password' | 'password-success' | 'home'
+export type ScreenType = 'splash' | 'login' | 'forgot-password' | 'change-password' | 'password-success' | 'home'
 export type NextScreen = Exclude<ScreenType, 'splash'>
 
 export type PasswordFieldErrors = {
