@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { OrderItem } from '../../types'
 import { usePaginatedQuery } from '../../hooks/usePaginatedQuery'
-import { fetchPaginatedBookings } from '../../lib/api-queries'
+import { fetchPaginatedOrderHistory } from '../../lib/api-queries'
 import { Pagination } from '../common/Pagination'
 import { getCylinderDisplay, getCylinderImage } from '../../lib/formatters'
 import { DesktopRejectionModal } from './DesktopRejectionModal'
@@ -30,7 +30,7 @@ export function DesktopOrdersView({
     setPage,
     updateFilters,
   } = usePaginatedQuery({
-    fetchFn: fetchPaginatedBookings,
+    fetchFn: fetchPaginatedOrderHistory,
     defaultParams: { page: 1, status: '', search: '' },
   })
 
@@ -60,11 +60,16 @@ export function DesktopOrdersView({
   }
 
   const mappedOrders: OrderItem[] = rawOrders.map((b: any) => {
+    const isDirectSale = b.history_source === 'sale'
     let statusLabel = 'Order Placed'
     let statusKind: 'ongoing' | 'completed' | 'cancelled' = 'ongoing'
     let etaOrDate = 'Order Placed — Preparing for delivery'
 
-    if (b.status === 'approved') {
+    if (isDirectSale) {
+      statusLabel = 'Sale Completed'
+      statusKind = 'completed'
+      etaOrDate = b.detail_message || 'Direct sale completed'
+    } else if (b.status === 'approved') {
       statusLabel = 'Order Confirmed'
       statusKind = 'ongoing'
       etaOrDate = 'Order confirmed — awaiting dispatch'
@@ -86,14 +91,19 @@ export function DesktopOrdersView({
       etaOrDate = b.rejection_reason ? `Reason: ${b.rejection_reason}` : 'Order could not be fulfilled'
     }
 
-    const priceNum = parseFloat(b.rate || '0')
-    const finalPrice = priceNum > 0 ? `₹${priceNum.toLocaleString('en-IN')}` : 'Standard Rate'
+    const finalPriceNum = isDirectSale
+      ? parseFloat(b.final_amount || b.total_amount || '0')
+      : parseFloat(b.rate || '0')
+    const finalPrice = finalPriceNum > 0 ? `₹${finalPriceNum.toLocaleString('en-IN')}` : 'Standard Rate'
 
-    const display = getCylinderDisplay(b.cylinder_type_name, b.cylinder_type_weight)
+    const display =
+      b.display_name && b.display_badge
+        ? { title: b.display_name, badge: b.display_badge }
+        : getCylinderDisplay(b.cylinder_type_name, b.cylinder_type_weight)
 
     return {
-      id: b.id.toString(),
-      orderNumber: `Order #${b.order_id}`,
+      id: `${b.history_source || 'booking'}-${b.id}`,
+      orderNumber: b.display_reference || `Order #${b.order_id}`,
       date: new Date(b.created_at).toLocaleDateString('en-IN', {
         day: 'numeric',
         month: 'short',
@@ -105,7 +115,7 @@ export function DesktopOrdersView({
       status: statusKind,
       statusCode: b.status,
       statusLabel,
-      actionLabel: 'Track Order',
+      actionLabel: isDirectSale ? 'Order Again' : 'Track Order',
       etaOrDate,
       rawBooking: b,
       rejectionReason: b.rejection_reason,
@@ -133,7 +143,7 @@ export function DesktopOrdersView({
           </svg>
           <input
             type="text"
-            placeholder="Search by Order ID..."
+            placeholder="Search orders or direct sales..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="desktop-search-input"
@@ -286,6 +296,47 @@ export function DesktopOrdersView({
                       <span>View Rejection Reason</span>
                       <span>→</span>
                     </button>
+                  ) : order.statusCode === 'delivered' && order.rawBooking?.history_source === 'sale' ? (
+                    order.rawBooking?.can_order_again ? (
+                      <button
+                        onClick={() => {
+                          if (!order.rawBooking.cylinder_type_id) {
+                            alert('This cylinder is currently unavailable.')
+                            return
+                          }
+                          onOrderAgain(order.productName, parseFloat(order.rawBooking.rate || '0'), order.rawBooking.cylinder_type_id)
+                        }}
+                        style={{
+                          width: '100%',
+                          background: '#1052be',
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: '10px',
+                          padding: '10px',
+                          fontSize: '13.5px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Order Again
+                      </button>
+                    ) : (
+                      <div
+                        style={{
+                          width: '100%',
+                          background: '#f8fafc',
+                          color: '#64748b',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '10px',
+                          padding: '10px',
+                          fontSize: '13.5px',
+                          fontWeight: 600,
+                          textAlign: 'center',
+                        }}
+                      >
+                        Direct Sale Completed
+                      </div>
+                    )
                   ) : order.statusCode === 'delivered' ? (
                     <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
                       <button
@@ -402,7 +453,7 @@ export function DesktopOrdersView({
           </h3>
           <p style={{ margin: '0 0 24px', fontSize: '14px', color: '#64748b', lineHeight: 1.5 }}>
             {selectedFilter === 'all'
-              ? 'When you book LPG cylinders, your order updates and delivery details will show up here.'
+              ? 'Completed bookings and direct sales will show up here for your account.'
               : `You have no ${selectedFilter} cylinder orders at the moment.`}
           </p>
           <button

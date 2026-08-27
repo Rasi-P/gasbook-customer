@@ -51,6 +51,28 @@ export async function fetchPaginatedBookings(params: BookingQueryParams): Promis
   return data
 }
 
+export async function fetchPaginatedOrderHistory(params: BookingQueryParams): Promise<PaginatedResponse<any>> {
+  const qs = buildQueryString(params as any)
+  const data = await request<PaginatedResponse<any> | any[]>(`/bookings/history/${qs}`, { method: 'GET' })
+  if (Array.isArray(data)) {
+    return {
+      count: data.length,
+      next: null,
+      previous: null,
+      results: data,
+    }
+  }
+  if (!data.results) {
+    return {
+      count: 0,
+      next: null,
+      previous: null,
+      results: [],
+    }
+  }
+  return data
+}
+
 export async function fetchPaginatedNotifications(params: NotificationQueryParams): Promise<PaginatedResponse<any>> {
   const qs = buildQueryString(params as any)
   const data = await request<PaginatedResponse<any> | any[]>(`/notifications/${qs}`, { method: 'GET' })
