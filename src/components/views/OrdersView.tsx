@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import type { OrderItem } from '../../types'
 import { markNotificationRead } from '../../lib/auth'
 import { usePaginatedQuery } from '../../hooks/usePaginatedQuery'
-import { fetchPaginatedBookings, fetchPaginatedNotifications } from '../../lib/api-queries'
+import { fetchPaginatedNotifications, fetchPaginatedOrderHistory } from '../../lib/api-queries'
 import { Pagination } from '../common/Pagination'
 import { getCylinderDisplay, getCylinderImage } from '../../lib/formatters'
 
@@ -56,7 +56,7 @@ export function OrdersView({
     setPage,
     updateFilters,
   } = usePaginatedQuery({
-    fetchFn: fetchPaginatedBookings,
+    fetchFn: fetchPaginatedOrderHistory,
     defaultParams: { page: 1, status: '', search: '' },
   })
 
@@ -88,11 +88,16 @@ export function OrdersView({
 
   // Map raw backend bookings to UI OrderItem format
   const mappedOrders: OrderItem[] = rawOrders.map((b: any) => {
+    const isDirectSale = b.history_source === 'sale'
     let statusLabel = 'Order Placed'
     let statusKind: 'ongoing' | 'completed' | 'cancelled' = 'ongoing'
     let etaOrDate = 'Order Placed — Preparing for delivery'
 
-    if (b.status === 'approved') {
+    if (isDirectSale) {
+      statusLabel = 'Sale Completed'
+      statusKind = 'completed'
+      etaOrDate = b.detail_message || 'Direct sale completed'
+    } else if (b.status === 'approved') {
       statusLabel = 'Order Confirmed'
       statusKind = 'ongoing'
       etaOrDate = 'Order confirmed — awaiting dispatch'
@@ -114,14 +119,18 @@ export function OrdersView({
       etaOrDate = 'Order rejected'
     }
 
-    const priceNum = parseFloat(b.rate || '0')
-    const finalPrice = priceNum > 0 ? `₹${priceNum.toLocaleString('en-IN')}` : 'To be determined'
+    const finalPriceNum = parseFloat(b.final_amount || b.total_amount || '0')
+    const originalPriceNum = parseFloat(b.original_amount || '0')
+    const finalPrice = finalPriceNum > 0 ? `₹${finalPriceNum.toLocaleString('en-IN')}` : 'To be determined'
 
-    const display = getCylinderDisplay(b.cylinder_type_name, b.cylinder_type_weight)
+    const display =
+      b.display_name && b.display_badge
+        ? { title: b.display_name, badge: b.display_badge }
+        : getCylinderDisplay(b.cylinder_type_name, b.cylinder_type_weight)
 
     return {
-      id: b.id.toString(),
-      orderNumber: `Order #${b.order_id}`,
+      id: `${b.history_source || 'booking'}-${b.id}`,
+      orderNumber: b.display_reference || `Order #${b.order_id}`,
       date: new Date(b.created_at).toLocaleDateString('en-IN', {
         day: 'numeric',
         month: 'short',
@@ -130,43 +139,15 @@ export function OrdersView({
       productName: display.title,
       weight: display.badge,
       price: finalPrice,
+      originalPrice: parseFloat(b.discount_amount || '0') > 0 ? `₹${originalPriceNum.toLocaleString('en-IN')}` : undefined,
       status: statusKind,
       statusCode: b.status,
       statusLabel,
-      actionLabel: 'Track Order',
+      actionLabel: isDirectSale ? 'Order Again' : 'Track Order',
       etaOrDate,
       rawBooking: b,
     }
   })
-
-  // @ts-ignore
-  const getTimelineSteps = (code: string | undefined) => {
-    if (code === 'cancelled' || code === 'rejected') {
-      return [
-        { key: 'placed', title: 'Order Placed', isDone: true, isCurrent: false },
-        { key: 'terminated', title: code === 'rejected' ? 'Rejected' : 'Cancelled', isDone: true, isCurrent: true }
-      ]
-    }
-
-    const steps = [
-      { key: 'placed', title: 'Order Placed' },
-      { key: 'confirmed', title: 'Order Confirmed' },
-      { key: 'out_for_delivery', title: 'Out for Delivery' },
-      { key: 'delivered', title: 'Delivered' },
-    ]
-
-    let currentIndex = 0
-    if (code === 'pending') currentIndex = 0
-    else if (code === 'approved') currentIndex = 1
-    else if (code === 'accepted' || code === 'out_for_delivery') currentIndex = 2
-    else if (code === 'delivered') currentIndex = 3
-
-    return steps.map((step, idx) => ({
-      ...step,
-      isDone: idx <= currentIndex,
-      isCurrent: idx === currentIndex,
-    }))
-  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#F8FAFC', paddingBottom: '68px', boxSizing: 'border-box', position: 'relative' }}>
@@ -204,7 +185,7 @@ export function OrdersView({
         <form onSubmit={handleSearch} style={{ display: 'flex', gap: '8px' }}>
           <input
             type="text"
-            placeholder="Search orders (ID, Cylinder)"
+            placeholder="Search orders or direct sales"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{ flex: 1, padding: '10px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none' }}
@@ -247,6 +228,9 @@ export function OrdersView({
                 <div className="order-info-center">
                   <h3 className="order-product-name">{order.productName}</h3>
                   <span className="order-weight-badge">{order.weight}</span>
+                  {order.originalPrice && (
+                    <span className="order-price-tag" style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '0.82rem' }}>{order.originalPrice}</span>
+                  )}
                   <span className="order-price-tag">{order.price}</span>
                 </div>
 
@@ -259,7 +243,24 @@ export function OrdersView({
                     <span>{order.etaOrDate}</span>
                   </div>
 
-                  {order.statusCode === 'delivered' ? (
+                  {order.statusCode === 'delivered' && order.rawBooking?.history_source === 'sale' ? (
+                    order.rawBooking?.can_order_again ? (
+                      <button className="order-action-outline-btn" onClick={() => {
+                        if (!order.rawBooking.cylinder_type_id) {
+                          alert("This cylinder is currently unavailable.")
+                          return
+                        }
+                        onOrderAgain(order.productName, parseFloat(order.rawBooking.rate || '0'), order.rawBooking.cylinder_type_id)
+                      }}>Order Again</button>
+                    ) : (
+                      <div
+                        className="order-action-outline-btn"
+                        style={{ cursor: 'default', opacity: 0.75 }}
+                      >
+                        Direct Sale Completed
+                      </div>
+                    )
+                  ) : order.statusCode === 'delivered' ? (
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button className="order-action-outline-btn" onClick={() => onTrackOrder(order.rawBooking.id)}>View Details</button>
                       <button className="order-action-outline-btn" onClick={() => {
@@ -306,7 +307,7 @@ export function OrdersView({
           </h2>
           <p className="empty-subtitle">
             {selectedFilter === 'all' 
-              ? "You haven't booked a gas cylinder yet." 
+              ? "You don't have any bookings or direct sale history yet." 
               : `You have no ${selectedFilter} orders at the moment.`}
           </p>
           <button className="empty-explore-btn" onClick={onNavigateToExplore}>

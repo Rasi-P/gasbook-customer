@@ -526,6 +526,19 @@
     border-top: 1px solid #f1f5f9;
   }
 
+  .desktop-cylinder-price-wrap {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+  }
+
+  .desktop-cylinder-price-original {
+    font-size: 13px;
+    font-weight: 600;
+    color: #94a3b8;
+    text-decoration: line-through;
+  }
+
   .desktop-cylinder-price {
     font-size: 18px;
     font-weight: 800;

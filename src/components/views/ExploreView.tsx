@@ -33,7 +33,9 @@ export function ExploreView({
       displayBadge: display.badge,
       rawWeight: c.weight,
       rawPrice: Number(c.selling_price) || 0,
-      price: `₹${Number(c.selling_price).toLocaleString('en-IN')}`,
+      finalPrice: Number(c.final_price || c.selling_price) || 0,
+      originalPrice: Number(c.customer_rate || c.selling_price) || 0,
+      hasDiscount: Boolean(c.has_discount),
       category: 'cylinder',
       isPopular: c.name.includes('14.2') || (c.weight && String(c.weight).includes('14.2')),
     }
@@ -174,7 +176,14 @@ export function ExploreView({
                     {prod.displayBadge}
                   </span>
                 </div>
-                <div className="product-price">{prod.price}</div>
+                <div className="product-price">
+                  {prod.hasDiscount && (
+                    <div style={{ color: '#94a3b8', fontSize: '0.82rem', textDecoration: 'line-through' }}>
+                      ₹{prod.originalPrice.toLocaleString('en-IN')}
+                    </div>
+                  )}
+                  ₹{prod.finalPrice.toLocaleString('en-IN')}
+                </div>
                 <button className="product-book-btn" onClick={() => onBook(prod.displayBadge, prod.rawPrice, prod.rawId, prod.displayTitle)}>
                   Book
                 </button>

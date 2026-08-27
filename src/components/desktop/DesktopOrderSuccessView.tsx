@@ -1,10 +1,9 @@
 import { useState } from 'react'
-import type { CartItem } from '../../types'
-import { calculateCartPricing } from '../../lib/pricing'
+import type { BookingRecord } from '../../lib/auth'
+import { formatMoney } from '../../lib/pricing'
 
 interface DesktopOrderSuccessViewProps {
-  orders: { id: number; order_id: string }[]
-  cartItems: CartItem[]
+  orders: BookingRecord[]
   onViewOrders: () => void
   onTrackOrder?: (id: number) => void
   onBackToHome?: () => void
@@ -12,13 +11,14 @@ interface DesktopOrderSuccessViewProps {
 
 export function DesktopOrderSuccessView({
   orders,
-  cartItems,
   onViewOrders,
   onTrackOrder,
   onBackToHome,
 }: DesktopOrderSuccessViewProps) {
   const [copied, setCopied] = useState(false)
-  const { subtotal, deliveryFee, total } = calculateCartPricing(cartItems)
+  const subtotal = orders.reduce((sum, order) => sum + Number(order.original_amount || order.total_amount || 0), 0)
+  const discount = orders.reduce((sum, order) => sum + Number(order.discount_amount || 0), 0)
+  const total = orders.reduce((sum, order) => sum + Number(order.final_amount || order.total_amount || 0), 0)
 
   const handleCopyIds = () => {
     const text = orders.map((o) => `#${o.order_id}`).join(', ')
@@ -127,19 +127,19 @@ export function DesktopOrderSuccessView({
             Payment Summary
           </h4>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#64748b', marginBottom: '8px' }}>
-            <span>Subtotal</span>
-            <span style={{ fontWeight: 600, color: '#1e293b' }}>₹{subtotal.toLocaleString('en-IN')}</span>
+            <span>Original Amount</span>
+            <span style={{ fontWeight: 600, color: '#1e293b' }}>{formatMoney(subtotal)}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#64748b', marginBottom: '12px' }}>
-            <span>Delivery Charges</span>
-            <span style={{ fontWeight: 600, color: '#16a34a' }}>
-              {deliveryFee === 0 ? 'FREE' : `₹${deliveryFee.toLocaleString('en-IN')}`}
-            </span>
-          </div>
+          {discount > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#64748b', marginBottom: '12px' }}>
+              <span>Discount</span>
+              <span style={{ fontWeight: 600, color: '#16a34a' }}>- {formatMoney(discount)}</span>
+            </div>
+          )}
           <div style={{ height: '1px', background: '#e2e8f0', margin: '8px 0 12px' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '17px', fontWeight: 800 }}>
             <span style={{ color: '#1e293b' }}>Total Payable (COD)</span>
-            <span style={{ color: '#1052be' }}>₹{total.toLocaleString('en-IN')}</span>
+            <span style={{ color: '#1052be' }}>{formatMoney(total)}</span>
           </div>
         </div>
 
