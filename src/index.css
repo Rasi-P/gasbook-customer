@@ -2048,6 +2048,11 @@ input:focus-visible {
   color: #dc2626;
 }
 
+.status-pill.pending {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
 .status-detail-text {
   display: inline-flex;
   align-items: center;

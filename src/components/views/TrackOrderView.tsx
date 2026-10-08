@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { fetchBookingById } from '../../lib/auth'
 import { getCylinderDisplay } from '../../lib/formatters'
+import { getOrderStatusMeta } from '../../lib/orderStatus'
 
 interface TrackOrderViewProps {
   bookingId: number
@@ -63,13 +64,12 @@ export function TrackOrderView({ bookingId, onBack }: TrackOrderViewProps) {
       { key: 'delivered', title: 'Delivered', subtitle: 'Pending' },
     ]
 
-    let currentIndex = 0
-    if (code === 'pending') currentIndex = 0
-    else if (code === 'approved') currentIndex = 1
-    else if (code === 'accepted' || code === 'out_for_delivery') currentIndex = 2
-    else if (code === 'delivered') currentIndex = 3
+    const meta = getOrderStatusMeta(code, bookingData)
+    // `accepted` stays on the confirmed step: the partner has accepted but not started the delivery.
+    const currentIndex: number = meta.timelineIndex
 
     if (currentIndex >= 1) steps[1].subtitle = bookingData?.approved_at ? new Date(bookingData.approved_at).toLocaleString('en-IN', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Your order is confirmed.'
+    if (code === 'accepted') steps[1].subtitle = meta.description
     if (currentIndex >= 2) steps[2].subtitle = 'Your order is out for delivery.'
     if (currentIndex >= 3) steps[3].subtitle = bookingData?.delivered_at ? new Date(bookingData.delivered_at).toLocaleString('en-IN', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Delivered successfully.'
 
@@ -81,19 +81,11 @@ export function TrackOrderView({ bookingId, onBack }: TrackOrderViewProps) {
   }
 
   const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'pending': return 'Order Placed'
-      case 'approved': return 'Order Confirmed'
-      case 'accepted': return 'Order Confirmed'
-      case 'out_for_delivery': return 'Out for Delivery'
-      case 'delivered': return 'Delivered'
-      case 'rejected': return 'Order Rejected'
-      case 'cancelled': return 'Cancelled'
-      default: return 'Processing'
-    }
+    if (status === 'rejected') return 'Order Rejected'
+    return getOrderStatusMeta(status, booking).label
   }
 
-  const isTerminalState = booking?.status === 'delivered' || booking?.status === 'rejected' || booking?.status === 'cancelled'
+  const isTerminalState = getOrderStatusMeta(booking?.status, booking).isTerminal
 
   return (
     <div className="track-order-page" style={{ padding: '20px', minHeight: '100vh', background: '#F8FAFC' }}>
@@ -234,7 +226,9 @@ export function TrackOrderView({ bookingId, onBack }: TrackOrderViewProps) {
                 <div style={{ color: '#1D4ED8', fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px' }}>Estimated Delivery</div>
                 {booking.status === 'pending' ? (
                   <>
-                    <div style={{ color: '#1E3A8A', fontWeight: 700, fontSize: '1rem', marginBottom: '4px' }}>Pending Confirmation</div>
+                    <div style={{ color: '#1E3A8A', fontWeight: 700, fontSize: '1rem', marginBottom: '4px' }}>
+                      {booking.needs_reassignment ? 'Reassigning your delivery partner' : 'Pending Confirmation'}
+                    </div>
                     <div style={{ color: '#1E3A8A', fontSize: '0.9rem' }}>We'll provide an estimated delivery time once your order is confirmed.</div>
                   </>
                 ) : (

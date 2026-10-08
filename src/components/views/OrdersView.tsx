@@ -5,6 +5,8 @@ import { usePaginatedQuery } from '../../hooks/usePaginatedQuery'
 import { fetchPaginatedNotifications, fetchPaginatedOrderHistory } from '../../lib/api-queries'
 import { Pagination } from '../common/Pagination'
 import { getCylinderDisplay, getCylinderImage } from '../../lib/formatters'
+import { ACTIVE_STATUS_FILTER, CANCELLED_STATUS_FILTER, COMPLETED_STATUS_FILTER, getOrderStatusMeta } from '../../lib/orderStatus'
+import { buildOrderPrice } from '../../lib/pricing'
 
 interface OrdersViewProps {
   onNavigateToExplore: () => void
@@ -66,11 +68,11 @@ export function OrdersView({
   const mapFilterToStatus = (filter: string) => {
     switch (filter) {
       case 'ongoing':
-        return 'pending,approved,accepted,out_for_delivery'
+        return ACTIVE_STATUS_FILTER
       case 'completed':
-        return 'delivered'
+        return COMPLETED_STATUS_FILTER
       case 'cancelled':
-        return 'cancelled,rejected'
+        return CANCELLED_STATUS_FILTER
       default:
         return ''
     }
@@ -89,39 +91,11 @@ export function OrdersView({
   // Map raw backend bookings to UI OrderItem format
   const mappedOrders: OrderItem[] = rawOrders.map((b: any) => {
     const isDirectSale = b.history_source === 'sale'
-    let statusLabel = 'Order Placed'
-    let statusKind: 'ongoing' | 'completed' | 'cancelled' = 'ongoing'
-    let etaOrDate = 'Order Placed — Preparing for delivery'
-
-    if (isDirectSale) {
-      statusLabel = 'Sale Completed'
-      statusKind = 'completed'
-      etaOrDate = b.detail_message || 'Direct sale completed'
-    } else if (b.status === 'approved') {
-      statusLabel = 'Order Confirmed'
-      statusKind = 'ongoing'
-      etaOrDate = 'Order confirmed — awaiting dispatch'
-    } else if (b.status === 'accepted' || b.status === 'out_for_delivery') {
-      statusLabel = 'Out for Delivery'
-      statusKind = 'ongoing'
-      etaOrDate = `Out for delivery with ${b.assigned_staff_name || 'Delivery Staff'}`
-    } else if (b.status === 'delivered') {
-      statusLabel = 'Delivered'
-      statusKind = 'completed'
-      etaOrDate = 'Successfully delivered'
-    } else if (b.status === 'cancelled') {
-      statusLabel = 'Cancelled'
-      statusKind = 'cancelled'
-      etaOrDate = 'Order was cancelled'
-    } else if (b.status === 'rejected') {
-      statusLabel = 'Rejected'
-      statusKind = 'cancelled'
-      etaOrDate = 'Order rejected'
-    }
-
-    const finalPriceNum = parseFloat(b.final_amount || b.total_amount || '0')
-    const originalPriceNum = parseFloat(b.original_amount || '0')
-    const finalPrice = finalPriceNum > 0 ? `₹${finalPriceNum.toLocaleString('en-IN')}` : 'To be determined'
+    const meta = getOrderStatusMeta(b.status, b)
+    const statusLabel = isDirectSale ? 'Sale Completed' : meta.label
+    const statusKind: 'ongoing' | 'completed' | 'cancelled' = isDirectSale ? 'completed' : meta.kind
+    const etaOrDate = isDirectSale ? b.detail_message || 'Direct sale completed' : meta.description
+    const pricing = buildOrderPrice(b)
 
     const display =
       b.display_name && b.display_badge
@@ -138,8 +112,8 @@ export function OrdersView({
       }),
       productName: display.title,
       weight: display.badge,
-      price: finalPrice,
-      originalPrice: parseFloat(b.discount_amount || '0') > 0 ? `₹${originalPriceNum.toLocaleString('en-IN')}` : undefined,
+      price: pricing.price,
+      originalPrice: pricing.originalPrice,
       status: statusKind,
       statusCode: b.status,
       statusLabel,
@@ -235,7 +209,7 @@ export function OrdersView({
                 </div>
 
                 <div className="order-status-action-right">
-                  <div className={`status-pill ${order.statusCode === 'pending' ? 'pending' : 'ongoing'}`}>
+                  <div className={`status-pill ${order.statusCode === 'pending' ? 'pending' : order.status}`}>
                     <span>{order.statusLabel}</span>
                   </div>
 

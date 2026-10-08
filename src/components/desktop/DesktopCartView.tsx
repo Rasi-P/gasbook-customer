@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react'
-import { previewBookings, type BookingPreviewResponse, type CustomerProfile } from '../../lib/auth'
+import { useState } from 'react'
+import { type CustomerProfile } from '../../lib/auth'
 import type { CartItem, ProfileUser } from '../../types'
-import { buildBookingPreviewPayload, createEmptyPreview, formatMoney, previewItemByCartId, previewUnitRates } from '../../lib/pricing'
+import { formatMoney, previewItemByCartId, previewUnitRates } from '../../lib/pricing'
 import { getCylinderImage } from '../../lib/formatters'
 import { EditProfileModal } from '../common/EditProfileModal'
+import { PricingErrorNotice } from '../common/PricingErrorNotice'
+import { usePricingPreview } from '../../hooks/usePricingPreview'
 
 interface DesktopCartViewProps {
   cartItems: CartItem[]
@@ -28,29 +30,9 @@ export function DesktopCartView({
 }: DesktopCartViewProps) {
   const [isEditingAddress, setIsEditingAddress] = useState(false)
 
-  const [pricingPreview, setPricingPreview] = useState<BookingPreviewResponse>(createEmptyPreview())
+  const { preview: pricingPreview, error: pricingError, isReady: pricingReady, reload: reloadPricing, displayAmount } = usePricingPreview(cartItems)
   const totalCount = cartItems.reduce((acc, item) => acc + item.quantity, 0)
-
-  useEffect(() => {
-    let ignore = false
-
-    if (cartItems.length === 0) {
-      setPricingPreview(createEmptyPreview())
-      return
-    }
-
-    previewBookings(buildBookingPreviewPayload(cartItems))
-      .then((data) => {
-        if (!ignore) setPricingPreview(data)
-      })
-      .catch(() => {
-        if (!ignore) setPricingPreview(createEmptyPreview())
-      })
-
-    return () => {
-      ignore = true
-    }
-  }, [cartItems])
+  const canProceed = pricingReady && cartItems.length > 0
 
   const deliveryName = customerProfile?.name?.trim() || customerProfile?.full_name?.trim() || 'Customer'
   const deliveryAddress = customerProfile?.address?.trim() || 'Add your delivery address'
@@ -140,16 +122,17 @@ export function DesktopCartView({
                     {item.name}
                   </h3>
                   {(() => {
-                    const rates = previewUnitRates(previewItemByCartId(pricingPreview, item.id), item.unitPrice)
+                    const lineItem = previewItemByCartId(pricingPreview, item.id)
+                    const rates = previewUnitRates(lineItem, item.unitPrice)
                     return (
                       <div style={{ fontSize: '13.5px', color: '#64748b' }}>
                         Unit Price:{' '}
-                        {rates.hasDiscount && (
+                        {pricingReady && lineItem && rates.hasDiscount && (
                           <span style={{ color: '#94a3b8', textDecoration: 'line-through', marginRight: '6px' }}>
                             {formatMoney(rates.original)}
                           </span>
                         )}
-                        <strong style={{ color: '#1e293b' }}>{formatMoney(rates.effective)}</strong>
+                        <strong style={{ color: '#1e293b' }}>{pricingReady && lineItem ? formatMoney(rates.effective) : displayAmount(undefined)}</strong>
                       </div>
                     )
                   })()}
@@ -177,7 +160,7 @@ export function DesktopCartView({
                 {/* Total Item Price */}
                 <div style={{ minWidth: '100px', textAlign: 'right' }}>
                   <span style={{ fontSize: '18px', fontWeight: 800, color: '#1e293b' }}>
-                    {formatMoney(previewItemByCartId(pricingPreview, item.id)?.final_amount || item.unitPrice * item.quantity)}
+                    {displayAmount(previewItemByCartId(pricingPreview, item.id)?.final_amount)}
                   </span>
                 </div>
 
@@ -255,15 +238,17 @@ export function DesktopCartView({
                 Order Summary
               </h3>
 
+              {pricingError && <PricingErrorNotice message={pricingError} onRetry={reloadPricing} compact />}
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#64748b' }}>
                   <span>Original Amount</span>
-                  <span style={{ fontWeight: 600, color: '#1e293b' }}>{formatMoney(pricingPreview.summary.original_amount)}</span>
+                  <span style={{ fontWeight: 600, color: '#1e293b' }}>{displayAmount(pricingPreview?.summary.original_amount)}</span>
                 </div>
-                {pricingPreview.summary.has_discount && (
+                {pricingPreview?.summary.has_discount && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#64748b' }}>
                     <span>Discount</span>
-                    <span style={{ fontWeight: 600, color: '#16a34a' }}>- {formatMoney(pricingPreview.summary.discount_amount)}</span>
+                    <span style={{ fontWeight: 600, color: '#16a34a' }}>- {displayAmount(pricingPreview.summary.discount_amount)}</span>
                   </div>
                 )}
 
@@ -271,7 +256,7 @@ export function DesktopCartView({
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontWeight: 800 }}>
                   <span style={{ color: '#1e293b' }}>Total Payable</span>
-                  <span style={{ color: '#1052be' }}>{formatMoney(pricingPreview.summary.final_amount)}</span>
+                  <span style={{ color: '#1052be' }}>{displayAmount(pricingPreview?.summary.final_amount)}</span>
                 </div>
               </div>
 
@@ -299,7 +284,10 @@ export function DesktopCartView({
 
               {/* Proceed CTA */}
               <button
-                onClick={onProceedToCheckout}
+                onClick={() => {
+                  if (canProceed) onProceedToCheckout()
+                }}
+                disabled={!canProceed}
                 style={{
                   width: '100%',
                   background: '#ff7a00',
@@ -309,7 +297,8 @@ export function DesktopCartView({
                   padding: '14px',
                   fontSize: '15px',
                   fontWeight: 700,
-                  cursor: 'pointer',
+                  cursor: canProceed ? 'pointer' : 'not-allowed',
+                  opacity: canProceed ? 1 : 0.6,
                   boxShadow: '0 4px 14px rgba(255, 122, 0, 0.3)',
                   display: 'flex',
                   alignItems: 'center',

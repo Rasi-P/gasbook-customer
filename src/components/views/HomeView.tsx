@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import type { OrderItem } from '../../types'
 import { fetchCustomerNotifications, markNotificationRead, type NotificationItem } from '../../lib/auth'
 import { getCylinderImage } from '../../lib/formatters'
+import { getOrderStatusMeta } from '../../lib/orderStatus'
 import heroBg from '../../assets/hero_bg.png'
 import type { CustomerProfile } from '../../lib/auth'
 
@@ -35,6 +36,7 @@ export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrd
   const [showNotifications, setShowNotifications] = useState(false)
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const hasActiveOrder = Boolean(latestActiveOrder)
+  const activeOrderMeta = latestActiveOrder ? getOrderStatusMeta(latestActiveOrder.statusCode, latestActiveOrder.rawBooking) : null
   const greetingName = getGreetingName(customerProfile)
   const locationText = getLocationText(customerProfile)
 
@@ -220,7 +222,7 @@ export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrd
                   {latestActiveOrder.statusLabel}
                 </div>
                 <div style={{ color: '#64748B', fontSize: '0.75rem', maxWidth: '100px', lineHeight: '1.3' }}>
-                  {latestActiveOrder.statusCode === 'pending' ? 'Awaiting assignment' : (latestActiveOrder.statusCode === 'accepted' ? 'Staff assigned' : (latestActiveOrder.statusCode === 'out_for_delivery' ? 'On the way' : 'Completed'))}
+                  {activeOrderMeta?.description}
                 </div>
               </div>
             </div>
@@ -231,13 +233,13 @@ export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrd
             {/* Compact Progress Indicator */}
             <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative', marginBottom: '24px', padding: '0 10px' }}>
               <div style={{ position: 'absolute', top: '10px', left: '20px', right: '20px', height: '2px', background: '#E2E8F0', zIndex: 1 }}></div>
-              <div style={{ position: 'absolute', top: '10px', left: '20px', right: '20px', height: '2px', background: '#22C55E', zIndex: 1, width: latestActiveOrder.statusCode === 'pending' ? '0%' : latestActiveOrder.statusCode === 'accepted' ? '33%' : latestActiveOrder.statusCode === 'out_for_delivery' ? '66%' : '100%', transition: 'width 0.3s ease' }}></div>
+              <div style={{ position: 'absolute', top: '10px', left: '20px', right: '20px', height: '2px', background: '#22C55E', zIndex: 1, width: `${activeOrderMeta?.progressPercent ?? 0}%`, transition: 'width 0.3s ease' }}></div>
               
               {[
                 { label: 'Placed', active: true },
-                { label: 'Assigned', active: latestActiveOrder.statusCode !== 'pending' && latestActiveOrder.statusCode !== 'rejected' && latestActiveOrder.statusCode !== 'cancelled' },
-                { label: 'Delivery', active: latestActiveOrder.statusCode === 'out_for_delivery' || latestActiveOrder.statusCode === 'delivered' },
-                { label: 'Delivered', active: latestActiveOrder.statusCode === 'delivered' }
+                { label: 'Assigned', active: (activeOrderMeta?.timelineIndex ?? 0) >= 1 },
+                { label: 'Delivery', active: (activeOrderMeta?.timelineIndex ?? 0) >= 2 },
+                { label: 'Delivered', active: (activeOrderMeta?.timelineIndex ?? 0) >= 3 }
               ].map((step, idx) => (
                 <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 2, background: '#FFF' }}>
                   <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: step.active ? '#22C55E' : '#F1F5F9', border: step.active ? 'none' : '2px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px', color: '#FFF' }}>
