@@ -1,6 +1,17 @@
-import { useState, useEffect } from 'react'
-import { fetchCylinderTypes } from '../../lib/auth'
+import { useState } from 'react'
 import { getCylinderDisplay, getCylinderImage } from '../../lib/formatters'
+import { CYLINDERS_EMPTY_LABEL, CYLINDERS_LOADING_LABEL, useCylinderTypes } from '../../hooks/useCylinderTypes'
+
+const catalogStatusCardStyle: React.CSSProperties = {
+  gridColumn: '1 / -1',
+  textAlign: 'center',
+  padding: '40px 24px',
+  color: '#64748b',
+  fontSize: '14.5px',
+  background: '#ffffff',
+  borderRadius: '20px',
+  border: '1px dashed #e2e8f0',
+}
 
 interface DesktopExploreViewProps {
   onBook: (productName: string, price?: number, cylinderTypeId?: number, weight?: string | number) => void
@@ -12,13 +23,7 @@ export function DesktopExploreView({
 }: DesktopExploreViewProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'cylinder' | 'connection'>('all')
-  const [cylinderTypes, setCylinderTypes] = useState<any[]>([])
-
-  useEffect(() => {
-    fetchCylinderTypes()
-      .then((data: any[]) => setCylinderTypes(data))
-      .catch(() => undefined)
-  }, [])
+  const { cylinderTypes, isLoading: catalogLoading, error: catalogError, reload: reloadCatalog } = useCylinderTypes()
 
   const products = cylinderTypes.map((c) => {
     const display = getCylinderDisplay(c.name, c.weight)
@@ -38,11 +43,13 @@ export function DesktopExploreView({
     }
   })
 
+  const normalizedQuery = searchQuery.trim().toLowerCase()
   const filteredProducts = products.filter((p) => {
     const matchesSearch =
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.displayTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.displayBadge.toLowerCase().includes(searchQuery.toLowerCase())
+      !normalizedQuery ||
+      p.name.toLowerCase().includes(normalizedQuery) ||
+      p.displayTitle.toLowerCase().includes(normalizedQuery) ||
+      p.displayBadge.toLowerCase().includes(normalizedQuery)
     const matchesCategory = selectedCategory === 'all' || p.category === selectedCategory
     return matchesSearch && matchesCategory
   })
@@ -172,6 +179,26 @@ export function DesktopExploreView({
           marginBottom: '48px',
         }}
       >
+        {catalogLoading ? (
+          <div style={catalogStatusCardStyle}>{CYLINDERS_LOADING_LABEL}</div>
+        ) : catalogError ? (
+          <div style={catalogStatusCardStyle}>
+            <p style={{ margin: '0 0 14px', color: '#dc2626', fontWeight: 600 }}>{catalogError}</p>
+            <button
+              type="button"
+              onClick={reloadCatalog}
+              style={{ background: '#1052be', color: '#ffffff', border: 'none', padding: '10px 24px', borderRadius: '10px', fontWeight: 700, cursor: 'pointer' }}
+            >
+              Retry
+            </button>
+          </div>
+        ) : products.length === 0 ? (
+          <div style={catalogStatusCardStyle}>{CYLINDERS_EMPTY_LABEL}</div>
+        ) : filteredProducts.length === 0 ? (
+          <div style={catalogStatusCardStyle}>
+            {normalizedQuery ? `No products match "${searchQuery.trim()}"` : 'No products available in this category yet.'}
+          </div>
+        ) : null}
         {filteredProducts.map((prod) => (
           <div
             key={prod.id}

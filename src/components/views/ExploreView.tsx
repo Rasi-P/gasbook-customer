@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
-import { fetchCylinderTypes } from '../../lib/auth'
+import { useState } from 'react'
 import { getCylinderDisplay, getCylinderImage } from '../../lib/formatters'
+import { CYLINDERS_EMPTY_LABEL, CYLINDERS_LOADING_LABEL, useCylinderTypes } from '../../hooks/useCylinderTypes'
 
 interface ExploreViewProps {
   cartCount: number
@@ -15,13 +15,7 @@ export function ExploreView({
 }: ExploreViewProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'cylinder' | 'connection'>('all')
-  const [cylinderTypes, setCylinderTypes] = useState<any[]>([])
-
-  useEffect(() => {
-    fetchCylinderTypes()
-      .then((data: any[]) => setCylinderTypes(data))
-      .catch(() => undefined)
-  }, [])
+  const { cylinderTypes, isLoading: catalogLoading, error: catalogError, reload: reloadCatalog } = useCylinderTypes()
 
   const products = cylinderTypes.map((c) => {
     const display = getCylinderDisplay(c.name, c.weight)
@@ -41,11 +35,14 @@ export function ExploreView({
     }
   })
 
+  const normalizedQuery = searchQuery.trim().toLowerCase()
   const filteredProducts = products.filter((p) => {
+    // An empty query matches everything; otherwise match name, display title or badge.
     const matchesSearch =
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (selectedCategory === 'cylinder' && p.category === 'cylinder') ||
-      searchQuery === ''
+      !normalizedQuery ||
+      p.name.toLowerCase().includes(normalizedQuery) ||
+      p.displayTitle.toLowerCase().includes(normalizedQuery) ||
+      p.displayBadge.toLowerCase().includes(normalizedQuery)
     const matchesCategory = selectedCategory === 'all' || p.category === selectedCategory
     return matchesSearch && matchesCategory
   })
@@ -190,11 +187,26 @@ export function ExploreView({
               </div>
             </div>
           ))}
-          {filteredProducts.length === 0 && (
+          {catalogLoading ? (
             <div className="no-products-found">
-              <p>No products match "{searchQuery}"</p>
+              <p>{CYLINDERS_LOADING_LABEL}</p>
             </div>
-          )}
+          ) : catalogError ? (
+            <div className="no-products-found">
+              <p>{catalogError}</p>
+              <button className="product-book-btn" type="button" onClick={reloadCatalog} style={{ marginTop: '8px' }}>
+                Retry
+              </button>
+            </div>
+          ) : products.length === 0 ? (
+            <div className="no-products-found">
+              <p>{CYLINDERS_EMPTY_LABEL}</p>
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="no-products-found">
+              <p>{normalizedQuery ? `No products match "${searchQuery.trim()}"` : 'No products available in this category yet.'}</p>
+            </div>
+          ) : null}
         </div>
       </div>
 

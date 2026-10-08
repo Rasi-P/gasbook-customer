@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react'
-import { createBooking, getApiErrorDetails, previewBookings, type BookingPreviewResponse, type BookingRecord, type CustomerProfile } from '../../lib/auth'
+import { useState } from 'react'
+import { createBooking, getApiErrorDetails, type BookingRecord, type CustomerProfile } from '../../lib/auth'
 import type { CartItem, ProfileUser } from '../../types'
-import { buildBookingPreviewPayload, createEmptyPreview, formatMoney, previewItemByCartId, previewUnitRates } from '../../lib/pricing'
+import { formatMoney, previewItemByCartId, previewUnitRates } from '../../lib/pricing'
 import { getCylinderImage } from '../../lib/formatters'
 import { EditProfileModal } from '../common/EditProfileModal'
+import { PricingErrorNotice } from '../common/PricingErrorNotice'
+import { usePricingPreview } from '../../hooks/usePricingPreview'
 
 interface DesktopCheckoutViewProps {
   cartItems: CartItem[]
@@ -31,37 +33,17 @@ export function DesktopCheckoutView({
   const [error, setError] = useState<string | null>(null)
   const [isEditingAddress, setIsEditingAddress] = useState(false)
 
-  const [pricingPreview, setPricingPreview] = useState<BookingPreviewResponse>(createEmptyPreview())
+  const { preview: pricingPreview, error: pricingError, isReady: pricingReady, reload: reloadPricing, displayAmount } = usePricingPreview(cartItems)
   const totalCount = cartItems.reduce((acc, item) => acc + item.quantity, 0)
-
-  useEffect(() => {
-    let ignore = false
-
-    if (cartItems.length === 0) {
-      setPricingPreview(createEmptyPreview())
-      return
-    }
-
-    previewBookings(buildBookingPreviewPayload(cartItems))
-      .then((data) => {
-        if (!ignore) setPricingPreview(data)
-      })
-      .catch(() => {
-        if (!ignore) setPricingPreview(createEmptyPreview())
-      })
-
-    return () => {
-      ignore = true
-    }
-  }, [cartItems])
 
   const customerName = customerProfile?.name?.trim() || customerProfile?.full_name?.trim() || 'Customer'
   const customerPhone = customerProfile?.phone?.trim() || ''
   const customerAddress = customerProfile?.address?.trim() || ''
   const hasValidAddress = Boolean(customerAddress)
+  const canConfirm = !submitting && hasValidAddress && pricingReady && cartItems.length > 0
 
   const handlePlaceOrder = async () => {
-    if (submitting) return
+    if (submitting || !canConfirm) return
     setSubmitting(true)
     setError(null)
 
@@ -191,15 +173,16 @@ export function DesktopCheckoutView({
                         </span>
                       </div>
                       {(() => {
-                        const rates = previewUnitRates(previewItemByCartId(pricingPreview, item.id), item.unitPrice)
+                        const lineItem = previewItemByCartId(pricingPreview, item.id)
+                        const rates = previewUnitRates(lineItem, item.unitPrice)
                         return (
                           <div style={{ fontSize: '12.5px', color: '#64748b' }}>
-                            {rates.hasDiscount && (
+                            {pricingReady && lineItem && rates.hasDiscount && (
                               <span style={{ color: '#94a3b8', textDecoration: 'line-through', marginRight: '6px' }}>
                                 {formatMoney(rates.original)}
                               </span>
                             )}
-                            {formatMoney(rates.effective)} × {item.quantity}
+                            {pricingReady && lineItem ? formatMoney(rates.effective) : displayAmount(undefined)} × {item.quantity}
                           </div>
                         )
                       })()}
@@ -218,7 +201,7 @@ export function DesktopCheckoutView({
                     </div>
 
                     <span style={{ fontSize: '16px', fontWeight: 800, color: '#1e293b', minWidth: '80px', textAlign: 'right' }}>
-                      {formatMoney(previewItemByCartId(pricingPreview, item.id)?.final_amount || item.unitPrice * item.quantity)}
+                      {displayAmount(previewItemByCartId(pricingPreview, item.id)?.final_amount)}
                     </span>
                   </div>
                 </div>
@@ -271,7 +254,7 @@ export function DesktopCheckoutView({
                   Cash on Delivery (COD)
                 </div>
                 <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#15803d' }}>
-                  Pay {formatMoney(pricingPreview.summary.final_amount)} in cash or UPI directly to your delivery agent at doorstep.
+                  Pay {displayAmount(pricingPreview?.summary.final_amount)} in cash or UPI directly to your delivery agent at doorstep.
                 </p>
               </div>
               <div
@@ -344,15 +327,17 @@ export function DesktopCheckoutView({
               Payment Details
             </h3>
 
+            {pricingError && <PricingErrorNotice message={pricingError} onRetry={reloadPricing} compact />}
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#64748b' }}>
                 <span>Original Amount ({totalCount} cylinders)</span>
-                <span style={{ fontWeight: 600, color: '#1e293b' }}>{formatMoney(pricingPreview.summary.original_amount)}</span>
+                <span style={{ fontWeight: 600, color: '#1e293b' }}>{displayAmount(pricingPreview?.summary.original_amount)}</span>
               </div>
-              {pricingPreview.summary.has_discount && (
+              {pricingPreview?.summary.has_discount && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#64748b' }}>
                   <span>Discount</span>
-                  <span style={{ fontWeight: 600, color: '#16a34a' }}>- {formatMoney(pricingPreview.summary.discount_amount)}</span>
+                  <span style={{ fontWeight: 600, color: '#16a34a' }}>- {displayAmount(pricingPreview.summary.discount_amount)}</span>
                 </div>
               )}
 
@@ -360,7 +345,7 @@ export function DesktopCheckoutView({
 
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontWeight: 800 }}>
                 <span style={{ color: '#1e293b' }}>Final Amount</span>
-                <span style={{ color: '#1052be' }}>{formatMoney(pricingPreview.summary.final_amount)}</span>
+                <span style={{ color: '#1052be' }}>{displayAmount(pricingPreview?.summary.final_amount)}</span>
               </div>
             </div>
 
@@ -372,7 +357,7 @@ export function DesktopCheckoutView({
 
             <button
               onClick={handlePlaceOrder}
-              disabled={submitting || !hasValidAddress}
+              disabled={!canConfirm}
               style={{
                 width: '100%',
                 background: '#ff7a00',
@@ -382,8 +367,8 @@ export function DesktopCheckoutView({
                 padding: '15px',
                 fontSize: '16px',
                 fontWeight: 800,
-                cursor: submitting || !hasValidAddress ? 'not-allowed' : 'pointer',
-                opacity: submitting || !hasValidAddress ? 0.6 : 1,
+                cursor: canConfirm ? 'pointer' : 'not-allowed',
+                opacity: canConfirm ? 1 : 0.6,
                 boxShadow: '0 6px 20px rgba(255, 122, 0, 0.35)',
                 display: 'flex',
                 alignItems: 'center',

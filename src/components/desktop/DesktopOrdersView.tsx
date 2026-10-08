@@ -4,6 +4,8 @@ import { usePaginatedQuery } from '../../hooks/usePaginatedQuery'
 import { fetchPaginatedOrderHistory } from '../../lib/api-queries'
 import { Pagination } from '../common/Pagination'
 import { getCylinderDisplay, getCylinderImage } from '../../lib/formatters'
+import { ACTIVE_STATUS_FILTER, CANCELLED_STATUS_FILTER, COMPLETED_STATUS_FILTER, getOrderStatusMeta } from '../../lib/orderStatus'
+import { buildOrderPrice } from '../../lib/pricing'
 import { DesktopRejectionModal } from './DesktopRejectionModal'
 
 interface DesktopOrdersViewProps {
@@ -37,11 +39,11 @@ export function DesktopOrdersView({
   const mapFilterToStatus = (filter: string) => {
     switch (filter) {
       case 'ongoing':
-        return 'pending,approved,accepted,out_for_delivery'
+        return ACTIVE_STATUS_FILTER
       case 'completed':
-        return 'delivered'
+        return COMPLETED_STATUS_FILTER
       case 'cancelled':
-        return 'cancelled,rejected'
+        return CANCELLED_STATUS_FILTER
       default:
         return ''
     }
@@ -61,40 +63,12 @@ export function DesktopOrdersView({
 
   const mappedOrders: OrderItem[] = rawOrders.map((b: any) => {
     const isDirectSale = b.history_source === 'sale'
-    let statusLabel = 'Order Placed'
-    let statusKind: 'ongoing' | 'completed' | 'cancelled' = 'ongoing'
-    let etaOrDate = 'Order Placed — Preparing for delivery'
-
-    if (isDirectSale) {
-      statusLabel = 'Sale Completed'
-      statusKind = 'completed'
-      etaOrDate = b.detail_message || 'Direct sale completed'
-    } else if (b.status === 'approved') {
-      statusLabel = 'Order Confirmed'
-      statusKind = 'ongoing'
-      etaOrDate = 'Order confirmed — awaiting dispatch'
-    } else if (b.status === 'accepted' || b.status === 'out_for_delivery') {
-      statusLabel = 'Out for Delivery'
-      statusKind = 'ongoing'
-      etaOrDate = `Out for delivery with ${b.assigned_staff_name || 'Delivery Partner'}`
-    } else if (b.status === 'delivered') {
-      statusLabel = 'Delivered'
-      statusKind = 'completed'
-      etaOrDate = 'Successfully delivered to your address'
-    } else if (b.status === 'cancelled') {
-      statusLabel = 'Cancelled'
-      statusKind = 'cancelled'
-      etaOrDate = 'Order was cancelled'
-    } else if (b.status === 'rejected') {
-      statusLabel = 'Rejected'
-      statusKind = 'cancelled'
-      etaOrDate = b.rejection_reason ? `Reason: ${b.rejection_reason}` : 'Order could not be fulfilled'
-    }
-
-    const finalPriceNum = isDirectSale
-      ? parseFloat(b.final_amount || b.total_amount || '0')
-      : parseFloat(b.rate || '0')
-    const finalPrice = finalPriceNum > 0 ? `₹${finalPriceNum.toLocaleString('en-IN')}` : 'Standard Rate'
+    const meta = getOrderStatusMeta(b.status, b)
+    const statusLabel = isDirectSale ? 'Sale Completed' : meta.label
+    const statusKind: 'ongoing' | 'completed' | 'cancelled' = isDirectSale ? 'completed' : meta.kind
+    const etaOrDate = isDirectSale ? b.detail_message || 'Direct sale completed' : meta.description
+    // Always the discounted total (final_amount), never the pre-discount unit rate.
+    const pricing = buildOrderPrice(b)
 
     const display =
       b.display_name && b.display_badge
@@ -111,7 +85,8 @@ export function DesktopOrdersView({
       }),
       productName: display.title,
       weight: display.badge,
-      price: finalPrice,
+      price: pricing.price,
+      originalPrice: pricing.originalPrice,
       status: statusKind,
       statusCode: b.status,
       statusLabel,
@@ -261,6 +236,9 @@ export function DesktopOrdersView({
                       </span>
                       <span style={{ fontSize: '12px', color: '#64748b' }}>Qty: {order.rawBooking?.quantity || 1}</span>
                     </div>
+                    {order.originalPrice && (
+                      <div style={{ color: '#94a3b8', textDecoration: 'line-through', fontSize: '12px' }}>{order.originalPrice}</div>
+                    )}
                     <div className="desktop-order-price">{order.price}</div>
                   </div>
                 </div>

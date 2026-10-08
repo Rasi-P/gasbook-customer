@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import type { OrderItem } from '../../types'
 import type { CustomerProfile } from '../../lib/auth'
-import { fetchCylinderTypes } from '../../lib/auth'
 import { getCylinderDisplay, getCylinderImage } from '../../lib/formatters'
+import { CYLINDERS_EMPTY_LABEL, CYLINDERS_LOADING_LABEL, useCylinderTypes } from '../../hooks/useCylinderTypes'
 import heroBg from '../../assets/hero_bg.png'
 
 interface DesktopHomeViewProps {
@@ -26,17 +26,11 @@ export function DesktopHomeView({
   onTrackOrder,
   onBook,
 }: DesktopHomeViewProps) {
-  const [cylinderTypes, setCylinderTypes] = useState<any[]>([])
+  const { cylinderTypes, isLoading: catalogLoading, error: catalogError, reload: reloadCatalog } = useCylinderTypes()
   const [copiedCoupon, setCopiedCoupon] = useState(false)
 
   const greetingName = getGreetingName(customerProfile)
   const hasActiveOrder = Boolean(latestActiveOrder)
-
-  useEffect(() => {
-    fetchCylinderTypes()
-      .then((data: any[]) => setCylinderTypes(data))
-      .catch(() => undefined)
-  }, [])
 
   const popularCylinders = cylinderTypes.slice(0, 4).map((c) => {
     const display = getCylinderDisplay(c.name, c.weight)
@@ -320,6 +314,43 @@ export function DesktopHomeView({
             </svg>
           </button>
         </div>
+
+        {(catalogLoading || catalogError || popularCylinders.length === 0) && (
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '28px 24px',
+              marginBottom: '16px',
+              color: '#64748b',
+              fontSize: '14px',
+              background: '#ffffff',
+              borderRadius: '20px',
+              border: '1px dashed #e2e8f0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '14px',
+              flexWrap: 'wrap',
+            }}
+          >
+            {catalogLoading ? (
+              <span>{CYLINDERS_LOADING_LABEL}</span>
+            ) : catalogError ? (
+              <>
+                <span style={{ color: '#dc2626', fontWeight: 600 }}>{catalogError}</span>
+                <button
+                  type="button"
+                  onClick={reloadCatalog}
+                  style={{ background: '#1052be', color: '#ffffff', border: 'none', padding: '8px 18px', borderRadius: '10px', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  Retry
+                </button>
+              </>
+            ) : (
+              <span>{CYLINDERS_EMPTY_LABEL}</span>
+            )}
+          </div>
+        )}
 
         <div className="desktop-cylinder-grid">
           {popularCylinders.map((prod) => (

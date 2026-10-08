@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { fetchBookingById } from '../../lib/auth'
 import { getCylinderDisplay, getCylinderImage } from '../../lib/formatters'
+import { getOrderStatusMeta } from '../../lib/orderStatus'
+import { buildOrderPrice } from '../../lib/pricing'
 
 interface DesktopTrackOrderViewProps {
   bookingId: number
@@ -110,11 +112,11 @@ export function DesktopTrackOrderView({ bookingId, onBack }: DesktopTrackOrderVi
       },
     ]
 
-    let currentIndex = 0
-    if (code === 'pending') currentIndex = 0
-    else if (code === 'approved') currentIndex = 1
-    else if (code === 'accepted' || code === 'out_for_delivery') currentIndex = 2
-    else if (code === 'delivered') currentIndex = 3
+    const meta = getOrderStatusMeta(code, bookingData)
+    // `accepted` stays on the confirmed step: the partner has accepted but not started the delivery.
+    const currentIndex: number = meta.timelineIndex
+    if (code === 'accepted') steps[1].subtitle = meta.description
+    if (code === 'pending' && bookingData?.needs_reassignment) steps[1].subtitle = meta.description
 
     return steps.map((step, idx) => ({
       ...step,
@@ -124,24 +126,11 @@ export function DesktopTrackOrderView({ bookingId, onBack }: DesktopTrackOrderVi
   }
 
   const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'Order Placed'
-      case 'approved':
-        return 'Order Confirmed'
-      case 'accepted':
-      case 'out_for_delivery':
-        return 'Out for Delivery'
-      case 'delivered':
-        return 'Delivered'
-      case 'rejected':
-        return 'Order Rejected'
-      case 'cancelled':
-        return 'Cancelled'
-      default:
-        return 'Processing'
-    }
+    if (status === 'rejected') return 'Order Rejected'
+    return getOrderStatusMeta(status, booking).label
   }
+
+  const pricing = booking ? buildOrderPrice(booking, '—') : null
 
   return (
     <div className="desktop-container">
@@ -244,11 +233,22 @@ export function DesktopTrackOrderView({ bookingId, onBack }: DesktopTrackOrderVi
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <span style={{ fontSize: '12px', color: '#94a3b8', display: 'block' }}>Total Amount</span>
+                  {pricing?.originalPrice && (
+                    <span style={{ fontSize: '13px', color: '#94a3b8', textDecoration: 'line-through', display: 'block' }}>
+                      {pricing.originalPrice}
+                    </span>
+                  )}
                   <span style={{ fontSize: '18px', fontWeight: 800, color: '#1e293b' }}>
-                    ₹{booking.total_amount || 0}
+                    {pricing?.price}
                   </span>
                 </div>
               </div>
+              {pricing?.hasDiscount && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#16a34a', fontWeight: 600, margin: '-8px 0 20px' }}>
+                  <span>Discount Applied</span>
+                  <span>- ₹{booking.discount_amount}</span>
+                </div>
+              )}
 
               {/* Delivery Address */}
               <div style={{ fontSize: '13.5px', color: '#475569', lineHeight: 1.5 }}>

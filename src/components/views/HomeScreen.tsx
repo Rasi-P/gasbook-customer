@@ -1,6 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { type BookingRecord, type CustomerProfile } from '../../lib/auth'
 import type { ActiveTab, CartItem, OrderItem, ProfileUser } from '../../types'
+import { ACTIVE_STATUS_FILTER, getOrderStatusMeta } from '../../lib/orderStatus'
+import { buildOrderPrice } from '../../lib/pricing'
+import { currentNavState, hydrateHomeState, readNavState, saveHomeState, writeTabHistory, type NavState } from '../../lib/uiState'
 import { BottomNavigation } from '../layout/BottomNavigation'
 import { CartView } from './CartView'
 import { CheckoutView } from './CheckoutView'
@@ -39,52 +42,99 @@ function formatMemberSince(dateValue: string | undefined) {
 }
 
 interface HomeScreenProps {
+  /** Signed-in user id; keys the per-user sessionStorage snapshot. */
+  userId: number
   onLogout?: () => void
   customerProfile: CustomerProfile | null
   onProfileUpdated?: () => void
 }
 
-export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: HomeScreenProps) {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('home')
-  const [cartItems, setCartItems] = useState<CartItem[]>([])
-  const [lastCreatedBookings, setLastCreatedBookings] = useState<BookingRecord[]>([])
+interface NavigateOptions {
+  trackingBookingId?: number | null
+  previousTab?: ActiveTab
+  /** Replace the current history entry instead of pushing a new one (programmatic redirects). */
+  replace?: boolean
+}
+
+export function HomeScreen({ userId, onLogout, customerProfile, onProfileUpdated }: HomeScreenProps) {
+  // Hydrate from the URL hash + sessionStorage so a reload restores the tab, cart and tracked order.
+  const [initialState] = useState(() => hydrateHomeState(userId))
+  const [activeTab, setActiveTab] = useState<ActiveTab>(initialState.activeTab)
+  const [cartItems, setCartItems] = useState<CartItem[]>(initialState.cartItems)
+  const [lastCreatedBookings, setLastCreatedBookings] = useState<BookingRecord[]>(initialState.lastCreatedBookings)
   const [realOrders, setRealOrders] = useState<OrderItem[]>([])
-  const [trackingBookingId, setTrackingBookingId] = useState<number | null>(null)
-  const [previousTab, setPreviousTab] = useState<ActiveTab>('home')
+  const [trackingBookingId, setTrackingBookingId] = useState<number | null>(initialState.trackingBookingId)
+  const [previousTab, setPreviousTab] = useState<ActiveTab>(initialState.previousTab)
+
+  // Persist UI state per user (cleared on logout by lib/auth logout()).
+  useEffect(() => {
+    saveHomeState(userId, { cartItems, activeTab, previousTab, trackingBookingId, lastCreatedBookings })
+  }, [userId, cartItems, activeTab, previousTab, trackingBookingId, lastCreatedBookings])
+
+  // Make the current entry describe the restored tab (idempotent under StrictMode), then
+  // let browser Back / Forward move between tabs via popstate.
+  useEffect(() => {
+    writeTabHistory(
+      { gasbookTab: initialState.activeTab, trackingBookingId: initialState.trackingBookingId, previousTab: initialState.previousTab, userId },
+      true,
+    )
+
+    const handlePopState = (event: PopStateEvent) => {
+      const state = readNavState(event.state)
+      if (state && state.userId === userId) {
+        setActiveTab(state.gasbookTab === 'track-order' && state.trackingBookingId === null ? 'home' : state.gasbookTab)
+        setTrackingBookingId(state.trackingBookingId)
+        setPreviousTab(state.previousTab)
+      } else {
+        // Unknown entry, or one left behind by a previous user in this tab: normalise it to Home.
+        setActiveTab('home')
+        setTrackingBookingId(null)
+        setPreviousTab('home')
+        writeTabHistory({ gasbookTab: 'home', trackingBookingId: null, previousTab: 'home', userId }, true)
+      }
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [initialState, userId])
+
+  const navigateTo = useCallback(
+    (tab: ActiveTab, options: NavigateOptions = {}) => {
+      const nextTracking = options.trackingBookingId !== undefined ? options.trackingBookingId : trackingBookingId
+      const nextPrevious = options.previousTab ?? previousTab
+
+      setTrackingBookingId(nextTracking)
+      setPreviousTab(nextPrevious)
+      setActiveTab(tab)
+
+      const state: NavState = { gasbookTab: tab, trackingBookingId: nextTracking, previousTab: nextPrevious, userId }
+      writeTabHistory(state, Boolean(options.replace) || (tab === activeTab && nextTracking === trackingBookingId))
+    },
+    [activeTab, previousTab, trackingBookingId, userId],
+  )
+
+  const openTrackOrder = (id: number, from: ActiveTab) => {
+    navigateTo('track-order', { trackingBookingId: id, previousTab: from })
+  }
+
+  const closeTrackOrder = () => {
+    const state = currentNavState()
+    if (state?.pushed && state.gasbookTab === 'track-order') {
+      window.history.back()
+      return
+    }
+    navigateTo(previousTab, { trackingBookingId: null })
+  }
 
   const fetchActiveOrder = async () => {
     try {
       // Fetch just the ongoing orders for the Home active order card
-      const response = await fetchPaginatedBookings({ status: 'pending,approved,accepted,out_for_delivery', page: 1 })
+      const response = await fetchPaginatedBookings({ status: ACTIVE_STATUS_FILTER, page: 1 })
       const items = response.results
       const mapped: OrderItem[] = items.map((b: any) => {
-        let statusLabel = 'Order Placed'
-        let statusKind: 'ongoing' | 'completed' | 'cancelled' = 'ongoing'
-        let etaOrDate = 'Order Placed — Preparing for delivery'
-
-        if (b.status === 'approved') {
-          statusLabel = 'Order Confirmed'
-          statusKind = 'ongoing'
-          etaOrDate = 'Order confirmed — awaiting dispatch'
-        } else if (b.status === 'accepted' || b.status === 'out_for_delivery') {
-          statusLabel = 'Out for Delivery'
-          statusKind = 'ongoing'
-          etaOrDate = `Out for delivery with ${b.assigned_staff_name || 'Delivery Staff'}`
-        } else if (b.status === 'delivered') {
-          statusLabel = 'Delivered'
-          statusKind = 'completed'
-          etaOrDate = `Delivered on ${new Date(b.delivered_at || b.updated_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}`
-        } else if (b.status === 'cancelled' || b.status === 'rejected') {
-          statusLabel = b.status === 'rejected' ? 'Rejected' : 'Cancelled'
-          statusKind = 'cancelled'
-          if (b.status === 'rejected') {
-            etaOrDate = b.rejection_reason ? `Rejected: ${b.rejection_reason}` : 'Order rejected by administration'
-          } else {
-            etaOrDate = 'Order cancelled'
-          }
-        }
-
+        const meta = getOrderStatusMeta(b.status, b)
         const display = getCylinderDisplay(b.cylinder_type_name, b.cylinder_type_weight)
+        const pricing = buildOrderPrice(b)
 
         return {
           id: `ord-${b.id}`,
@@ -92,13 +142,13 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
           date: b.created_at ? new Date(b.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Today',
           productName: display.title,
           weight: display.badge,
-          price: `₹${Number(b.final_amount || b.total_amount || floatRate(b) * b.quantity).toLocaleString('en-IN')}`,
-          originalPrice: Number(b.discount_amount || 0) > 0 ? `₹${Number(b.original_amount || floatRate(b) * b.quantity).toLocaleString('en-IN')}` : undefined,
-          status: statusKind,
+          price: pricing.price,
+          originalPrice: pricing.originalPrice,
+          status: meta.kind,
           statusCode: b.status,
-          statusLabel: statusLabel,
-          etaOrDate: etaOrDate,
-          actionLabel: (b.status === 'rejected' || b.status === 'cancelled') ? 'View Details' : (b.status === 'delivered' ? 'Order Again' : 'Track Order'),
+          statusLabel: meta.label,
+          etaOrDate: meta.description,
+          actionLabel: meta.kind === 'cancelled' ? 'View Details' : (meta.kind === 'completed' ? 'Order Again' : 'Track Order'),
           rawBooking: b,
           rejectionReason: b.rejection_reason,
         }
@@ -109,20 +159,20 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
     }
   }
 
-  function floatRate(b: any) {
-    return parseFloat(b.rate || '0')
-  }
-
   useEffect(() => {
     void fetchActiveOrder()
   }, [activeTab])
 
-  // Safety guard: if cart is empty but we are on checkout, redirect to explore
+  // Safety guards: never leave the user on a tab that would render blank.
   useEffect(() => {
     if (activeTab === 'checkout' && cartItems.length === 0) {
-      setActiveTab('explore')
+      navigateTo('explore', { replace: true })
+    } else if (activeTab === 'order-success' && lastCreatedBookings.length === 0) {
+      navigateTo('home', { replace: true })
+    } else if (activeTab === 'track-order' && trackingBookingId === null) {
+      navigateTo(previousTab === 'track-order' ? 'home' : previousTab, { replace: true })
     }
-  }, [activeTab, cartItems])
+  }, [activeTab, cartItems, lastCreatedBookings, trackingBookingId, previousTab, navigateTo])
 
   const profileUser: ProfileUser = {
     profileId: customerProfile?.id,
@@ -173,20 +223,20 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
         },
       ]
     })
-    setActiveTab('cart')
+    navigateTo('cart')
   }
 
   // Removed old handleOrderAgain, OrdersView will call handleBook directly
 
   const handleNavigateToCart = () => {
     // Actually, "Cart" is deprecated in this flow. We'll map this back to home if called
-    setActiveTab('home')
+    navigateTo('home')
   }
 
   const handleOrderCreated = (bookings: BookingRecord[]) => {
     setCartItems([]) // Clear cart only after checkout order creation succeeds
     setLastCreatedBookings(bookings)
-    setActiveTab('order-success')
+    navigateTo('order-success')
     void fetchActiveOrder()
   }
 
@@ -205,25 +255,17 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
           )}
           {activeTab === 'home' && (
             <HomeView
-              onNavigateToExplore={() => setActiveTab('explore')}
+              onNavigateToExplore={() => navigateTo('explore')}
               customerProfile={customerProfile}
               latestActiveOrder={realOrders[0]}
-              onViewOrders={() => setActiveTab('orders')}
-              onTrackOrder={(id: number) => {
-                setTrackingBookingId(id)
-                setPreviousTab(activeTab)
-                setActiveTab('track-order')
-              }}
+              onViewOrders={() => navigateTo('orders')}
+              onTrackOrder={(id: number) => openTrackOrder(id, activeTab)}
             />
           )}
           {activeTab === 'orders' && (
             <OrdersView
-              onNavigateToExplore={() => setActiveTab('explore')}
-              onTrackOrder={(id: number) => {
-                setTrackingBookingId(id)
-                setPreviousTab(activeTab)
-                setActiveTab('track-order')
-              }}
+              onNavigateToExplore={() => navigateTo('explore')}
+              onTrackOrder={(id: number) => openTrackOrder(id, activeTab)}
               onOrderAgain={handleBook}
             />
           )}
@@ -232,8 +274,8 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
               cartItems={cartItems}
               onUpdateQuantity={handleUpdateQuantity}
               onRemoveItem={handleRemoveItem}
-              onNavigateToExplore={() => setActiveTab('explore')}
-              onProceedToCheckout={() => setActiveTab('checkout')}
+              onNavigateToExplore={() => navigateTo('explore')}
+              onProceedToCheckout={() => navigateTo('checkout')}
               customerProfile={customerProfile}
               profileUser={profileUser}
               onProfileUpdated={onProfileUpdated}
@@ -247,21 +289,17 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
               onUpdateQuantity={handleUpdateQuantity}
               onRemoveItem={handleRemoveItem}
               onProfileUpdated={onProfileUpdated}
-              onNavigateToExplore={() => setActiveTab('explore')}
-              onBackToCart={() => setActiveTab('cart')}
+              onNavigateToExplore={() => navigateTo('explore')}
+              onBackToCart={() => navigateTo('cart')}
               onOrderCreated={handleOrderCreated}
             />
           )}
           {activeTab === 'order-success' && lastCreatedBookings.length > 0 && (
             <OrderSuccessView
               orders={lastCreatedBookings}
-              onViewOrders={() => setActiveTab('orders')}
-              onTrackOrder={(id) => {
-                setTrackingBookingId(id)
-                setPreviousTab('home')
-                setActiveTab('track-order')
-              }}
-              onBackToHome={() => setActiveTab('home')}
+              onViewOrders={() => navigateTo('orders')}
+              onTrackOrder={(id) => openTrackOrder(id, 'home')}
+              onBackToHome={() => navigateTo('home')}
             />
           )}
           {activeTab === 'profile' && (
@@ -283,7 +321,7 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
             <BottomNavigation
               activeTab={activeTab === 'explore' ? 'home' : activeTab}
               cartCount={cartCount}
-              setActiveTab={setActiveTab}
+              setActiveTab={navigateTo}
             />
           )}
 
@@ -291,10 +329,7 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
           {activeTab === 'track-order' && trackingBookingId !== null && (
             <TrackOrderView
               bookingId={trackingBookingId}
-              onBack={() => {
-                setTrackingBookingId(null)
-                setActiveTab(previousTab)
-              }}
+              onBack={closeTrackOrder}
             />
           )}
         </div>
@@ -304,7 +339,7 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
       <div className="desktop-view-wrapper">
         <DesktopHeader
           activeTab={activeTab}
-          setActiveTab={setActiveTab}
+          setActiveTab={navigateTo}
           customerProfile={customerProfile}
           cartCount={cartCount}
           onLogout={onLogout}
@@ -313,15 +348,11 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
         <main style={{ flex: 1 }}>
           {activeTab === 'home' && (
             <DesktopHomeView
-              onNavigateToExplore={() => setActiveTab('explore')}
+              onNavigateToExplore={() => navigateTo('explore')}
               customerProfile={customerProfile}
               latestActiveOrder={realOrders[0]}
-              onViewOrders={() => setActiveTab('orders')}
-              onTrackOrder={(id: number) => {
-                setTrackingBookingId(id)
-                setPreviousTab('home')
-                setActiveTab('track-order')
-              }}
+              onViewOrders={() => navigateTo('orders')}
+              onTrackOrder={(id: number) => openTrackOrder(id, 'home')}
               onBook={handleBook}
             />
           )}
@@ -329,18 +360,14 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
           {activeTab === 'explore' && (
             <DesktopExploreView
               onBook={handleBook}
-              onNavigateToCart={() => setActiveTab('cart')}
+              onNavigateToCart={() => navigateTo('cart')}
             />
           )}
 
           {activeTab === 'orders' && (
             <DesktopOrdersView
-              onNavigateToExplore={() => setActiveTab('explore')}
-              onTrackOrder={(id: number) => {
-                setTrackingBookingId(id)
-                setPreviousTab('orders')
-                setActiveTab('track-order')
-              }}
+              onNavigateToExplore={() => navigateTo('explore')}
+              onTrackOrder={(id: number) => openTrackOrder(id, 'orders')}
               onOrderAgain={handleBook}
             />
           )}
@@ -350,8 +377,8 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
               cartItems={cartItems}
               onUpdateQuantity={handleUpdateQuantity}
               onRemoveItem={handleRemoveItem}
-              onNavigateToExplore={() => setActiveTab('explore')}
-              onProceedToCheckout={() => setActiveTab('checkout')}
+              onNavigateToExplore={() => navigateTo('explore')}
+              onProceedToCheckout={() => navigateTo('checkout')}
               customerProfile={customerProfile}
               profileUser={profileUser}
               onProfileUpdated={onProfileUpdated}
@@ -366,8 +393,8 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
               onUpdateQuantity={handleUpdateQuantity}
               onRemoveItem={handleRemoveItem}
               onProfileUpdated={onProfileUpdated}
-              onNavigateToExplore={() => setActiveTab('explore')}
-              onBackToCart={() => setActiveTab('cart')}
+              onNavigateToExplore={() => navigateTo('explore')}
+              onBackToCart={() => navigateTo('cart')}
               onOrderCreated={handleOrderCreated}
             />
           )}
@@ -375,13 +402,9 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
           {activeTab === 'order-success' && lastCreatedBookings.length > 0 && (
             <DesktopOrderSuccessView
               orders={lastCreatedBookings}
-              onViewOrders={() => setActiveTab('orders')}
-              onTrackOrder={(id) => {
-                setTrackingBookingId(id)
-                setPreviousTab('home')
-                setActiveTab('track-order')
-              }}
-              onBackToHome={() => setActiveTab('home')}
+              onViewOrders={() => navigateTo('orders')}
+              onTrackOrder={(id) => openTrackOrder(id, 'home')}
+              onBackToHome={() => navigateTo('home')}
             />
           )}
 
@@ -402,10 +425,7 @@ export function HomeScreen({ onLogout, customerProfile, onProfileUpdated }: Home
           {activeTab === 'track-order' && trackingBookingId !== null && (
             <DesktopTrackOrderView
               bookingId={trackingBookingId}
-              onBack={() => {
-                setTrackingBookingId(null)
-                setActiveTab(previousTab)
-              }}
+              onBack={closeTrackOrder}
             />
           )}
         </main>

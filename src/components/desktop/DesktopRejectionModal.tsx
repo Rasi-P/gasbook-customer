@@ -111,7 +111,13 @@ export function DesktopRejectionModal({
           <img src={getCylinderImage(order.productName, order.weight)} alt="" style={{ height: '40px', objectFit: 'contain' }} />
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 700, fontSize: '14px', color: '#1e293b' }}>{order.productName}</div>
-            <div style={{ fontSize: '12px', color: '#64748b' }}>{order.weight} • {order.price}</div>
+            <div style={{ fontSize: '12px', color: '#64748b' }}>
+              {order.weight} •{' '}
+              {order.originalPrice && (
+                <span style={{ color: '#94a3b8', textDecoration: 'line-through', marginRight: '4px' }}>{order.originalPrice}</span>
+              )}
+              {order.price}
+            </div>
           </div>
           <span
             style={{
