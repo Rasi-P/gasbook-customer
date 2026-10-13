@@ -1,12 +1,13 @@
+import { mapHistoryOrder } from '../../lib/orderHistory'
+import { OrderHistoryEvents } from '../common/OrderHistoryEvents'
+import { formatDateTime } from '../../lib/dateTime'
 import { useState, useEffect } from 'react'
-import type { OrderItem } from '../../types'
 import { markNotificationRead } from '../../lib/auth'
 import { usePaginatedQuery } from '../../hooks/usePaginatedQuery'
 import { fetchPaginatedNotifications, fetchPaginatedOrderHistory } from '../../lib/api-queries'
 import { Pagination } from '../common/Pagination'
-import { getCylinderDisplay, getCylinderImage } from '../../lib/formatters'
-import { ACTIVE_STATUS_FILTER, CANCELLED_STATUS_FILTER, COMPLETED_STATUS_FILTER, getOrderStatusMeta } from '../../lib/orderStatus'
-import { buildOrderPrice } from '../../lib/pricing'
+import { getCylinderImage } from '../../lib/formatters'
+import { ACTIVE_STATUS_FILTER, CANCELLED_STATUS_FILTER, COMPLETED_STATUS_FILTER } from '../../lib/orderStatus'
 
 interface OrdersViewProps {
   onNavigateToExplore: () => void
@@ -89,43 +90,7 @@ export function OrdersView({
   }
 
   // Map raw backend bookings to UI OrderItem format
-  const mappedOrders: OrderItem[] = rawOrders.map((b: any) => {
-    const isDirectSale = b.history_source === 'sale'
-    // A direct sale the shop cancelled comes back with status "cancelled".
-    const isCancelledSale = isDirectSale && b.status === 'cancelled'
-    const meta = getOrderStatusMeta(b.status, b)
-    const statusLabel = isCancelledSale ? 'Cancelled' : isDirectSale ? 'Sale Completed' : meta.label
-    const statusKind: 'ongoing' | 'completed' | 'cancelled' = isCancelledSale ? 'cancelled' : isDirectSale ? 'completed' : meta.kind
-    const etaOrDate = isDirectSale
-      ? b.detail_message || (isCancelledSale ? 'Direct sale cancelled' : 'Direct sale completed')
-      : meta.description
-    const pricing = buildOrderPrice(b)
-
-    const display =
-      b.display_name && b.display_badge
-        ? { title: b.display_name, badge: b.display_badge }
-        : getCylinderDisplay(b.cylinder_type_name, b.cylinder_type_weight)
-
-    return {
-      id: `${b.history_source || 'booking'}-${b.id}`,
-      orderNumber: b.display_reference || `Order #${b.order_id}`,
-      date: new Date(b.created_at).toLocaleDateString('en-IN', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      }),
-      productName: display.title,
-      weight: display.badge,
-      price: pricing.price,
-      originalPrice: pricing.originalPrice,
-      status: statusKind,
-      statusCode: b.status,
-      statusLabel,
-      actionLabel: isDirectSale ? 'Order Again' : 'Track Order',
-      etaOrDate,
-      rawBooking: b,
-    }
-  })
+  const mappedOrders = rawOrders.map(mapHistoryOrder)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#F8FAFC', paddingBottom: '68px', boxSizing: 'border-box', position: 'relative' }}>
@@ -198,6 +163,7 @@ export function OrdersView({
                 <span className="order-card-date">{order.date}</span>
               </div>
 
+              <OrderHistoryEvents order={order.rawBooking} />
               <div className="order-card-main">
                 <div className="order-cylinder-wrap">
                   <img src={getCylinderImage(order.productName, order.weight)} className="order-cylinder-img" alt={order.productName} />
@@ -315,7 +281,7 @@ export function OrdersView({
                 <div key={n.id} onClick={() => void handleMarkRead(n.id)} style={{ padding: 12, borderRadius: 8, background: n.is_read ? '#f8fafc' : '#eff6ff', border: n.is_read ? '1px solid #e2e8f0' : '1px solid #bfdbfe', cursor: 'pointer' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                     <strong style={{ fontSize: 14, color: '#1e293b' }}>{n.title}</strong>
-                    <small style={{ fontSize: 11, color: '#94a3b8' }}>{new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
+                    <small style={{ fontSize: 11, color: '#94a3b8' }}>{formatDateTime(n.created_at)}</small>
                   </div>
                   <p style={{ fontSize: 13, color: '#475569', margin: 0 }}>{n.body}</p>
                 </div>
@@ -356,9 +322,7 @@ export function OrdersView({
               </div>
               <div>
                 <div style={{ fontSize: '13px', color: '#94a3b8' }}>
-                  {selectedRejectionOrder.rawBooking.rejected_at ? new Date(selectedRejectionOrder.rawBooking.rejected_at).toLocaleString('en-IN', {
-                    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-                  }) : selectedRejectionOrder.date}
+                  {formatDateTime(selectedRejectionOrder.rawBooking.rejected_at)}
                 </div>
               </div>
             </div>

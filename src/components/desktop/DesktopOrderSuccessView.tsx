@@ -1,3 +1,4 @@
+import { formatDateTime } from '../../lib/dateTime'
 import { useState } from 'react'
 import type { BookingRecord } from '../../lib/auth'
 import { formatMoney } from '../../lib/pricing'
@@ -84,7 +85,7 @@ export function DesktopOrderSuccessView({
               {orders.length > 1 ? 'Booking Identifiers' : 'Booking Number'}
             </span>
             <div style={{ fontSize: '17px', fontWeight: 800, color: '#1052be', marginTop: '2px' }}>
-              {orders.map((o) => `#${o.order_id}`).join(', ')}
+              {orders.map(o => <div key={o.id}>#{o.order_id}<span className="order-event-times">Booked {formatDateTime(o.created_at)}</span></div>)}
             </div>
           </div>
 

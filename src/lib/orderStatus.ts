@@ -1,3 +1,5 @@
+import { formatDateTime } from './dateTime'
+
 export const BOOKING_STATUSES = [
   'pending',
   'approved',
@@ -44,15 +46,7 @@ export function isBookingStatus(value: unknown): value is BookingStatus {
 }
 
 function formatDeliveredOn(booking?: OrderStatusSource | null) {
-  const raw = booking?.delivered_at || booking?.updated_at
-  if (!raw) {
-    return 'Successfully delivered'
-  }
-  const parsed = new Date(raw)
-  if (Number.isNaN(parsed.getTime())) {
-    return 'Successfully delivered'
-  }
-  return `Delivered on ${parsed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}`
+  return `Delivered on ${formatDateTime(booking?.delivered_at)}`
 }
 
 /**

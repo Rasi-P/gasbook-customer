@@ -97,6 +97,7 @@ export function DesktopHomeView({
                   <h3 style={{ margin: '2px 0 0', fontSize: '18px', fontWeight: 800, color: '#1e293b' }}>
                     {latestActiveOrder.orderNumber}
                   </h3>
+                  <div className="order-event-times">Booked {latestActiveOrder.date}</div>
                 </div>
                 <span
                   style={{

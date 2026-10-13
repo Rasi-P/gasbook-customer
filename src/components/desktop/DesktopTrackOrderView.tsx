@@ -1,3 +1,4 @@
+import { formatDateTime } from '../../lib/dateTime'
 import { useState, useEffect } from 'react'
 import { fetchBookingById } from '../../lib/auth'
 import { getCylinderDisplay, getCylinderImage } from '../../lib/formatters'
@@ -45,22 +46,14 @@ export function DesktopTrackOrderView({ bookingId, onBack }: DesktopTrackOrderVi
           title: 'Order Placed',
           isDone: true,
           isCurrent: false,
-          subtitle: bookingData?.created_at
-            ? new Date(bookingData.created_at).toLocaleString('en-IN', {
-                weekday: 'short',
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              })
-            : 'Order received',
+          subtitle: formatDateTime(bookingData?.created_at),
         },
         {
           key: 'terminated',
           title: code === 'rejected' ? 'Order Rejected' : 'Cancelled',
           isDone: true,
           isCurrent: true,
-          subtitle: bookingData?.rejection_reason || 'Order was cancelled.',
+          subtitle: `${bookingData?.rejection_reason || 'Order was cancelled.'} · ${formatDateTime(bookingData?.rejected_at)}`,
         },
       ]
     }
@@ -69,27 +62,13 @@ export function DesktopTrackOrderView({ bookingId, onBack }: DesktopTrackOrderVi
       {
         key: 'placed',
         title: 'Order Placed',
-        subtitle: bookingData?.created_at
-          ? new Date(bookingData.created_at).toLocaleString('en-IN', {
-              weekday: 'short',
-              month: 'short',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            })
-          : 'Your order has been recorded in the system.',
+        subtitle: formatDateTime(bookingData?.created_at),
       },
       {
         key: 'confirmed',
         title: 'Order Confirmed',
         subtitle: bookingData?.approved_at
-          ? new Date(bookingData.approved_at).toLocaleString('en-IN', {
-              weekday: 'short',
-              month: 'short',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            })
+          ? formatDateTime(bookingData.approved_at)
           : 'Awaiting distributor confirmation.',
       },
       {
@@ -100,15 +79,7 @@ export function DesktopTrackOrderView({ bookingId, onBack }: DesktopTrackOrderVi
       {
         key: 'delivered',
         title: 'Delivered',
-        subtitle: bookingData?.delivered_at
-          ? new Date(bookingData.delivered_at).toLocaleString('en-IN', {
-              weekday: 'short',
-              month: 'short',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            })
-          : 'Handover complete at your address.',
+        subtitle: formatDateTime(bookingData?.delivered_at),
       },
     ]
 

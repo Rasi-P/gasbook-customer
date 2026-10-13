@@ -1,3 +1,4 @@
+import { formatDateTime } from '../../lib/dateTime'
 import { useEffect, useRef } from 'react'
 import type { NotificationItem } from '../../lib/auth'
 
@@ -116,7 +117,7 @@ export function DesktopNotificationsPopover({
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                 <strong style={{ fontSize: '13px', color: '#1e293b' }}>{n.title}</strong>
                 <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-                  {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {formatDateTime(n.created_at)}
                 </span>
               </div>
               <p style={{ fontSize: '12.5px', color: '#475569', margin: 0, lineHeight: 1.4 }}>

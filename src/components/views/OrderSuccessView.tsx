@@ -1,3 +1,4 @@
+import { formatDateTime } from '../../lib/dateTime'
 import type { BookingRecord } from '../../lib/auth'
 import { formatMoney } from '../../lib/pricing'
 
@@ -121,7 +122,7 @@ export function OrderSuccessView({ orders, onViewOrders, onTrackOrder, onBackToH
               {orders.length > 1 ? 'Booking ID(s)' : 'Booking ID'}
             </div>
             <div style={{ color: '#1E293B', fontWeight: 600 }}>
-              {orders.map(o => `#${o.order_id}`).join(', ')}
+              {orders.map(o => <div key={o.id}>#{o.order_id}<span className="order-event-times">Booked {formatDateTime(o.created_at)}</span></div>)}
             </div>
           </div>
           <button onClick={handleCopyIds} style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer', padding: '8px' }}>

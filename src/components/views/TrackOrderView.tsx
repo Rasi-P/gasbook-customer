@@ -1,3 +1,4 @@
+import { formatDateTime } from '../../lib/dateTime'
 import { useState, useEffect } from 'react'
 import { fetchBookingById } from '../../lib/auth'
 import { getCylinderDisplay } from '../../lib/formatters'
@@ -44,21 +45,21 @@ export function TrackOrderView({ bookingId, onBack }: TrackOrderViewProps) {
           title: 'Order Placed', 
           isDone: true, 
           isCurrent: false,
-          subtitle: bookingData?.created_at ? new Date(bookingData.created_at).toLocaleString('en-IN', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Order successfully placed.'
+          subtitle: formatDateTime(bookingData?.created_at)
         },
         { 
           key: 'terminated', 
           title: code === 'rejected' ? 'Order Rejected' : 'Cancelled', 
           isDone: true, 
           isCurrent: true,
-          subtitle: bookingData?.rejection_reason || 'Order was cancelled.'
+          subtitle: `${bookingData?.rejection_reason || 'Order was cancelled.'} · ${formatDateTime(bookingData?.rejected_at)}`
         }
       ]
     }
 
     const steps = [
       { key: 'placed', title: 'Order Placed', 
-        subtitle: bookingData?.created_at ? new Date(bookingData.created_at).toLocaleString('en-IN', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Your order has been placed successfully.' },
+        subtitle: formatDateTime(bookingData?.created_at) },
       { key: 'confirmed', title: 'Order Confirmed', subtitle: 'Pending' },
       { key: 'out_for_delivery', title: 'Out for Delivery', subtitle: 'Pending' },
       { key: 'delivered', title: 'Delivered', subtitle: 'Pending' },
@@ -68,10 +69,10 @@ export function TrackOrderView({ bookingId, onBack }: TrackOrderViewProps) {
     // `accepted` stays on the confirmed step: the partner has accepted but not started the delivery.
     const currentIndex: number = meta.timelineIndex
 
-    if (currentIndex >= 1) steps[1].subtitle = bookingData?.approved_at ? new Date(bookingData.approved_at).toLocaleString('en-IN', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Your order is confirmed.'
+    if (currentIndex >= 1) steps[1].subtitle = formatDateTime(bookingData?.approved_at)
     if (code === 'accepted') steps[1].subtitle = meta.description
     if (currentIndex >= 2) steps[2].subtitle = 'Your order is out for delivery.'
-    if (currentIndex >= 3) steps[3].subtitle = bookingData?.delivered_at ? new Date(bookingData.delivered_at).toLocaleString('en-IN', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Delivered successfully.'
+    if (currentIndex >= 3) steps[3].subtitle = formatDateTime(bookingData?.delivered_at)
 
     return steps.map((step, idx) => ({
       ...step,

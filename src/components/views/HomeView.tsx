@@ -1,3 +1,4 @@
+import { formatDateTime } from '../../lib/dateTime'
 import { useState, useEffect } from 'react'
 import type { OrderItem } from '../../types'
 import { fetchCustomerNotifications, markNotificationRead, type NotificationItem } from '../../lib/auth'
@@ -381,7 +382,7 @@ export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrd
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                     <strong style={{ fontSize: '13px', color: '#1E293B' }}>{n.title}</strong>
-                    <small style={{ fontSize: '10px', color: '#94A3B8' }}>{new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
+                    <small style={{ fontSize: '10px', color: '#94A3B8' }}>{formatDateTime(n.created_at)}</small>
                   </div>
                   <p style={{ fontSize: '12px', color: '#475569', margin: 0 }}>{n.body}</p>
                 </div>

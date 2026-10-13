@@ -1,3 +1,4 @@
+import { formatDateTime } from '../../lib/dateTime'
 import { getCylinderImage } from '../../lib/formatters'
 
 interface DesktopRejectionModalProps {
@@ -15,15 +16,7 @@ export function DesktopRejectionModal({
 
   const rawBooking = order.rawBooking || {}
   const rejectionReason = rawBooking.rejection_reason || 'No specific reason provided.'
-  const rejectedDate = rawBooking.rejected_at
-    ? new Date(rawBooking.rejected_at).toLocaleString('en-IN', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    : order.date
+  const rejectedDate = formatDateTime(rawBooking.rejected_at)
 
   const handleBookAgain = () => {
     if (!rawBooking.cylinder_type_id) {

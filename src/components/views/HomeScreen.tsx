@@ -1,3 +1,4 @@
+import { formatDateTime } from '../../lib/dateTime'
 import { useState, useEffect, useCallback } from 'react'
 import { type BookingRecord, type CustomerProfile } from '../../lib/auth'
 import type { ActiveTab, CartItem, OrderItem, ProfileUser } from '../../types'
@@ -139,7 +140,7 @@ export function HomeScreen({ userId, onLogout, customerProfile, onProfileUpdated
         return {
           id: `ord-${b.id}`,
           orderNumber: `Order #${b.order_id}`,
-          date: b.created_at ? new Date(b.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Today',
+          date: formatDateTime(b.created_at),
           productName: display.title,
           weight: display.badge,
           price: pricing.price,
