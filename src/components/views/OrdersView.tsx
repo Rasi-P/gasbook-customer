@@ -91,10 +91,14 @@ export function OrdersView({
   // Map raw backend bookings to UI OrderItem format
   const mappedOrders: OrderItem[] = rawOrders.map((b: any) => {
     const isDirectSale = b.history_source === 'sale'
+    // A direct sale the shop cancelled comes back with status "cancelled".
+    const isCancelledSale = isDirectSale && b.status === 'cancelled'
     const meta = getOrderStatusMeta(b.status, b)
-    const statusLabel = isDirectSale ? 'Sale Completed' : meta.label
-    const statusKind: 'ongoing' | 'completed' | 'cancelled' = isDirectSale ? 'completed' : meta.kind
-    const etaOrDate = isDirectSale ? b.detail_message || 'Direct sale completed' : meta.description
+    const statusLabel = isCancelledSale ? 'Cancelled' : isDirectSale ? 'Sale Completed' : meta.label
+    const statusKind: 'ongoing' | 'completed' | 'cancelled' = isCancelledSale ? 'cancelled' : isDirectSale ? 'completed' : meta.kind
+    const etaOrDate = isDirectSale
+      ? b.detail_message || (isCancelledSale ? 'Direct sale cancelled' : 'Direct sale completed')
+      : meta.description
     const pricing = buildOrderPrice(b)
 
     const display =
@@ -217,7 +221,14 @@ export function OrdersView({
                     <span>{order.etaOrDate}</span>
                   </div>
 
-                  {order.statusCode === 'delivered' && order.rawBooking?.history_source === 'sale' ? (
+                  {order.statusCode === 'cancelled' && order.rawBooking?.history_source === 'sale' ? (
+                    <div
+                      className="order-action-outline-btn"
+                      style={{ cursor: 'default', opacity: 0.75 }}
+                    >
+                      Sale Cancelled
+                    </div>
+                  ) : order.statusCode === 'delivered' && order.rawBooking?.history_source === 'sale' ? (
                     order.rawBooking?.can_order_again ? (
                       <button className="order-action-outline-btn" onClick={() => {
                         if (!order.rawBooking.cylinder_type_id) {
