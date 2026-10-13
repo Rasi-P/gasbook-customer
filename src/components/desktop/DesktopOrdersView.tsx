@@ -63,10 +63,14 @@ export function DesktopOrdersView({
 
   const mappedOrders: OrderItem[] = rawOrders.map((b: any) => {
     const isDirectSale = b.history_source === 'sale'
+    // A direct sale the shop cancelled comes back with status "cancelled".
+    const isCancelledSale = isDirectSale && b.status === 'cancelled'
     const meta = getOrderStatusMeta(b.status, b)
-    const statusLabel = isDirectSale ? 'Sale Completed' : meta.label
-    const statusKind: 'ongoing' | 'completed' | 'cancelled' = isDirectSale ? 'completed' : meta.kind
-    const etaOrDate = isDirectSale ? b.detail_message || 'Direct sale completed' : meta.description
+    const statusLabel = isCancelledSale ? 'Cancelled' : isDirectSale ? 'Sale Completed' : meta.label
+    const statusKind: 'ongoing' | 'completed' | 'cancelled' = isCancelledSale ? 'cancelled' : isDirectSale ? 'completed' : meta.kind
+    const etaOrDate = isDirectSale
+      ? b.detail_message || (isCancelledSale ? 'Direct sale cancelled' : 'Direct sale completed')
+      : meta.description
     // Always the discounted total (final_amount), never the pre-discount unit rate.
     const pricing = buildOrderPrice(b)
 
@@ -274,6 +278,22 @@ export function DesktopOrdersView({
                       <span>View Rejection Reason</span>
                       <span>→</span>
                     </button>
+                  ) : order.statusCode === 'cancelled' && order.rawBooking?.history_source === 'sale' ? (
+                    <div
+                      style={{
+                        width: '100%',
+                        background: '#f8fafc',
+                        color: '#64748b',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '10px',
+                        padding: '10px',
+                        fontSize: '13.5px',
+                        fontWeight: 600,
+                        textAlign: 'center',
+                      }}
+                    >
+                      Sale Cancelled
+                    </div>
                   ) : order.statusCode === 'delivered' && order.rawBooking?.history_source === 'sale' ? (
                     order.rawBooking?.can_order_again ? (
                       <button
