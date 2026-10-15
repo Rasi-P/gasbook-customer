@@ -1,3 +1,4 @@
+import { PricingBreakdown } from '../common/PricingBreakdown'
 import { formatDateTime } from '../../lib/dateTime'
 import { useState, useEffect } from 'react'
 import { fetchBookingById } from '../../lib/auth'
@@ -214,6 +215,7 @@ export function DesktopTrackOrderView({ bookingId, onBack }: DesktopTrackOrderVi
                   </span>
                 </div>
               </div>
+              <PricingBreakdown value={booking} />
               {pricing?.hasDiscount && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#16a34a', fontWeight: 600, margin: '-8px 0 20px' }}>
                   <span>Discount Applied</span>

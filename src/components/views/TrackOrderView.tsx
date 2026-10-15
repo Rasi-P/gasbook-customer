@@ -1,3 +1,4 @@
+import { PricingBreakdown } from '../common/PricingBreakdown'
 import { formatDateTime } from '../../lib/dateTime'
 import { useState, useEffect } from 'react'
 import { fetchBookingById } from '../../lib/auth'
@@ -153,6 +154,7 @@ export function TrackOrderView({ bookingId, onBack }: TrackOrderViewProps) {
                 <div style={{ fontWeight: 600, color: '#1E293B', fontSize: '0.95rem' }}>₹{booking.final_amount || booking.total_amount || 0}</div>
               </div>
             </div>
+            <PricingBreakdown value={booking} />
             {Number(booking.discount_amount || 0) > 0 && (
               <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px dashed #E2E8F0', display: 'flex', justifyContent: 'space-between', color: '#16a34a', fontSize: '0.88rem', fontWeight: 600 }}>
                 <span>Discount Applied</span>

@@ -25,6 +25,7 @@ export interface OrderItem {
 }
 
 export interface CartItem {
+  rateType?: "new" | "refill"
   id: string
   cylinderTypeId?: number
   name: string

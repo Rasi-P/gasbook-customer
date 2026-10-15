@@ -186,6 +186,10 @@ export function HomeScreen({ userId, onLogout, customerProfile, onProfileUpdated
 
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0)
 
+  const handleRateTypeChange = (id: string, rateType: 'new' | 'refill') => {
+    setCartItems(prev => prev.map(item => item.id === id ? { ...item, rateType } : item))
+  }
+
   const handleUpdateQuantity = (id: string, delta: number) => {
     setCartItems((prev) =>
       prev
@@ -207,7 +211,7 @@ export function HomeScreen({ userId, onLogout, customerProfile, onProfileUpdated
   const handleBook = (productName: string, price?: number, cylinderTypeId?: number, weight?: string | number) => {
     setCartItems((prev) => {
       // Find existing exactly by cylinderTypeId if defined, or strictly fallback to name match if no ID provided.
-      const existing = prev.find((item) => cylinderTypeId ? item.cylinderTypeId === cylinderTypeId : item.variant === productName && item.name === weight)
+      const existing = prev.find((item) => (item.rateType ?? "refill") === "refill" && (cylinderTypeId ? item.cylinderTypeId === cylinderTypeId : item.variant === productName && item.name === weight))
       if (existing) {
         return prev.map((item) => (item.id === existing.id ? { ...item, quantity: item.quantity + 1 } : item))
       }
@@ -274,6 +278,7 @@ export function HomeScreen({ userId, onLogout, customerProfile, onProfileUpdated
             <CartView
               cartItems={cartItems}
               onUpdateQuantity={handleUpdateQuantity}
+              onRateTypeChange={handleRateTypeChange}
               onRemoveItem={handleRemoveItem}
               onNavigateToExplore={() => navigateTo('explore')}
               onProceedToCheckout={() => navigateTo('checkout')}
@@ -288,6 +293,7 @@ export function HomeScreen({ userId, onLogout, customerProfile, onProfileUpdated
               customerProfile={customerProfile}
               profileUser={profileUser}
               onUpdateQuantity={handleUpdateQuantity}
+              onRateTypeChange={handleRateTypeChange}
               onRemoveItem={handleRemoveItem}
               onProfileUpdated={onProfileUpdated}
               onNavigateToExplore={() => navigateTo('explore')}
@@ -377,6 +383,7 @@ export function HomeScreen({ userId, onLogout, customerProfile, onProfileUpdated
             <DesktopCartView
               cartItems={cartItems}
               onUpdateQuantity={handleUpdateQuantity}
+              onRateTypeChange={handleRateTypeChange}
               onRemoveItem={handleRemoveItem}
               onNavigateToExplore={() => navigateTo('explore')}
               onProceedToCheckout={() => navigateTo('checkout')}
@@ -392,6 +399,7 @@ export function HomeScreen({ userId, onLogout, customerProfile, onProfileUpdated
               customerProfile={customerProfile}
               profileUser={profileUser}
               onUpdateQuantity={handleUpdateQuantity}
+              onRateTypeChange={handleRateTypeChange}
               onRemoveItem={handleRemoveItem}
               onProfileUpdated={onProfileUpdated}
               onNavigateToExplore={() => navigateTo('explore')}

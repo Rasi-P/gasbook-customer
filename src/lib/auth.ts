@@ -1,3 +1,4 @@
+import type { PricingSnapshot } from '../components/common/PricingBreakdown'
 import { clearHomeState, clearTabHash } from './uiState'
 
 export interface AuthTokens {
@@ -45,7 +46,7 @@ export interface CustomerProfile {
   updated_at: string
 }
 
-export interface BookingRecord {
+export interface BookingRecord extends PricingSnapshot {
   id: number
   order_id: string
   cylinder_type: number
@@ -75,7 +76,7 @@ export interface BookingRecord {
   payment_status?: string
 }
 
-export interface BookingPreviewItem {
+export interface BookingPreviewItem extends PricingSnapshot {
   client_item_id?: string
   cylinder_type: number
   cylinder_type_name: string
@@ -482,6 +483,8 @@ export interface CylinderTypeItem {
   name: string
   weight: string
   selling_price: string
+  deposit_amount: string
+  refill_rate: string
   customer_rate?: string
   discount_amount?: string
   final_price?: string
@@ -502,7 +505,7 @@ export async function createBooking(payload: Record<string, unknown>): Promise<B
 }
 
 export async function previewBookings(payload: {
-  items: Array<{ client_item_id?: string; cylinder_type: number; quantity: number }>
+  items: Array<{ client_item_id?: string; cylinder_type: number; quantity: number; rate_type?: "new" | "refill" }>
 }): Promise<BookingPreviewResponse> {
   return request<BookingPreviewResponse>('/bookings/preview/', {
     method: 'POST',

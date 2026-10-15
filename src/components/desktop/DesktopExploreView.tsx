@@ -34,9 +34,9 @@ export function DesktopExploreView({
       displayTitle: display.title,
       displayBadge: display.badge,
       rawWeight: c.weight,
-      rawPrice: Number(c.selling_price) || 0,
-      finalPrice: Number(c.final_price || c.selling_price) || 0,
-      originalPrice: Number(c.customer_rate || c.selling_price) || 0,
+      rawPrice: Number(c.refill_rate) || 0,
+      finalPrice: Number(c.final_price ?? c.refill_rate) || 0,
+      originalPrice: Number(c.customer_rate ?? c.refill_rate) || 0,
       hasDiscount: Boolean(c.has_discount),
       category: 'cylinder',
       isPopular: c.name.includes('14.2') || (c.weight && String(c.weight).includes('14.2')),
@@ -301,7 +301,7 @@ export function DesktopExploreView({
                   </span>
                 )}
                 <span style={{ fontSize: '20px', fontWeight: 800, color: '#1e293b' }}>
-                  ₹{prod.finalPrice.toLocaleString('en-IN')}
+                  Refill ₹{prod.finalPrice.toLocaleString('en-IN')}
                 </span>
               </div>
               <button

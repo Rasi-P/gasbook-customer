@@ -41,9 +41,9 @@ export function DesktopHomeView({
       displayTitle: display.title,
       displayBadge: display.badge,
       rawWeight: c.weight,
-      rawPrice: Number(c.selling_price) || 0,
-      finalPrice: Number(c.final_price || c.selling_price) || 0,
-      originalPrice: Number(c.customer_rate || c.selling_price) || 0,
+      rawPrice: Number(c.refill_rate) || 0,
+      finalPrice: Number(c.final_price ?? c.refill_rate) || 0,
+      originalPrice: Number(c.customer_rate ?? c.refill_rate) || 0,
       hasDiscount: Boolean(c.has_discount),
     }
   })
@@ -370,7 +370,7 @@ export function DesktopHomeView({
                       ₹{prod.originalPrice.toLocaleString('en-IN')}
                     </span>
                   )}
-                  <span className="desktop-cylinder-price">₹{prod.finalPrice.toLocaleString('en-IN')}</span>
+                  <span className="desktop-cylinder-price">Refill ₹{prod.finalPrice.toLocaleString('en-IN')}</span>
                 </div>
                 <button
                   className="desktop-book-btn"

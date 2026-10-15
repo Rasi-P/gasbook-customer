@@ -1,3 +1,4 @@
+import { PricingBreakdown } from '../common/PricingBreakdown'
 import { formatDateTime } from '../../lib/dateTime'
 import type { BookingRecord } from '../../lib/auth'
 import { formatMoney } from '../../lib/pricing'
@@ -132,6 +133,8 @@ export function OrderSuccessView({ orders, onViewOrders, onTrackOrder, onBackToH
             </svg>
           </button>
         </div>
+
+      {orders.map(order => <div key={order.id} style={{ padding: 16 }}><strong>{order.cylinder_type_name}</strong><PricingBreakdown value={order} /></div>)}
 
         {/* Order Summary */}
         <div style={{ border: '1px solid #F1F5F9', borderRadius: '16px', padding: '20px', marginBottom: '16px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>

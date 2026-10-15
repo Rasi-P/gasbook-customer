@@ -1,3 +1,4 @@
+import { PricingBreakdown } from '../common/PricingBreakdown'
 import { formatDateTime } from '../../lib/dateTime'
 import { useState } from 'react'
 import type { BookingRecord } from '../../lib/auth'
@@ -144,6 +145,7 @@ export function DesktopOrderSuccessView({
           </div>
         </div>
 
+        {orders.map(order => <div key={order.id} style={{ marginBlock: 12 }}><strong>{order.cylinder_type_name}</strong><PricingBreakdown value={order} /></div>)}
         {/* Action Buttons */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {onTrackOrder && orders.length > 0 && (

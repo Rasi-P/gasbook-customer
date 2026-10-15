@@ -1,3 +1,4 @@
+import { CartPricing } from '../common/CartPricing'
 import { useState } from 'react'
 import { type CustomerProfile } from '../../lib/auth'
 import type { CartItem, ProfileUser } from '../../types'
@@ -9,6 +10,7 @@ import { usePricingPreview } from '../../hooks/usePricingPreview'
 
 interface DesktopCartViewProps {
   cartItems: CartItem[]
+  onRateTypeChange: (id: string, value: "new" | "refill") => void
   onUpdateQuantity: (id: string, delta: number) => void
   onRemoveItem: (id: string) => void
   onNavigateToExplore: () => void
@@ -21,6 +23,7 @@ interface DesktopCartViewProps {
 export function DesktopCartView({
   cartItems,
   onUpdateQuantity,
+  onRateTypeChange,
   onRemoveItem,
   onNavigateToExplore,
   onProceedToCheckout,
@@ -238,6 +241,7 @@ export function DesktopCartView({
                 Order Summary
               </h3>
 
+          <CartPricing items={cartItems} preview={pricingReady ? pricingPreview : null} onRateTypeChange={onRateTypeChange} />
               {pricingError && <PricingErrorNotice message={pricingError} onRetry={reloadPricing} compact />}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>

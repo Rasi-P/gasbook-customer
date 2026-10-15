@@ -117,6 +117,7 @@ function isValidCartItem(value: unknown): value is CartItem {
     Number.isInteger(item.quantity) &&
     item.quantity > 0 &&
     (item.type === 'cylinder' || item.type === 'accessory') &&
+    (item.rateType === undefined || item.rateType === 'new' || item.rateType === 'refill') &&
     (item.cylinderTypeId === undefined || typeof item.cylinderTypeId === 'number')
   )
 }

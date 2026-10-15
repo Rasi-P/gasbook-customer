@@ -15,6 +15,7 @@ export function buildBookingPreviewPayload(cartItems: CartItem[]) {
       client_item_id: item.id,
       cylinder_type: item.cylinderTypeId || 1,
       quantity: item.quantity || 1,
+      rate_type: item.rateType ?? "refill",
     })),
   }
 }

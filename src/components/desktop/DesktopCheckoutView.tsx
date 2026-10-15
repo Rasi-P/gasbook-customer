@@ -1,3 +1,4 @@
+import { CartPricing } from '../common/CartPricing'
 import { useState } from 'react'
 import { createBooking, getApiErrorDetails, type BookingRecord, type CustomerProfile } from '../../lib/auth'
 import type { CartItem, ProfileUser } from '../../types'
@@ -11,6 +12,7 @@ interface DesktopCheckoutViewProps {
   cartItems: CartItem[]
   customerProfile: CustomerProfile | null
   profileUser?: ProfileUser
+  onRateTypeChange: (id: string, value: "new" | "refill") => void
   onUpdateQuantity: (id: string, delta: number) => void
   onRemoveItem: (id: string) => void
   onProfileUpdated?: () => void
@@ -24,6 +26,7 @@ export function DesktopCheckoutView({
   customerProfile,
   profileUser,
   onUpdateQuantity,
+  onRateTypeChange,
   onProfileUpdated,
   onNavigateToExplore,
   onBackToCart,
@@ -52,6 +55,7 @@ export function DesktopCheckoutView({
         const payload = {
           cylinder_type: item.cylinderTypeId || 1,
           quantity: item.quantity || 1,
+          rate_type: item.rateType ?? "refill",
           note: `Order via Customer Desktop Web (COD)`,
           payment_method: 'COD',
           payment_status: 'PENDING',
@@ -327,7 +331,8 @@ export function DesktopCheckoutView({
               Payment Details
             </h3>
 
-            {pricingError && <PricingErrorNotice message={pricingError} onRetry={reloadPricing} compact />}
+            <CartPricing items={cartItems} preview={pricingReady ? pricingPreview : null} onRateTypeChange={onRateTypeChange} />
+          {pricingError && <PricingErrorNotice message={pricingError} onRetry={reloadPricing} compact />}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#64748b' }}>

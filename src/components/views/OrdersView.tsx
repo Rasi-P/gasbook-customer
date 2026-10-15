@@ -1,3 +1,4 @@
+import { OrderPricingBreakdown } from '../common/PricingBreakdown'
 import { mapHistoryOrder } from '../../lib/orderHistory'
 import { OrderHistoryEvents } from '../common/OrderHistoryEvents'
 import { formatDateTime } from '../../lib/dateTime'
@@ -164,6 +165,7 @@ export function OrdersView({
               </div>
 
               <OrderHistoryEvents order={order.rawBooking} />
+              <OrderPricingBreakdown order={order.rawBooking} />
               <div className="order-card-main">
                 <div className="order-cylinder-wrap">
                   <img src={getCylinderImage(order.productName, order.weight)} className="order-cylinder-img" alt={order.productName} />

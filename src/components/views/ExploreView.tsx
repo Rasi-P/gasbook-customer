@@ -26,9 +26,9 @@ export function ExploreView({
       displayTitle: display.title,
       displayBadge: display.badge,
       rawWeight: c.weight,
-      rawPrice: Number(c.selling_price) || 0,
-      finalPrice: Number(c.final_price || c.selling_price) || 0,
-      originalPrice: Number(c.customer_rate || c.selling_price) || 0,
+      rawPrice: Number(c.refill_rate) || 0,
+      finalPrice: Number(c.final_price ?? c.refill_rate) || 0,
+      originalPrice: Number(c.customer_rate ?? c.refill_rate) || 0,
       hasDiscount: Boolean(c.has_discount),
       category: 'cylinder',
       isPopular: c.name.includes('14.2') || (c.weight && String(c.weight).includes('14.2')),
@@ -179,7 +179,7 @@ export function ExploreView({
                       ₹{prod.originalPrice.toLocaleString('en-IN')}
                     </div>
                   )}
-                  ₹{prod.finalPrice.toLocaleString('en-IN')}
+                  Refill ₹{prod.finalPrice.toLocaleString('en-IN')}
                 </div>
                 <button className="product-book-btn" onClick={() => onBook(prod.displayBadge, prod.rawPrice, prod.rawId, prod.displayTitle)}>
                   Book

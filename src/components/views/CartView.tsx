@@ -1,3 +1,4 @@
+import { CartPricing } from '../common/CartPricing'
 import { useState } from 'react'
 import { type CustomerProfile } from '../../lib/auth'
 import type { CartItem, ProfileUser } from '../../types'
@@ -9,6 +10,7 @@ import { usePricingPreview } from '../../hooks/usePricingPreview'
 
 interface CartViewProps {
   cartItems: CartItem[]
+  onRateTypeChange: (id: string, value: "new" | "refill") => void
   onUpdateQuantity: (id: string, delta: number) => void
   onRemoveItem: (id: string) => void
   onNavigateToExplore: () => void
@@ -21,6 +23,7 @@ interface CartViewProps {
 export function CartView({
   cartItems,
   onUpdateQuantity,
+  onRateTypeChange,
   onRemoveItem,
   onNavigateToExplore,
   onProceedToCheckout,
@@ -173,6 +176,7 @@ export function CartView({
 
             {/* Price Breakdown */}
             <div className="price-breakdown-section">
+          <CartPricing items={cartItems} preview={pricingReady ? pricingPreview : null} onRateTypeChange={onRateTypeChange} />
               {pricingError && <PricingErrorNotice message={pricingError} onRetry={reloadPricing} />}
               <div className="price-row">
                 <span className="price-label">Original Amount</span>

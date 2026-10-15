@@ -1,3 +1,4 @@
+import { OrderPricingBreakdown } from '../common/PricingBreakdown'
 import { mapHistoryOrder } from '../../lib/orderHistory'
 import { OrderHistoryEvents } from '../common/OrderHistoryEvents'
 import { useState } from 'react'
@@ -190,6 +191,7 @@ export function DesktopOrdersView({
                 </div>
 
                 <OrderHistoryEvents order={order.rawBooking} />
+              <OrderPricingBreakdown order={order.rawBooking} />
                 {/* Body: Cylinder details */}
                 <div className="desktop-order-body">
                   <div className="desktop-order-img-wrap">
