@@ -1,3 +1,4 @@
+import { ReceiptActions } from '../receipt/ReceiptActions'
 import { PricingBreakdown } from '../common/PricingBreakdown'
 import { formatDateTime } from '../../lib/dateTime'
 import { useState, useEffect } from 'react'
@@ -228,6 +229,7 @@ export function DesktopTrackOrderView({ bookingId, onBack }: DesktopTrackOrderVi
                 <strong style={{ color: '#1e293b', display: 'block', marginBottom: '4px' }}>Delivery Destination:</strong>
                 {booking.delivery_address || 'Registered Customer Address'}
               </div>
+              <ReceiptActions order={{ id: booking.id }} showDownload={false} />
             </div>
 
             {/* Delivery Partner Partner Card */}

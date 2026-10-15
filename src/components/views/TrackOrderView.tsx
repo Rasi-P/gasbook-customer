@@ -1,3 +1,4 @@
+import { ReceiptActions } from '../receipt/ReceiptActions'
 import { PricingBreakdown } from '../common/PricingBreakdown'
 import { formatDateTime } from '../../lib/dateTime'
 import { useState, useEffect } from 'react'
@@ -161,6 +162,7 @@ export function TrackOrderView({ bookingId, onBack }: TrackOrderViewProps) {
                 <span>- ₹{booking.discount_amount}</span>
               </div>
             )}
+            <ReceiptActions order={{ id: booking.id }} showDownload={false} />
           </div>
 
           {/* Timeline Card */}

@@ -12,6 +12,8 @@ dist
 dist-ssr
 *.local
 .vite
+test-results/
+playwright-report/
 
 # Env files — only the example is tracked
 .env

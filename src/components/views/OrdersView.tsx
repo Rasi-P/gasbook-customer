@@ -1,3 +1,4 @@
+import { ReceiptActions } from '../receipt/ReceiptActions'
 import { OrderPricingBreakdown } from '../common/PricingBreakdown'
 import { mapHistoryOrder } from '../../lib/orderHistory'
 import { OrderHistoryEvents } from '../common/OrderHistoryEvents'
@@ -241,7 +242,7 @@ export function OrdersView({
                   )}
                 </div>
               </div>
-
+              <ReceiptActions order={order.rawBooking} />
             </div>
           ))}
           
