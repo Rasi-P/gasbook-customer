@@ -6,6 +6,7 @@ import { CYLINDERS_EMPTY_LABEL, CYLINDERS_LOADING_LABEL, useCylinderTypes } from
 import heroBg from '../../assets/hero_bg.png'
 
 interface DesktopHomeViewProps {
+  onNavigateToSafety: () => void
   onNavigateToExplore: () => void
   customerProfile: CustomerProfile | null
   latestActiveOrder?: OrderItem | null
@@ -19,6 +20,7 @@ function getGreetingName(customerProfile: CustomerProfile | null) {
 }
 
 export function DesktopHomeView({
+  onNavigateToSafety,
   onNavigateToExplore,
   customerProfile,
   latestActiveOrder,
@@ -435,6 +437,7 @@ export function DesktopHomeView({
             <p style={{ margin: 0, fontSize: '13px', color: '#15803d', lineHeight: 1.4 }}>
               Always keep your LPG cylinder upright and verify the safety seal upon delivery.
             </p>
+            <button type="button" className="know-more-link" onClick={onNavigateToSafety}>Know More <span aria-hidden="true">→</span></button>
           </div>
           <div
             style={{

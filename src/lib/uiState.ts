@@ -22,6 +22,7 @@ export interface NavState {
 }
 
 export const ACTIVE_TABS: readonly ActiveTab[] = [
+  'safety',
   'home',
   'explore',
   'orders',

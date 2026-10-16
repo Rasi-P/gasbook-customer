@@ -26,6 +26,7 @@ function getLocationText(customerProfile: CustomerProfile | null) {
 }
 
 interface HomeViewProps {
+  onNavigateToSafety: () => void
   onNavigateToExplore: () => void
   customerProfile: CustomerProfile | null
   latestActiveOrder?: OrderItem | null
@@ -33,7 +34,7 @@ interface HomeViewProps {
   onTrackOrder?: (bookingId: number) => void
 }
 
-export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrder, onViewOrders, onTrackOrder }: HomeViewProps) {
+export function HomeView({ onNavigateToSafety, onNavigateToExplore, customerProfile, latestActiveOrder, onViewOrders, onTrackOrder }: HomeViewProps) {
   const [showNotifications, setShowNotifications] = useState(false)
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const hasActiveOrder = Boolean(latestActiveOrder)
@@ -353,7 +354,7 @@ export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrd
             <p className="safety-description">
               Keep your cylinder upright and in a well-ventilated area.
             </p>
-            <button className="know-more-link">
+            <button type="button" className="know-more-link" onClick={onNavigateToSafety}>
               <span>Know More</span>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12" />

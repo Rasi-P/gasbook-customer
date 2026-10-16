@@ -47,4 +47,4 @@ export interface ProfileUser {
   memberSince: string
 }
 
-export type ActiveTab = 'home' | 'explore' | 'orders' | 'cart' | 'checkout' | 'order-success' | 'profile' | 'track-order'
+export type ActiveTab = 'safety' | 'home' | 'explore' | 'orders' | 'cart' | 'checkout' | 'order-success' | 'profile' | 'track-order'

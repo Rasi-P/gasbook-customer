@@ -1,3 +1,4 @@
+import { SafetyGuideView } from './SafetyGuideView'
 import type { Accessory } from '../../lib/products'
 import { formatDateTime } from '../../lib/dateTime'
 import { useState, useEffect, useCallback } from 'react'
@@ -270,8 +271,10 @@ export function HomeScreen({ userId, onLogout, customerProfile, onProfileUpdated
               onNavigateToCart={handleNavigateToCart}
             />
           )}
+          {activeTab === 'safety' && <SafetyGuideView onBack={() => navigateTo('home')} />}
           {activeTab === 'home' && (
             <HomeView
+              onNavigateToSafety={() => navigateTo('safety')}
               onNavigateToExplore={() => navigateTo('explore')}
               customerProfile={customerProfile}
               latestActiveOrder={realOrders[0]}
@@ -365,8 +368,10 @@ export function HomeScreen({ userId, onLogout, customerProfile, onProfileUpdated
         />
 
         <main style={{ flex: 1 }}>
+          {activeTab === 'safety' && <SafetyGuideView onBack={() => navigateTo('home')} />}
           {activeTab === 'home' && (
             <DesktopHomeView
+              onNavigateToSafety={() => navigateTo('safety')}
               onNavigateToExplore={() => navigateTo('explore')}
               customerProfile={customerProfile}
               latestActiveOrder={realOrders[0]}
