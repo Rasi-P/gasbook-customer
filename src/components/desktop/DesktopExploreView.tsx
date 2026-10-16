@@ -173,7 +173,6 @@ export function DesktopExploreView({
             {normalizedQuery ? `No products match "${searchQuery.trim()}"` : 'No products available in this category yet.'}
           </div>
         ) : null}
-          {filteredAccessories.map(product => <AccessoryCard key={`accessory-${product.id}`} product={product} onAdd={onAddAccessory} />)}
         {filteredProducts.map((prod) => (
           <div
             key={prod.id}
@@ -299,6 +298,7 @@ export function DesktopExploreView({
             </div>
           </div>
         ))}
+        {filteredAccessories.map(product => <AccessoryCard key={`accessory-${product.id}`} product={product} onAdd={onAddAccessory} />)}
       </div>
 
       {/* 4. Why Choose GasBook Grid */}

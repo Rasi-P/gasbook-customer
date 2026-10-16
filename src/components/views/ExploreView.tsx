@@ -105,7 +105,6 @@ export function ExploreView({
 
         {/* 2-Column Product Grid */}
         <div className="products-grid">
-          {filteredAccessories.map(product => <AccessoryCard key={`accessory-${product.id}`} product={product} onAdd={onAddAccessory} />)}
           {filteredProducts.map((prod) => (
             <div key={prod.id} className="product-card">
               {prod.isPopular && (
@@ -138,6 +137,7 @@ export function ExploreView({
               </div>
             </div>
           ))}
+          {filteredAccessories.map(product => <AccessoryCard key={`accessory-${product.id}`} product={product} onAdd={onAddAccessory} />)}
           {catalogLoading ? (
             <div className="no-products-found">
               <p>{CYLINDERS_LOADING_LABEL}</p>
