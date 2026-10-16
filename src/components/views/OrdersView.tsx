@@ -1,3 +1,4 @@
+import { PaymentSummary } from '../common/PaymentSummary'
 import '../../styles/orderCards.css'
 import { BookingItems } from '../common/BookingItems'
 import { ReceiptActions } from '../receipt/ReceiptActions'
@@ -171,7 +172,7 @@ export function OrdersView({
                 <OrderHistoryEvents order={order.rawBooking} />
               <div className="order-card-main">
                 <div className="order-cylinder-wrap">
-                  <img src={getCylinderImage(order.productName, order.weight)} className="order-cylinder-img" alt={order.productName} />
+                  {!(order.rawBooking?.order_items?.length && order.rawBooking.order_items.every((item: { type: string }) => item.type === 'accessory')) && <img src={getCylinderImage(order.productName, order.weight)} className="order-cylinder-img" alt={order.productName} />}
                 </div>
 
                 <div className="order-info-center">
@@ -260,7 +261,8 @@ export function OrdersView({
                     </button>
                   )}
                 </div>
-              <ReceiptActions order={order.rawBooking} />
+              <PaymentSummary value={order.rawBooking.payment_summary} />
+                <ReceiptActions order={order.rawBooking} />
               </div>
             </div>
           ))}

@@ -1,3 +1,4 @@
+import { PaymentSummary } from '../common/PaymentSummary'
 import { BookingItems } from '../common/BookingItems'
 import { ReceiptActions } from '../receipt/ReceiptActions'
 import { PricingBreakdown } from '../common/PricingBreakdown'
@@ -164,6 +165,7 @@ export function TrackOrderView({ bookingId, onBack }: TrackOrderViewProps) {
               </div>
             )}
             <BookingItems items={booking.order_items} />
+              <PaymentSummary value={booking.payment_summary} />
               <ReceiptActions order={{ id: booking.id }} showDownload={false} />
           </div>
 

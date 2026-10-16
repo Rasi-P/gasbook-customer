@@ -1,3 +1,4 @@
+import { PaymentSummary } from '../common/PaymentSummary'
 import '../../styles/orderCards.css'
 import { BookingItems } from '../common/BookingItems'
 import { ReceiptActions } from '../receipt/ReceiptActions'
@@ -198,7 +199,7 @@ export function DesktopOrdersView({
                 {/* Body: Cylinder details */}
                 <div className="desktop-order-body">
                   <div className="desktop-order-img-wrap">
-                    <img src={getCylinderImage(order.productName, order.weight)} alt="" style={{ height: '50px', objectFit: 'contain' }} />
+                    {!(order.rawBooking?.order_items?.length && order.rawBooking.order_items.every((item: { type: string }) => item.type === 'accessory')) && <img src={getCylinderImage(order.productName, order.weight)} alt="" style={{ height: '50px', objectFit: 'contain' }} />}
                   </div>
                   <div className="desktop-order-info">
                     <h4 className="desktop-order-name">{order.productName}</h4>
@@ -384,6 +385,7 @@ export function DesktopOrdersView({
                     </button>
                   )}
                 </div>
+                <PaymentSummary value={order.rawBooking.payment_summary} />
                 <ReceiptActions order={order.rawBooking} />
                 </div>
               </div>

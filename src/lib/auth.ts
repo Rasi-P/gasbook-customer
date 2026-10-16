@@ -47,6 +47,7 @@ export interface CustomerProfile {
 }
 
 export interface BookingRecord extends PricingSnapshot {
+  payment_summary?: import('../components/common/PaymentSummary').PaymentFacts | null
   order_items?: import('./products').BookingItem[]
   id: number
   order_id: string
