@@ -1,3 +1,4 @@
+import { CatalogProductCard } from '../common/CatalogProductCard'
 import { useAccessories } from '../../hooks/useAccessories'
 import { CatalogTabs, AccessoryCard } from '../common/AccessoryCatalog'
 import type { Accessory } from '../../lib/products'
@@ -174,129 +175,11 @@ export function DesktopExploreView({
           </div>
         ) : null}
         {filteredProducts.map((prod) => (
-          <div
-            key={prod.id}
-            style={{
-              background: '#ffffff',
-              border: '1px solid #e2e8f0',
-              borderRadius: '20px',
-              padding: '24px',
-              display: 'flex',
-              flexDirection: 'column',
-              position: 'relative',
-              boxShadow: '0 2px 8px rgba(15, 23, 42, 0.03)',
-              transition: 'all 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-4px)'
-              e.currentTarget.style.boxShadow = '0 12px 28px rgba(16, 82, 190, 0.1)'
-              e.currentTarget.style.borderColor = '#93c5fd'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)'
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(15, 23, 42, 0.03)'
-              e.currentTarget.style.borderColor = '#e2e8f0'
-            }}
-          >
-            {prod.isPopular && (
-              <span
-                style={{
-                  position: 'absolute',
-                  top: '16px',
-                  right: '16px',
-                  background: '#ffedd5',
-                  color: '#c2410c',
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  padding: '3px 8px',
-                  borderRadius: '6px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                🔥 Most Popular
-              </span>
-            )}
-
-            <div
-              style={{
-                height: '160px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '16px',
-              }}
-            >
-              <img
-                src={getCylinderImage(prod.name, prod.rawWeight)}
-                alt={prod.name}
-                style={{ maxHeight: '130px', objectFit: 'contain', filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.12))' }}
-              />
-            </div>
-
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <span
-                style={{
-                  background: '#eff6ff',
-                  color: '#1d4ed8',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  padding: '3px 8px',
-                  borderRadius: '6px',
-                  alignSelf: 'flex-start',
-                  marginBottom: '8px',
-                }}
-              >
-                {prod.displayBadge}
-              </span>
-              <h3 style={{ margin: '0 0 4px', fontSize: '17px', fontWeight: 800, color: '#1e293b' }}>
-                {prod.displayTitle}
-              </h3>
-              <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>
-                Genuine sealed cylinder • Fast doorstep delivery
-              </p>
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                paddingTop: '16px',
-                borderTop: '1px solid #f1f5f9',
-              }}
-            >
-              <div>
-                <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block' }}>Refill Price</span>
-                {prod.hasDiscount && (
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#94a3b8', textDecoration: 'line-through', display: 'block' }}>
-                    ₹{prod.originalPrice.toLocaleString('en-IN')}
-                  </span>
-                )}
-                <span style={{ fontSize: '20px', fontWeight: 800, color: '#1e293b' }}>
-                  Refill ₹{prod.finalPrice.toLocaleString('en-IN')}
-                </span>
-              </div>
-              <button
-                onClick={() => onBook(prod.displayBadge, prod.rawPrice, prod.rawId, prod.displayTitle)}
-                style={{
-                  background: '#ff7a00',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '10px',
-                  padding: '10px 20px',
-                  fontSize: '14px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(255, 122, 0, 0.25)',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                Book Now
-              </button>
-            </div>
-          </div>
+          <CatalogProductCard key={prod.id} kind="cylinder" name={prod.displayTitle} category={prod.displayBadge}
+            description="Genuine sealed cylinder • Fast doorstep delivery"
+            image={getCylinderImage(prod.name, prod.rawWeight)} price={prod.finalPrice}
+            originalPrice={prod.hasDiscount ? prod.originalPrice : undefined} popular={Boolean(prod.isPopular)}
+            actionLabel="Book Now" onAdd={() => onBook(prod.displayBadge, prod.rawPrice, prod.rawId, prod.displayTitle)} />
         ))}
         {filteredAccessories.map(product => <AccessoryCard key={`accessory-${product.id}`} product={product} onAdd={onAddAccessory} />)}
       </div>

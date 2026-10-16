@@ -1,3 +1,4 @@
+import { CatalogProductCard } from '../common/CatalogProductCard'
 import { useAccessories } from '../../hooks/useAccessories'
 import { CatalogTabs, AccessoryCard } from '../common/AccessoryCatalog'
 import type { Accessory } from '../../lib/products'
@@ -106,37 +107,12 @@ export function ExploreView({
         {/* 2-Column Product Grid */}
         <div className="products-grid">
           {filteredProducts.map((prod) => (
-            <div key={prod.id} className="product-card">
-              {prod.isPopular && (
-                <div className="popular-badge">
-                  <span className="flame-icon">🔥</span>
-                  <span>Most Popular</span>
-                </div>
-              )}
-              <div className="product-img-container">
-                <img src={getCylinderImage(prod.name, prod.rawWeight)} className="product-cylinder-img" alt={prod.name} />
-              </div>
-              <div className="product-details">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                  <h3 className="product-name" style={{ margin: 0 }}>{prod.displayTitle}</h3>
-                  <span style={{ background: '#EEF2FF', color: '#4F46E5', fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
-                    {prod.displayBadge}
-                  </span>
-                </div>
-                <div className="product-price">
-                  {prod.hasDiscount && (
-                    <div style={{ color: '#94a3b8', fontSize: '0.82rem', textDecoration: 'line-through' }}>
-                      ₹{prod.originalPrice.toLocaleString('en-IN')}
-                    </div>
-                  )}
-                  Refill ₹{prod.finalPrice.toLocaleString('en-IN')}
-                </div>
-                <button className="product-book-btn" onClick={() => onBook(prod.displayBadge, prod.rawPrice, prod.rawId, prod.displayTitle)}>
-                  Book
-                </button>
-              </div>
-            </div>
-          ))}
+          <CatalogProductCard key={prod.id} kind="cylinder" name={prod.displayTitle} category={prod.displayBadge}
+            description="Genuine sealed cylinder • Fast doorstep delivery"
+            image={getCylinderImage(prod.name, prod.rawWeight)} price={prod.finalPrice}
+            originalPrice={prod.hasDiscount ? prod.originalPrice : undefined} popular={Boolean(prod.isPopular)}
+            actionLabel="Book" onAdd={() => onBook(prod.displayBadge, prod.rawPrice, prod.rawId, prod.displayTitle)} />
+        ))}
           {filteredAccessories.map(product => <AccessoryCard key={`accessory-${product.id}`} product={product} onAdd={onAddAccessory} />)}
           {catalogLoading ? (
             <div className="no-products-found">
