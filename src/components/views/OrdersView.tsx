@@ -1,3 +1,4 @@
+import { BookingItems } from '../common/BookingItems'
 import { ReceiptActions } from '../receipt/ReceiptActions'
 import { OrderPricingBreakdown } from '../common/PricingBreakdown'
 import { mapHistoryOrder } from '../../lib/orderHistory'
@@ -166,7 +167,7 @@ export function OrdersView({
               </div>
 
               <OrderHistoryEvents order={order.rawBooking} />
-              <OrderPricingBreakdown order={order.rawBooking} />
+              {order.rawBooking?.order_items?.length ? <BookingItems items={order.rawBooking.order_items} /> : <OrderPricingBreakdown order={order.rawBooking} />}
               <div className="order-card-main">
                 <div className="order-cylinder-wrap">
                   <img src={getCylinderImage(order.productName, order.weight)} className="order-cylinder-img" alt={order.productName} />

@@ -118,3 +118,10 @@ it('exposes both receipt actions for any order type', () => {
     expect(html).toContain('Download PDF')
   }
 })
+
+it('prints mixed booking accessory snapshots in the existing receipt template', async () => {
+  const text = (await parse({ ...receiptFixture, number: 'GB123', source: 'booking', transaction_type: 'Booking',
+    items: [...receiptFixture.items, { description: 'Saved regulator', quantity: 2, rate_type: null, deposit_unit_amount: null, refill_unit_amount: null, unit_amount: '250.00', unit_label: 'Unit price', total_amount: '500.00' }],
+    subtotal: '2120.00', total_amount: '2060.00', balance_due: '1560.00' })).join(' ')
+  for (const value of ['Booking · GB123', 'Saved regulator', '₹500.00', '₹2,060.00']) expect(text).toContain(value)
+})

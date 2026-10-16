@@ -34,7 +34,7 @@ export function CartView({
   const [isEditingAddress, setIsEditingAddress] = useState(false)
   const { preview: pricingPreview, error: pricingError, isReady: pricingReady, reload: reloadPricing, displayAmount } = usePricingPreview(cartItems)
   const totalCount = cartItems.reduce((acc, item) => acc + item.quantity, 0)
-  const canProceed = pricingReady && cartItems.length > 0
+  const canProceed = pricingReady && cartItems.some(i => i.type === 'cylinder')
 
   const handleCheckout = () => {
     if (!canProceed) return
@@ -79,21 +79,9 @@ export function CartView({
               <div key={item.id} className="cart-product-card">
                 {/* Left: Product Image */}
                 <div className="cart-product-img-wrap">
-                  {item.type === 'cylinder' ? (
-                    <img src={getCylinderImage(item.name, item.variant)} className="cart-cylinder-img" alt={item.name} />
-                  ) : (
-                    <div className="cart-accessory-svg">
-                      <svg width="68" height="68" viewBox="0 0 100 100" fill="none">
-                        <path d="M22 68C18 52 28 36 48 36C70 36 82 50 82 66C82 78 68 84 48 84C32 84 22 76 22 68Z" stroke="#F97316" strokeWidth="9" strokeLinecap="round" />
-                        <ellipse cx="50" cy="52" rx="20" ry="14" fill="#1D4ED8" />
-                        <circle cx="50" cy="48" r="13" fill="#2563EB" />
-                        <circle cx="50" cy="46" r="6" fill="#3B82F6" />
-                        <circle cx="50" cy="46" r="2.5" fill="#FFFFFF" />
-                        <rect x="68" y="52" width="13" height="7" rx="2" fill="#1E293B" />
-                        <rect x="46" y="62" width="8" height="11" rx="2" fill="#1E293B" />
-                      </svg>
-                    </div>
-                  )}
+                  {item.type === 'cylinder' || item.image ? (
+                    <img src={item.type === 'accessory' ? item.image! : getCylinderImage(item.name, item.variant)} className="cart-cylinder-img" alt={item.name} />
+                  ) : <span>{item.variant}</span>}
                 </div>
 
                 {/* Center & Info */}
@@ -176,6 +164,7 @@ export function CartView({
 
             {/* Price Breakdown */}
             <div className="price-breakdown-section">
+          {!cartItems.some(i => i.type === 'cylinder') && <p>Add a cylinder to book these accessories with your delivery.</p>}
           <CartPricing items={cartItems} preview={pricingReady ? pricingPreview : null} onRateTypeChange={onRateTypeChange} />
               {pricingError && <PricingErrorNotice message={pricingError} onRetry={reloadPricing} />}
               <div className="price-row">

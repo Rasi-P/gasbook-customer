@@ -1,3 +1,6 @@
+import { useAccessories } from '../../hooks/useAccessories'
+import { CatalogTabs, AccessoryCard } from '../common/AccessoryCatalog'
+import type { Accessory } from '../../lib/products'
 import { useState } from 'react'
 import { getCylinderDisplay, getCylinderImage } from '../../lib/formatters'
 import { CYLINDERS_EMPTY_LABEL, CYLINDERS_LOADING_LABEL, useCylinderTypes } from '../../hooks/useCylinderTypes'
@@ -14,16 +17,20 @@ const catalogStatusCardStyle: React.CSSProperties = {
 }
 
 interface DesktopExploreViewProps {
+  onAddAccessory: (product: Accessory, quantity: number) => void
   onBook: (productName: string, price?: number, cylinderTypeId?: number, weight?: string | number) => void
   onNavigateToCart: () => void
 }
 
 export function DesktopExploreView({
   onBook,
+  onAddAccessory,
 }: DesktopExploreViewProps) {
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<'all' | 'cylinder' | 'connection'>('all')
+  const [selectedCategory, setSelectedCategory] = useState<'all' | 'cylinder' | 'accessory'>('all')
   const { cylinderTypes, isLoading: catalogLoading, error: catalogError, reload: reloadCatalog } = useCylinderTypes()
+
+  const accessories = useAccessories()
 
   const products = cylinderTypes.map((c) => {
     const display = getCylinderDisplay(c.name, c.weight)
@@ -44,6 +51,7 @@ export function DesktopExploreView({
   })
 
   const normalizedQuery = searchQuery.trim().toLowerCase()
+  const filteredAccessories = accessories.products.filter(p => selectedCategory !== 'cylinder' && `${p.name} ${p.description}`.toLowerCase().includes(normalizedQuery))
   const filteredProducts = products.filter((p) => {
     const matchesSearch =
       !normalizedQuery ||
@@ -133,48 +141,14 @@ export function DesktopExploreView({
         </div>
       </div>
 
-      {/* 2. Category Filter Tabs */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '28px' }}>
-        <button
-          onClick={() => setSelectedCategory('all')}
-          style={{
-            padding: '10px 24px',
-            borderRadius: '12px',
-            border: selectedCategory === 'all' ? '2px solid #1052be' : '1px solid #e2e8f0',
-            background: selectedCategory === 'all' ? '#eff6ff' : '#ffffff',
-            color: selectedCategory === 'all' ? '#1052be' : '#475569',
-            fontWeight: 700,
-            fontSize: '14px',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-          }}
-        >
-          All Products ({products.length})
-        </button>
-
-        <button
-          onClick={() => setSelectedCategory('cylinder')}
-          style={{
-            padding: '10px 24px',
-            borderRadius: '12px',
-            border: selectedCategory === 'cylinder' ? '2px solid #1052be' : '1px solid #e2e8f0',
-            background: selectedCategory === 'cylinder' ? '#eff6ff' : '#ffffff',
-            color: selectedCategory === 'cylinder' ? '#1052be' : '#475569',
-            fontWeight: 700,
-            fontSize: '14px',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-          }}
-        >
-          Gas Cylinders ({products.length})
-        </button>
-      </div>
-
+      <CatalogTabs value={selectedCategory} onChange={setSelectedCategory} cylinders={products.length} accessories={accessories.products.length} />
+      {selectedCategory !== 'cylinder' && accessories.loading && <p>Loading accessories…</p>}
+      {selectedCategory !== 'cylinder' && accessories.error && <p role="alert">{accessories.error} <button onClick={accessories.retry}>Retry</button></p>}
       {/* 3. Product Cards Grid */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))',
           gap: '24px',
           marginBottom: '48px',
         }}
@@ -192,13 +166,14 @@ export function DesktopExploreView({
               Retry
             </button>
           </div>
-        ) : products.length === 0 ? (
+        ) : products.length === 0 && filteredAccessories.length === 0 ? (
           <div style={catalogStatusCardStyle}>{CYLINDERS_EMPTY_LABEL}</div>
-        ) : filteredProducts.length === 0 ? (
+        ) : filteredProducts.length === 0 && filteredAccessories.length === 0 && !accessories.loading && !accessories.error ? (
           <div style={catalogStatusCardStyle}>
             {normalizedQuery ? `No products match "${searchQuery.trim()}"` : 'No products available in this category yet.'}
           </div>
         ) : null}
+          {filteredAccessories.map(product => <AccessoryCard key={`accessory-${product.id}`} product={product} onAdd={onAddAccessory} />)}
         {filteredProducts.map((prod) => (
           <div
             key={prod.id}

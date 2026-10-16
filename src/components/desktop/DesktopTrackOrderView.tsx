@@ -1,3 +1,4 @@
+import { BookingItems } from '../common/BookingItems'
 import { ReceiptActions } from '../receipt/ReceiptActions'
 import { PricingBreakdown } from '../common/PricingBreakdown'
 import { formatDateTime } from '../../lib/dateTime'
@@ -216,7 +217,7 @@ export function DesktopTrackOrderView({ bookingId, onBack }: DesktopTrackOrderVi
                   </span>
                 </div>
               </div>
-              <PricingBreakdown value={booking} />
+              {!booking.order_items?.length && <PricingBreakdown value={booking} />}
               {pricing?.hasDiscount && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#16a34a', fontWeight: 600, margin: '-8px 0 20px' }}>
                   <span>Discount Applied</span>
@@ -229,6 +230,7 @@ export function DesktopTrackOrderView({ bookingId, onBack }: DesktopTrackOrderVi
                 <strong style={{ color: '#1e293b', display: 'block', marginBottom: '4px' }}>Delivery Destination:</strong>
                 {booking.delivery_address || 'Registered Customer Address'}
               </div>
+              <BookingItems items={booking.order_items} />
               <ReceiptActions order={{ id: booking.id }} showDownload={false} />
             </div>
 

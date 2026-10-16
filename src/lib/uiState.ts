@@ -109,6 +109,7 @@ function isValidCartItem(value: unknown): value is CartItem {
   const item = value as Record<string, unknown>
   return (
     typeof item.id === 'string' &&
+    (item.type !== 'accessory' || (Number.isInteger(item.productId) && Number(item.productId) > 0)) &&
     typeof item.name === 'string' &&
     typeof item.variant === 'string' &&
     typeof item.unitPrice === 'number' &&

@@ -1,6 +1,7 @@
+import { placeCart } from '../../lib/products'
 import { CartPricing } from '../common/CartPricing'
 import { useState } from 'react'
-import { createBooking, getApiErrorDetails, type BookingRecord, type CustomerProfile } from '../../lib/auth'
+import { getApiErrorDetails, type BookingRecord, type CustomerProfile } from '../../lib/auth'
 import type { CartItem, ProfileUser } from '../../types'
 import { formatMoney, previewItemByCartId, previewUnitRates } from '../../lib/pricing'
 import { getCylinderImage } from '../../lib/formatters'
@@ -43,7 +44,7 @@ export function DesktopCheckoutView({
   const customerPhone = customerProfile?.phone?.trim() || ''
   const customerAddress = customerProfile?.address?.trim() || ''
   const hasValidAddress = Boolean(customerAddress)
-  const canConfirm = !submitting && hasValidAddress && pricingReady && cartItems.length > 0
+  const canConfirm = !submitting && hasValidAddress && pricingReady && cartItems.some(i => i.type === 'cylinder')
 
   const handlePlaceOrder = async () => {
     if (submitting || !canConfirm) return
@@ -51,25 +52,12 @@ export function DesktopCheckoutView({
     setError(null)
 
     try {
-      const bookingPromises = cartItems.map((item) => {
-        const payload = {
-          cylinder_type: item.cylinderTypeId || 1,
-          quantity: item.quantity || 1,
-          rate_type: item.rateType ?? "refill",
-          note: `Order via Customer Desktop Web (COD)`,
-          payment_method: 'COD',
-          payment_status: 'PENDING',
-          delivery_address: customerAddress,
-          delivery_phone: customerPhone,
-        }
-        return createBooking(payload)
-      })
-
-      const responses = await Promise.all(bookingPromises)
+      const responses = await placeCart(cartItems, customerAddress, customerPhone, pricingPreview!)
       onOrderCreated(responses)
     } catch (err: unknown) {
       const details = getApiErrorDetails(err, 'Unable to place order. Please try again.')
-      setError(details.message)
+      setError(err instanceof Error && !(err as { status?: number }).status ? err.message : details.message)
+      reloadPricing()
     } finally {
       setSubmitting(false)
     }
@@ -168,7 +156,7 @@ export function DesktopCheckoutView({
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                    <img src={getCylinderImage(item.name, item.variant)} alt={item.name} style={{ height: '44px', objectFit: 'contain' }} />
+                    <img src={item.type === 'accessory' ? (item.image || undefined) : getCylinderImage(item.name, item.variant)} alt={item.name} style={{ height: '44px', objectFit: 'contain' }} />
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span style={{ fontWeight: 700, fontSize: '14.5px', color: '#1e293b' }}>{item.name}</span>

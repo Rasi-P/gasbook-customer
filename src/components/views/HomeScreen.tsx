@@ -1,3 +1,4 @@
+import type { Accessory } from '../../lib/products'
 import { formatDateTime } from '../../lib/dateTime'
 import { useState, useEffect, useCallback } from 'react'
 import { type BookingRecord, type CustomerProfile } from '../../lib/auth'
@@ -231,11 +232,21 @@ export function HomeScreen({ userId, onLogout, customerProfile, onProfileUpdated
     navigateTo('cart')
   }
 
+  const handleAddAccessory = (product: Accessory, quantity: number) => {
+    setCartItems(prev => {
+      const existing = prev.find(i => i.type === 'accessory' && i.productId === product.id)
+      return existing ? prev.map(i => i.id === existing.id ? { ...i, quantity: i.quantity + quantity } : i) : [...prev, {
+        id: `accessory-${product.id}`, productId: product.id, name: product.name, variant: product.category,
+        image: product.image, unitPrice: Number(product.selling_price), quantity, type: 'accessory',
+      }]
+    })
+    navigateTo('cart')
+  }
+
   // Removed old handleOrderAgain, OrdersView will call handleBook directly
 
   const handleNavigateToCart = () => {
-    // Actually, "Cart" is deprecated in this flow. We'll map this back to home if called
-    navigateTo('home')
+    navigateTo('cart')
   }
 
   const handleOrderCreated = (bookings: BookingRecord[]) => {
@@ -253,6 +264,7 @@ export function HomeScreen({ userId, onLogout, customerProfile, onProfileUpdated
           {/* Render Tab Content based on activeTab */}
           {activeTab === 'explore' && (
             <ExploreView
+              onAddAccessory={handleAddAccessory}
               cartCount={cartCount}
               onBook={handleBook}
               onNavigateToCart={handleNavigateToCart}
@@ -366,6 +378,7 @@ export function HomeScreen({ userId, onLogout, customerProfile, onProfileUpdated
 
           {activeTab === 'explore' && (
             <DesktopExploreView
+              onAddAccessory={handleAddAccessory}
               onBook={handleBook}
               onNavigateToCart={() => navigateTo('cart')}
             />

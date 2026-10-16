@@ -1,6 +1,7 @@
+import { placeCart } from '../../lib/products'
 import { CartPricing } from '../common/CartPricing'
 import { useState } from 'react'
-import { createBooking, getApiErrorDetails, type BookingRecord, type CustomerProfile } from '../../lib/auth'
+import { getApiErrorDetails, type BookingRecord, type CustomerProfile } from '../../lib/auth'
 import type { CartItem, ProfileUser } from '../../types'
 import { previewItemByCartId } from '../../lib/pricing'
 import { getCylinderImage } from '../../lib/formatters'
@@ -41,7 +42,7 @@ export function CheckoutView({
   const customerPhone = customerProfile?.phone?.trim() || ''
   const customerAddress = customerProfile?.address?.trim() || ''
   const hasValidAddress = Boolean(customerAddress)
-  const canConfirm = !submitting && hasValidAddress && pricingReady && cartItems.length > 0
+  const canConfirm = !submitting && hasValidAddress && pricingReady && cartItems.some(i => i.type === 'cylinder')
 
   const handlePlaceOrder = async () => {
     if (submitting || !canConfirm) return
@@ -49,25 +50,12 @@ export function CheckoutView({
     setError(null)
 
     try {
-      const bookingPromises = cartItems.map((item) => {
-        const payload = {
-          cylinder_type: item.cylinderTypeId || 1,
-          quantity: item.quantity || 1,
-          rate_type: item.rateType ?? "refill",
-          note: `Order via Customer App (COD)`,
-          payment_method: 'COD',
-          payment_status: 'PENDING',
-          delivery_address: customerAddress,
-          delivery_phone: customerPhone,
-        }
-        return createBooking(payload)
-      })
-
-      const responses = await Promise.all(bookingPromises)
+      const responses = await placeCart(cartItems, customerAddress, customerPhone, pricingPreview!)
       onOrderCreated(responses)
     } catch (err: unknown) {
       const details = getApiErrorDetails(err, 'Unable to place order. Please try again.')
-      setError(details.message)
+      setError(err instanceof Error && !(err as { status?: number }).status ? err.message : details.message)
+      reloadPricing()
     } finally {
       setSubmitting(false)
     }
@@ -126,7 +114,7 @@ export function CheckoutView({
                 {idx > 0 && <div style={{ borderTop: '1px solid #F1F5F9', margin: '0 0 16px 0' }} />}
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <div style={{ width: '60px', height: '60px', background: '#F8FAFC', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
-                    <img src={getCylinderImage(item.name, item.variant)} alt={item.name} style={{ width: '40px', objectFit: 'contain' }} />
+                    <img src={item.type === 'accessory' ? (item.image || undefined) : getCylinderImage(item.name, item.variant)} alt={item.name} style={{ width: '40px', objectFit: 'contain' }} />
                   </div>
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>

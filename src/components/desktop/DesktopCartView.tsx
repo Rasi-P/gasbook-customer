@@ -35,7 +35,7 @@ export function DesktopCartView({
 
   const { preview: pricingPreview, error: pricingError, isReady: pricingReady, reload: reloadPricing, displayAmount } = usePricingPreview(cartItems)
   const totalCount = cartItems.reduce((acc, item) => acc + item.quantity, 0)
-  const canProceed = pricingReady && cartItems.length > 0
+  const canProceed = pricingReady && cartItems.some(i => i.type === 'cylinder')
 
   const deliveryName = customerProfile?.name?.trim() || customerProfile?.full_name?.trim() || 'Customer'
   const deliveryAddress = customerProfile?.address?.trim() || 'Add your delivery address'
@@ -102,7 +102,7 @@ export function DesktopCartView({
                     flexShrink: 0,
                   }}
                 >
-                  <img src={getCylinderImage(item.name, item.variant)} alt={item.name} style={{ height: '60px', objectFit: 'contain' }} />
+                  <img src={item.type === 'accessory' ? (item.image || undefined) : getCylinderImage(item.name, item.variant)} alt={item.name} style={{ height: '60px', objectFit: 'contain' }} />
                 </div>
 
                 {/* Product Info */}
@@ -241,6 +241,7 @@ export function DesktopCartView({
                 Order Summary
               </h3>
 
+          {!cartItems.some(i => i.type === 'cylinder') && <p>Add a cylinder to book these accessories with your delivery.</p>}
           <CartPricing items={cartItems} preview={pricingReady ? pricingPreview : null} onRateTypeChange={onRateTypeChange} />
               {pricingError && <PricingErrorNotice message={pricingError} onRetry={reloadPricing} compact />}
 

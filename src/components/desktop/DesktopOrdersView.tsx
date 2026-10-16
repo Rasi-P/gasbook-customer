@@ -1,3 +1,4 @@
+import { BookingItems } from '../common/BookingItems'
 import { ReceiptActions } from '../receipt/ReceiptActions'
 import { OrderPricingBreakdown } from '../common/PricingBreakdown'
 import { mapHistoryOrder } from '../../lib/orderHistory'
@@ -192,7 +193,7 @@ export function DesktopOrdersView({
                 </div>
 
                 <OrderHistoryEvents order={order.rawBooking} />
-              <OrderPricingBreakdown order={order.rawBooking} />
+              {order.rawBooking?.order_items?.length ? <BookingItems items={order.rawBooking.order_items} /> : <OrderPricingBreakdown order={order.rawBooking} />}
                 {/* Body: Cylinder details */}
                 <div className="desktop-order-body">
                   <div className="desktop-order-img-wrap">

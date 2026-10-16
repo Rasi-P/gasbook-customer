@@ -68,7 +68,7 @@ export function ReceiptDocument({ receipt: r, logo }: { receipt: ReceiptData; lo
         {r.customer.address && <Text>{r.customer.address}</Text>}
       </View>
       <View style={styles.tableHead} minPresenceAhead={65}>
-        <Text style={styles.description}>Cylinder / pricing</Text><Text style={styles.quantity}>Qty</Text>
+        <Text style={styles.description}>Item / pricing</Text><Text style={styles.quantity}>Qty</Text>
         <Text style={styles.unit}>Unit (INR)</Text><Text style={styles.amount}>Net amount</Text>
       </View>
       {r.items.map((item, index) => <View key={index} style={styles.line} wrap={false}>

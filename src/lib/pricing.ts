@@ -13,9 +13,8 @@ export function buildBookingPreviewPayload(cartItems: CartItem[]) {
   return {
     items: cartItems.map((item) => ({
       client_item_id: item.id,
-      cylinder_type: item.cylinderTypeId || 1,
+      ...(item.type === 'accessory' ? { product: item.productId } : { cylinder_type: item.cylinderTypeId || 1, rate_type: item.rateType ?? "refill" }),
       quantity: item.quantity || 1,
-      rate_type: item.rateType ?? "refill",
     })),
   }
 }

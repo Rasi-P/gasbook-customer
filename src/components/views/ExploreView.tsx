@@ -1,9 +1,13 @@
+import { useAccessories } from '../../hooks/useAccessories'
+import { CatalogTabs, AccessoryCard } from '../common/AccessoryCatalog'
+import type { Accessory } from '../../lib/products'
 import { useState } from 'react'
 import { getCylinderDisplay, getCylinderImage } from '../../lib/formatters'
 import { CYLINDERS_EMPTY_LABEL, CYLINDERS_LOADING_LABEL, useCylinderTypes } from '../../hooks/useCylinderTypes'
 
 interface ExploreViewProps {
   cartCount: number
+  onAddAccessory: (product: Accessory, quantity: number) => void
   onBook: (productName: string, price?: number, cylinderTypeId?: number, weight?: string | number) => void
   onNavigateToCart: () => void
 }
@@ -11,11 +15,14 @@ interface ExploreViewProps {
 export function ExploreView({
   cartCount,
   onBook,
+  onAddAccessory,
   onNavigateToCart,
 }: ExploreViewProps) {
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<'all' | 'cylinder' | 'connection'>('all')
+  const [selectedCategory, setSelectedCategory] = useState<'all' | 'cylinder' | 'accessory'>('all')
   const { cylinderTypes, isLoading: catalogLoading, error: catalogError, reload: reloadCatalog } = useCylinderTypes()
+
+  const accessories = useAccessories()
 
   const products = cylinderTypes.map((c) => {
     const display = getCylinderDisplay(c.name, c.weight)
@@ -36,6 +43,7 @@ export function ExploreView({
   })
 
   const normalizedQuery = searchQuery.trim().toLowerCase()
+  const filteredAccessories = accessories.products.filter(p => selectedCategory !== 'cylinder' && `${p.name} ${p.description}`.toLowerCase().includes(normalizedQuery))
   const filteredProducts = products.filter((p) => {
     // An empty query matches everything; otherwise match name, display title or badge.
     const matchesSearch =
@@ -82,67 +90,9 @@ export function ExploreView({
         )}
       </div>
 
-      {/* 3. Categories (ONLY 2 CATEGORIES) */}
-      <div className="explore-categories-section">
-        <div className="section-header">
-          <h2 className="section-title">Categories</h2>
-          <button className="view-all-btn" onClick={() => setSelectedCategory('all')}>
-            <span>View all</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="5" y1="12" x2="19" y2="12" />
-              <polyline points="12 5 19 12 12 19" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="categories-two-grid">
-          {/* Category 1: Gas Cylinder */}
-          <div
-            className={`category-card cylinder-category ${selectedCategory === 'cylinder' ? 'selected' : ''}`}
-            onClick={() => setSelectedCategory(selectedCategory === 'cylinder' ? 'all' : 'cylinder')}
-            role="button"
-            tabIndex={0}
-          >
-            <div className="category-img-wrapper">
-              <img src={getCylinderImage()} className="category-cylinder-img" alt="Gas Cylinder" />
-            </div>
-            <span className="category-name">Gas Cylinder</span>
-          </div>
-
-          {/* Category 2: New Connection */}
-          <div
-            className={`category-card connection-category ${selectedCategory === 'connection' ? 'selected' : ''}`}
-            onClick={() => setSelectedCategory(selectedCategory === 'connection' ? 'all' : 'connection')}
-            role="button"
-            tabIndex={0}
-          >
-            <div className="category-img-wrapper">
-              <svg width="68" height="68" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                {/* Clipboard body */}
-                <rect x="22" y="24" width="56" height="68" rx="8" fill="#FFFFFF" stroke="#3B82F6" strokeWidth="4" />
-                {/* Clipboard clip */}
-                <rect x="36" y="16" width="28" height="14" rx="4" fill="#3B82F6" />
-                <circle cx="50" cy="23" r="3" fill="#FFFFFF" />
-                {/* Checklist lines with checkmarks */}
-                <path d="M32 40L36 44L44 36" stroke="#2563EB" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                <line x1="48" y1="40" x2="68" y2="40" stroke="#93C5FD" strokeWidth="3.5" strokeLinecap="round" />
-                
-                <path d="M32 54L36 58L44 50" stroke="#2563EB" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                <line x1="48" y1="54" x2="68" y2="54" stroke="#93C5FD" strokeWidth="3.5" strokeLinecap="round" />
-                
-                <path d="M32 68L36 72L44 64" stroke="#2563EB" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                <line x1="48" y1="68" x2="68" y2="68" stroke="#93C5FD" strokeWidth="3.5" strokeLinecap="round" />
-                
-                {/* Blue verified badge */}
-                <circle cx="70" cy="74" r="14" fill="#1D4ED8" />
-                <path d="M64 74L68 78L76 70" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-            <span className="category-name">New Connection</span>
-          </div>
-        </div>
-      </div>
-
+      <CatalogTabs value={selectedCategory} onChange={setSelectedCategory} cylinders={products.length} accessories={accessories.products.length} />
+      {selectedCategory !== 'cylinder' && accessories.loading && <p>Loading accessories…</p>}
+      {selectedCategory !== 'cylinder' && accessories.error && <p role="alert">{accessories.error} <button onClick={accessories.retry}>Retry</button></p>}
       {/* 4. Quick Book Section */}
       <div className="quick-book-section">
         <div className="quick-book-header">
@@ -155,6 +105,7 @@ export function ExploreView({
 
         {/* 2-Column Product Grid */}
         <div className="products-grid">
+          {filteredAccessories.map(product => <AccessoryCard key={`accessory-${product.id}`} product={product} onAdd={onAddAccessory} />)}
           {filteredProducts.map((prod) => (
             <div key={prod.id} className="product-card">
               {prod.isPopular && (
@@ -198,11 +149,11 @@ export function ExploreView({
                 Retry
               </button>
             </div>
-          ) : products.length === 0 ? (
+          ) : products.length === 0 && filteredAccessories.length === 0 ? (
             <div className="no-products-found">
               <p>{CYLINDERS_EMPTY_LABEL}</p>
             </div>
-          ) : filteredProducts.length === 0 ? (
+          ) : filteredProducts.length === 0 && filteredAccessories.length === 0 && !accessories.loading && !accessories.error ? (
             <div className="no-products-found">
               <p>{normalizedQuery ? `No products match "${searchQuery.trim()}"` : 'No products available in this category yet.'}</p>
             </div>

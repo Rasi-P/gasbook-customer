@@ -47,6 +47,7 @@ export interface CustomerProfile {
 }
 
 export interface BookingRecord extends PricingSnapshot {
+  order_items?: import('./products').BookingItem[]
   id: number
   order_id: string
   cylinder_type: number
@@ -92,6 +93,7 @@ export interface BookingPreviewItem extends PricingSnapshot {
 }
 
 export interface BookingPreviewResponse {
+  quote?: string
   items: BookingPreviewItem[]
   summary: {
     original_amount: string
@@ -505,7 +507,7 @@ export async function createBooking(payload: Record<string, unknown>): Promise<B
 }
 
 export async function previewBookings(payload: {
-  items: Array<{ client_item_id?: string; cylinder_type: number; quantity: number; rate_type?: "new" | "refill" }>
+  items: Array<{ client_item_id?: string; cylinder_type?: number; product?: number; quantity: number; rate_type?: "new" | "refill" }>
 }): Promise<BookingPreviewResponse> {
   return request<BookingPreviewResponse>('/bookings/preview/', {
     method: 'POST',

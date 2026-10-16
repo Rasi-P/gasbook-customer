@@ -1,3 +1,4 @@
+import { BookingItems } from '../common/BookingItems'
 import { ReceiptActions } from '../receipt/ReceiptActions'
 import { PricingBreakdown } from '../common/PricingBreakdown'
 import { formatDateTime } from '../../lib/dateTime'
@@ -155,14 +156,15 @@ export function TrackOrderView({ bookingId, onBack }: TrackOrderViewProps) {
                 <div style={{ fontWeight: 600, color: '#1E293B', fontSize: '0.95rem' }}>₹{booking.final_amount || booking.total_amount || 0}</div>
               </div>
             </div>
-            <PricingBreakdown value={booking} />
+            {!booking.order_items?.length && <PricingBreakdown value={booking} />}
             {Number(booking.discount_amount || 0) > 0 && (
               <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px dashed #E2E8F0', display: 'flex', justifyContent: 'space-between', color: '#16a34a', fontSize: '0.88rem', fontWeight: 600 }}>
                 <span>Discount Applied</span>
                 <span>- ₹{booking.discount_amount}</span>
               </div>
             )}
-            <ReceiptActions order={{ id: booking.id }} showDownload={false} />
+            <BookingItems items={booking.order_items} />
+              <ReceiptActions order={{ id: booking.id }} showDownload={false} />
           </div>
 
           {/* Timeline Card */}
