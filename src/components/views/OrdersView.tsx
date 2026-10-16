@@ -1,3 +1,4 @@
+import '../../styles/orderCards.css'
 import { BookingItems } from '../common/BookingItems'
 import { ReceiptActions } from '../receipt/ReceiptActions'
 import { OrderPricingBreakdown } from '../common/PricingBreakdown'
@@ -166,8 +167,8 @@ export function OrdersView({
                 <span className="order-card-date">{order.date}</span>
               </div>
 
-              <OrderHistoryEvents order={order.rawBooking} />
-              {order.rawBooking?.order_items?.length ? <BookingItems items={order.rawBooking.order_items} /> : <OrderPricingBreakdown order={order.rawBooking} />}
+              <div className="history-card-content" tabIndex={0} aria-label={`${order.orderNumber} information`}>
+                <OrderHistoryEvents order={order.rawBooking} />
               <div className="order-card-main">
                 <div className="order-cylinder-wrap">
                   <img src={getCylinderImage(order.productName, order.weight)} className="order-cylinder-img" alt={order.productName} />
@@ -175,6 +176,11 @@ export function OrdersView({
 
                 <div className="order-info-center">
                   <h3 className="order-product-name">{order.productName}</h3>
+                    {order.rawBooking?.order_items?.some((item: { type: string }) => item.type === 'accessory') && (
+                      <p className="history-card-accessories" title={order.rawBooking.order_items.filter((item: { type: string }) => item.type === 'accessory').map((item: { name: string; quantity: number }) => `${item.quantity} × ${item.name}`).join(', ')}>
+                        + {order.rawBooking.order_items.filter((item: { type: string }) => item.type === 'accessory').map((item: { name: string; quantity: number }) => `${item.quantity} × ${item.name}`).join(', ')}
+                      </p>
+                    )}
                   <span className="order-weight-badge">{order.weight}</span>
                   {order.originalPrice && (
                     <span className="order-price-tag" style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '0.82rem' }}>{order.originalPrice}</span>
@@ -182,6 +188,14 @@ export function OrdersView({
                   <span className="order-price-tag">{order.price}</span>
                 </div>
 
+              </div>
+
+                {(order.rawBooking?.order_items?.length || order.rawBooking?.items?.length || order.rawBooking?.rate_type) && (
+                  <details className="history-card-details">
+                    <summary>Items &amp; pricing{order.rawBooking?.order_items?.length ? ` (${order.rawBooking.order_items.length})` : ''}</summary>
+                    {order.rawBooking?.order_items?.length ? <BookingItems items={order.rawBooking.order_items} /> : <OrderPricingBreakdown order={order.rawBooking} />}
+                  </details>
+                )}
                 <div className="order-status-action-right">
                   <div className={`status-pill ${order.statusCode === 'pending' ? 'pending' : order.status}`}>
                     <span>{order.statusLabel}</span>
@@ -191,6 +205,10 @@ export function OrdersView({
                     <span>{order.etaOrDate}</span>
                   </div>
 
+                </div>
+              </div>
+              <div className="history-card-footer">
+                <div className="history-card-mobile-actions">
                   {order.statusCode === 'cancelled' && order.rawBooking?.history_source === 'sale' ? (
                     <div
                       className="order-action-outline-btn"
@@ -242,8 +260,8 @@ export function OrdersView({
                     </button>
                   )}
                 </div>
-              </div>
               <ReceiptActions order={order.rawBooking} />
+              </div>
             </div>
           ))}
           

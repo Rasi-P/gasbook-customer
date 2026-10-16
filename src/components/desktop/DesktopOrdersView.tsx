@@ -1,3 +1,4 @@
+import '../../styles/orderCards.css'
 import { BookingItems } from '../common/BookingItems'
 import { ReceiptActions } from '../receipt/ReceiptActions'
 import { OrderPricingBreakdown } from '../common/PricingBreakdown'
@@ -192,8 +193,8 @@ export function DesktopOrdersView({
                   <span className="desktop-order-date">{order.date}</span>
                 </div>
 
+                <div className="history-card-content" tabIndex={0} aria-label={`${order.orderNumber} information`}>
                 <OrderHistoryEvents order={order.rawBooking} />
-              {order.rawBooking?.order_items?.length ? <BookingItems items={order.rawBooking.order_items} /> : <OrderPricingBreakdown order={order.rawBooking} />}
                 {/* Body: Cylinder details */}
                 <div className="desktop-order-body">
                   <div className="desktop-order-img-wrap">
@@ -201,6 +202,11 @@ export function DesktopOrdersView({
                   </div>
                   <div className="desktop-order-info">
                     <h4 className="desktop-order-name">{order.productName}</h4>
+                    {order.rawBooking?.order_items?.some((item: { type: string }) => item.type === 'accessory') && (
+                      <p className="history-card-accessories" title={order.rawBooking.order_items.filter((item: { type: string }) => item.type === 'accessory').map((item: { name: string; quantity: number }) => `${item.quantity} × ${item.name}`).join(', ')}>
+                        + {order.rawBooking.order_items.filter((item: { type: string }) => item.type === 'accessory').map((item: { name: string; quantity: number }) => `${item.quantity} × ${item.name}`).join(', ')}
+                      </p>
+                    )}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                       <span style={{ background: '#eff6ff', color: '#1d4ed8', fontSize: '11.5px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px' }}>
                         {order.weight}
@@ -214,6 +220,12 @@ export function DesktopOrdersView({
                   </div>
                 </div>
 
+                {(order.rawBooking?.order_items?.length || order.rawBooking?.items?.length || order.rawBooking?.rate_type) && (
+                  <details className="history-card-details">
+                    <summary>Items &amp; pricing{order.rawBooking?.order_items?.length ? ` (${order.rawBooking.order_items.length})` : ''}</summary>
+                    {order.rawBooking?.order_items?.length ? <BookingItems items={order.rawBooking.order_items} /> : <OrderPricingBreakdown order={order.rawBooking} />}
+                  </details>
+                )}
                 {/* Status description for non-rejected orders */}
                 {order.statusCode !== 'rejected' && (
                   <div style={{ fontSize: '13px', color: '#64748b', background: '#f8fafc', padding: '10px 14px', borderRadius: '10px' }}>
@@ -221,6 +233,8 @@ export function DesktopOrdersView({
                   </div>
                 )}
 
+                </div>
+                <div className="history-card-footer">
                 {/* Actions */}
                 <div className="desktop-order-actions">
                   {order.statusCode === 'rejected' ? (
@@ -371,6 +385,7 @@ export function DesktopOrdersView({
                   )}
                 </div>
                 <ReceiptActions order={order.rawBooking} />
+                </div>
               </div>
             ))}
           </div>

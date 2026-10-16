@@ -1,0 +1,63 @@
+/* Keep the list scannable; long item details scroll without moving the actions. */
+.desktop-orders-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.desktop-order-card, .order-item-card {
+  box-sizing: border-box;
+  height: 480px;
+  min-width: 0;
+}
+.desktop-order-top, .order-card-top { flex-shrink: 0; }
+.desktop-order-top > div { flex-wrap: wrap; }
+.history-card-content {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+  scrollbar-width: thin;
+  padding-right: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.history-card-content > * { flex-shrink: 0; }
+.history-card-content:focus-visible, .history-card-details summary:focus-visible {
+  outline: 2px solid #1457b8;
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+.history-card-content .desktop-order-body, .history-card-content .order-card-main { align-items: flex-start; }
+.history-card-content .desktop-order-info, .history-card-content .order-info-center { min-width: 0; }
+.history-card-accessories {
+  margin: 4px 0 6px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.history-card-details {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+.history-card-details summary { cursor: pointer; color: #174b96; font-weight: 600; }
+.history-card-details[open] summary { margin-bottom: 12px; }
+.history-card-details .booking-item-list { margin: 0; }
+.history-card-footer { flex-shrink: 0; min-width: 0; margin-top: auto; }
+.history-card-footer .desktop-order-actions { min-height: 54px; box-sizing: border-box; }
+.history-card-footer .desktop-order-actions button { min-height: 40px; }
+.history-card-footer .receipt-actions { margin-top: 12px; }
+.history-card-footer .receipt-actions > button { flex: 1; min-height: 40px; }
+.history-card-footer .receipt-actions > [role] { max-height: 44px; overflow-y: auto; }
+.history-card-content .order-status-action-right { width: 100%; min-width: 0; align-items: flex-start; }
+.history-card-mobile-actions { border-top: 1px solid #f1f5f9; padding-top: 12px; }
+.history-card-mobile-actions > div { width: 100%; }
+.history-card-mobile-actions button { flex: 1; min-height: 40px; }
+.history-card-mobile-actions > button { width: 100%; }
+@media (max-width: 767px) {
+  .history-card-footer .receipt-actions > button { padding: 10px 8px; font-size: 12px; }
+  .history-card-mobile-actions .order-action-outline-btn { padding: 8px; }
+}
