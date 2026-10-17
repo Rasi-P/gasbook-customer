@@ -6,7 +6,19 @@ import '../../styles/receipt.css'
 
 const ReceiptPreview = lazy(() => import('./ReceiptPreview'))
 
-export function ReceiptActions({ order, showDownload = true }: { order: { id: number; history_source?: string; source_id?: number }; showDownload?: boolean }) {
+type ReceiptActionsProps = {
+  order: { id: number; history_source?: string; source_id?: number; status?: string }
+  showDownload?: boolean
+}
+
+export function ReceiptActions(props: ReceiptActionsProps) {
+  // Direct sales do not have a delivery lifecycle. Booking receipts become
+  // available only after delivery, on both history and tracking screens.
+  if (props.order.history_source !== 'sale' && props.order.status !== 'delivered') return null
+  return <AvailableReceiptActions {...props} />
+}
+
+function AvailableReceiptActions({ order, showDownload = true }: ReceiptActionsProps) {
   const target = receiptTarget(order)
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)

@@ -38,10 +38,10 @@ try {
     await page.setViewportSize({ width, height: 900 })
     await page.evaluate(width => window.renderConfirmation(width >= 768), width)
     await expect(page.getByRole('region', { name: 'Payment summary' })).toContainText('₹4,548')
-    await expect(page.locator('.order-confirmation__item')).toHaveCount(3)
+    await expect(page.locator('.order-items__item')).toHaveCount(3)
     await expect(page.locator('.pricing-components').first()).not.toBeVisible()
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `Overflow at ${width}`)
-    const amounts = await page.locator('.order-confirmation__item-row > strong').evaluateAll(nodes => nodes.map(node => node.getBoundingClientRect().right))
+    const amounts = await page.locator('.order-items__item-row > strong').evaluateAll(nodes => nodes.map(node => node.getBoundingClientRect().right))
     assert.ok(Math.max(...amounts) - Math.min(...amounts) < 1, `Misaligned item amounts at ${width}`)
     await page.screenshot({ path: `/private/tmp/customer-confirmation-${width}.png`, fullPage: true })
   }

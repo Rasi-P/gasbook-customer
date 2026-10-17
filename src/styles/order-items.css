@@ -1,0 +1,10 @@
+.order-items__item { padding: 14px 0; border-bottom: 1px solid #edf1f6; }
+.order-items__item-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: start; }
+.order-items__item-row h3 { font-size: 14px; line-height: 1.45; margin: 0 0 4px; font-weight: 600; overflow-wrap: anywhere; }
+.order-items__item-row > strong { font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.order-items__item-type { font-size: 11px; color: #475569; background: #f1f5f9; border-radius: 4px; padding: 2px 6px; }
+.order-items__item-row p { color: #64748b; font-size: 12px; margin: 6px 0 0; line-height: 1.5; }
+.order-items__breakdown { margin-top: 6px; font-size: 12px; }
+.order-items__breakdown summary { width: fit-content; padding: 8px 0; color: #1052be; cursor: pointer; }
+.order-items__breakdown .pricing-components { padding: 12px; border-radius: 8px; background: #f8fafc; text-align: left; }
+@media (max-width: 374px) { .order-items__item-row { gap: 10px; } }

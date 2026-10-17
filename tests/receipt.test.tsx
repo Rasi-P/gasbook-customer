@@ -111,12 +111,19 @@ it('keeps booking/sale IDs distinct and creates a safe meaningful download filen
   expect(receiptFilename('../GB/32')).not.toContain('/')
 })
 
-it('exposes both receipt actions for any order type', () => {
+it('exposes receipt actions for delivered bookings and direct sales', () => {
   for (const source of ['sale', 'booking']) {
-    const html = renderToStaticMarkup(<ReceiptActions order={{ id: 32, history_source: source }} />)
+    const html = renderToStaticMarkup(<ReceiptActions order={{ id: 32, history_source: source, status: 'delivered' }} />)
     expect(html).toContain('View Receipt')
     expect(html).toContain('Download PDF')
   }
+})
+
+it('hides booking receipt actions until successful delivery', () => {
+  for (const status of [undefined, 'pending', 'approved', 'assigned', 'accepted', 'out_for_delivery', 'cancelled', 'rejected']) {
+    expect(renderToStaticMarkup(<ReceiptActions order={{ id: 32, status }} />)).toBe('')
+  }
+  expect(renderToStaticMarkup(<ReceiptActions order={{ id: 33, history_source: 'sale', status: 'completed' }} />)).toContain('View Receipt')
 })
 
 it('prints mixed booking accessory snapshots in the existing receipt template', async () => {
