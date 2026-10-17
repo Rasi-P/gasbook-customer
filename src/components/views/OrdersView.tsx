@@ -1,4 +1,5 @@
 import { PaymentSummary } from '../common/PaymentSummary'
+import { OutstandingBalance } from '../common/OutstandingBalance'
 import '../../styles/orderCards.css'
 import { BookingItems } from '../common/BookingItems'
 import { ReceiptActions } from '../receipt/ReceiptActions'
@@ -122,11 +123,14 @@ export function OrdersView({
       </div>
 
       {/* 2. Filter Tabs */}
+      <div className="order-filter-bar">
       <div className="filter-tabs-row">
         <button className={`filter-tab-btn ${selectedFilter === 'all' ? 'active' : ''}`} onClick={() => handleFilterClick('all')}>All</button>
         <button className={`filter-tab-btn ${selectedFilter === 'ongoing' ? 'active' : ''}`} onClick={() => handleFilterClick('ongoing')}>Ongoing</button>
         <button className={`filter-tab-btn ${selectedFilter === 'completed' ? 'active' : ''}`} onClick={() => handleFilterClick('completed')}>Completed</button>
         <button className={`filter-tab-btn ${selectedFilter === 'cancelled' ? 'active' : ''}`} onClick={() => handleFilterClick('cancelled')}>Cancelled</button>
+      </div>
+      <OutstandingBalance />
       </div>
 
       <div style={{ padding: '0 16px', marginBottom: '16px' }}>

@@ -1,0 +1,13 @@
+.order-filter-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-bottom: 20px; min-width: 0; }
+.order-filter-bar > .desktop-filter-pills { flex-wrap: wrap; min-width: 0; }
+.order-filter-bar > .filter-tabs-row { flex: 1 1 360px; width: auto; min-width: 0; }
+.outstanding-balance {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin-left: auto; color: #64748b; min-width: 0; max-width: 100%; font-size: 13px; line-height: 1.5;
+}
+.outstanding-balance strong { font-size: 14px; font-weight: 600; color: #334155; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.outstanding-balance__error { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.outstanding-balance__error button { padding: 8px 4px; border: 0; background: transparent; color: #174b96; text-decoration: underline; cursor: pointer; }
+.history-card-details.payment-summary--due { background: #fff1f2; border: 1px solid #fecaca; }
+.history-card-details.payment-summary--due summary,
+.payment-summary--due .payment-summary__balance { color: #b91c1c; }

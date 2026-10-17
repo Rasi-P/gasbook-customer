@@ -1,4 +1,5 @@
 import { PaymentSummary } from '../common/PaymentSummary'
+import { OutstandingBalance } from '../common/OutstandingBalance'
 import '../../styles/orderCards.css'
 import { BookingItems } from '../common/BookingItems'
 import { ReceiptActions } from '../receipt/ReceiptActions'
@@ -111,7 +112,8 @@ export function DesktopOrdersView({
       </div>
 
       {/* Filter Tabs */}
-      <div className="desktop-filter-pills" style={{ marginBottom: '28px' }}>
+      <div className="order-filter-bar">
+      <div className="desktop-filter-pills">
         <button
           className={`desktop-filter-pill ${selectedFilter === 'all' ? 'active' : ''}`}
           onClick={() => handleFilterClick('all')}
@@ -136,6 +138,8 @@ export function DesktopOrdersView({
         >
           Cancelled / Rejected
         </button>
+      </div>
+      <OutstandingBalance />
       </div>
 
       {/* 2. Orders Content */}
