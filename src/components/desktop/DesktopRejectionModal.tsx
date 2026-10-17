@@ -33,7 +33,7 @@ export function DesktopRejectionModal({
 
   return (
     <div className="desktop-modal-backdrop" onClick={onClose}>
-      <div className="desktop-modal-dialog" onClick={(e) => e.stopPropagation()}>
+      <div className="desktop-modal-dialog" role="dialog" aria-modal="true" aria-label="Rejection Details" style={{ maxHeight: 'calc(100dvh - 48px)', overflowY: 'auto', overflowWrap: 'anywhere', minWidth: 0, boxSizing: 'border-box' }} onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div
           style={{
@@ -70,6 +70,7 @@ export function DesktopRejectionModal({
             </div>
           </div>
           <button
+            aria-label="Close rejection details"
             onClick={onClose}
             style={{
               background: '#f1f5f9',
@@ -102,7 +103,7 @@ export function DesktopRejectionModal({
           }}
         >
           <img src={getCylinderImage(order.productName, order.weight)} alt="" style={{ height: '40px', objectFit: 'contain' }} />
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 700, fontSize: '14px', color: '#1e293b' }}>{order.productName}</div>
             <div style={{ fontSize: '12px', color: '#64748b' }}>
               {order.weight} •{' '}
@@ -155,6 +156,8 @@ export function DesktopRejectionModal({
               color: '#1e293b',
               lineHeight: 1.5,
               fontWeight: 500,
+              whiteSpace: 'pre-wrap',
+              overflowWrap: 'anywhere',
             }}
           >
             {rejectionReason}

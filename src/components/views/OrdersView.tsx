@@ -327,11 +327,11 @@ export function OrdersView({
 
       {/* Rejection Details Bottom Sheet */}
       {selectedRejectionOrder && (
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2000, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', animation: 'fadeIn 0.2s ease-out' }}>
-          <div style={{ background: '#fff', width: '100%', padding: '24px', borderTopLeftRadius: '20px', borderTopRightRadius: '20px', animation: 'slideUp 0.3s ease-out', boxShadow: '0 -10px 40px rgba(0,0,0,0.1)', boxSizing: 'border-box' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2000, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', animation: 'fadeIn 0.2s ease-out' }}>
+          <div role="dialog" aria-modal="true" aria-label="Rejection Details" style={{ background: '#fff', width: '100%', maxHeight: 'calc(100dvh - 24px)', overflowY: 'auto', overflowWrap: 'anywhere', minHeight: 0, padding: '24px', paddingBottom: 'calc(24px + env(safe-area-inset-bottom))', borderTopLeftRadius: '20px', borderTopRightRadius: '20px', animation: 'slideUp 0.3s ease-out', boxShadow: '0 -10px 40px rgba(0,0,0,0.1)', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>Rejection Details</h2>
-              <button onClick={() => setSelectedRejectionOrder(null)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#64748b' }}>✕</button>
+              <button aria-label="Close rejection details" onClick={() => setSelectedRejectionOrder(null)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#64748b' }}>✕</button>
             </div>
             
             <div style={{ marginBottom: '16px' }}>
@@ -342,7 +342,7 @@ export function OrdersView({
             <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', marginBottom: '24px' }}>
               <div style={{ marginBottom: '12px' }}>
                 <div style={{ fontSize: '12px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '4px' }}>Reason</div>
-                <div style={{ fontSize: '15px', color: '#1e293b' }}>{selectedRejectionOrder.rawBooking.rejection_reason || 'No reason provided'}</div>
+                <div style={{ fontSize: '15px', color: '#1e293b', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', lineHeight: 1.5 }}>{selectedRejectionOrder.rawBooking.rejection_reason || 'No reason provided'}</div>
               </div>
               <div>
                 <div style={{ fontSize: '13px', color: '#94a3b8' }}>
