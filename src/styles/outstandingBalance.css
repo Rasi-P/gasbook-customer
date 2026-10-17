@@ -8,6 +8,12 @@
 .outstanding-balance strong { font-size: 14px; font-weight: 600; color: #334155; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .outstanding-balance__error { display: flex; align-items: center; gap: 10px; font-size: 13px; }
 .outstanding-balance__error button { padding: 8px 4px; border: 0; background: transparent; color: #174b96; text-decoration: underline; cursor: pointer; }
+.orders-header--balance { gap: 8px; }
+.orders-header--balance .orders-title,
+.orders-header--balance .orders-notification-btn { flex-shrink: 0; }
+.orders-header--balance .outstanding-balance { flex: 1; flex-direction: column; align-items: flex-end; gap: 0; text-align: right; line-height: 1.4; }
+.orders-header--balance .outstanding-balance > span:first-child { font-size: 11px; }
+.orders-header--balance .outstanding-balance__error { flex-wrap: wrap; justify-content: flex-end; gap: 0 6px; }
 .history-card-details.payment-summary--due { background: #fff1f2; border: 1px solid #fecaca; }
 .history-card-details.payment-summary--due summary,
 .payment-summary--due .payment-summary__balance { color: #b91c1c; }

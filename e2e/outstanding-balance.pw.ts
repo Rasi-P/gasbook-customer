@@ -26,19 +26,26 @@ test('account outstanding stays independent of history pages and filters on mobi
   await page.goto('/#orders')
   const summary = page.getByRole('region', { name: 'Total outstanding' }).filter({ visible: true })
   await expect(summary).toContainText('₹1,720.50')
-  for (const width of [320, 375, 390, 414, 768, 1024, 1440]) {
+  for (const width of [320, 375, 390, 402, 414, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
     await expect(summary).toContainText('₹1,720.50')
     await expect(summary).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
     await expect(summary.locator('strong')).toHaveCSS('font-size', '14px')
     const bar = page.locator('.order-filter-bar').filter({ visible: true })
     await expect(bar).toContainText('Completed')
-    await expect(bar).toContainText('Outstanding')
     if (width >= 1024) {
+      await expect(bar).toContainText('Outstanding')
       const tabsBox = await bar.locator('.desktop-filter-pills').boundingBox()
       const amountBox = await summary.boundingBox()
       expect(amountBox!.x).toBeGreaterThanOrEqual(tabsBox!.x + tabsBox!.width)
       expect(Math.abs(amountBox!.y + amountBox!.height / 2 - tabsBox!.y - tabsBox!.height / 2)).toBeLessThan(2)
+    } else {
+      await expect(bar).not.toContainText('Outstanding')
+      const header = page.locator('.orders-header--balance')
+      await expect(header).toContainText('₹1,720.50')
+      const titleBox = (await header.locator('h1').boundingBox())!, amountBox = (await summary.boundingBox())!
+      expect(amountBox.x).toBeGreaterThanOrEqual(titleBox.x + titleBox.width)
+      expect(Math.abs(amountBox.y + amountBox.height / 2 - titleBox.y - titleBox.height / 2)).toBeLessThan(2)
     }
     const due = page.locator('.payment-summary--due summary').filter({ visible: true })
     await expect(due).toContainText('₹720.00 outstanding')

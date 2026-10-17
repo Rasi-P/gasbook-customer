@@ -103,8 +103,9 @@ export function OrdersView({
       <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         <div className="orders-scroll-container" style={{ minHeight: 'auto', paddingBottom: '32px' }}>
       {/* 1. Header */}
-      <div className="orders-header">
+      <div className="orders-header orders-header--balance">
         <h1 className="orders-title">My Orders</h1>
+        <OutstandingBalance />
         <button
           className="orders-notification-btn"
           aria-label="Notifications"
@@ -130,7 +131,6 @@ export function OrdersView({
         <button className={`filter-tab-btn ${selectedFilter === 'completed' ? 'active' : ''}`} onClick={() => handleFilterClick('completed')}>Completed</button>
         <button className={`filter-tab-btn ${selectedFilter === 'cancelled' ? 'active' : ''}`} onClick={() => handleFilterClick('cancelled')}>Cancelled</button>
       </div>
-      <OutstandingBalance />
       </div>
 
       <div style={{ padding: '0 16px', marginBottom: '16px' }}>
