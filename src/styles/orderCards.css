@@ -2,9 +2,11 @@
 .desktop-orders-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .desktop-order-card, .order-item-card {
   box-sizing: border-box;
-  height: 480px;
   min-width: 0;
 }
+/* Desktop rows share one height; mobile cards stack, so they hug their content up to the same cap. */
+.desktop-order-card { height: 480px; }
+.order-item-card { max-height: 480px; }
 .desktop-order-top, .order-card-top { flex-shrink: 0; }
 .desktop-order-top > div { flex-wrap: wrap; }
 .history-card-content {
