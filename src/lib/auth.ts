@@ -1,4 +1,5 @@
 import type { PricingSnapshot } from '../components/common/PricingBreakdown'
+import { registerCylinderImages } from './formatters'
 import { clearHomeState, clearTabHash } from './uiState'
 
 export interface AuthTokens {
@@ -485,7 +486,8 @@ export interface CylinderTypeItem {
   id: number
   name: string
   weight: string
-  selling_price: string
+  /** Legacy column, read-only and not part of the business model: a refill costs refill_rate, a new connection refill_rate + deposit_amount. */
+  selling_price?: string
   deposit_amount: string
   refill_rate: string
   customer_rate?: string
@@ -493,11 +495,20 @@ export interface CylinderTypeItem {
   final_price?: string
   has_discount?: boolean
   is_active: boolean
+  /** Absolute URL of the picture an admin uploaded; null/absent means use the built-in artwork. */
+  image?: string | null
 }
 
+/** Every cylinder type, active or not: order history still shows discontinued ones. Use `activeCylinderTypes` for what can be booked. */
 export async function fetchCylinderTypes(): Promise<CylinderTypeItem[]> {
   const data = await request<any>('/cylinder-types/', { method: 'GET' })
-  return data.results || data || []
+  const rows: CylinderTypeItem[] = data.results || data || []
+  registerCylinderImages(rows)
+  return rows
+}
+
+export function activeCylinderTypes(types: CylinderTypeItem[]): CylinderTypeItem[] {
+  return types.filter((type) => type.is_active !== false)
 }
 
 export async function createBooking(payload: Record<string, unknown>): Promise<BookingRecord> {

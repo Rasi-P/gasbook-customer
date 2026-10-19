@@ -35,7 +35,24 @@ export function getCylinderDisplay(rawName: string, rawWeight?: string | number 
   };
 }
 
+// Pictures admins upload for cylinder types, by name. Filled whenever the catalog is fetched, so
+// new types show their own image everywhere (cart, orders, history) without a code change.
+const uploadedImages = new Map<string, string>()
+const imageKey = (name?: string | null) => (name ?? '').trim().toLowerCase()
+
+export function registerCylinderImages(types: ReadonlyArray<{ name: string; image?: string | null }>) {
+  for (const type of types) {
+    const key = imageKey(type.name)
+    if (!key) continue
+    if (type.image) uploadedImages.set(key, type.image)
+    else uploadedImages.delete(key)
+  }
+}
+
 export function getCylinderImage(rawName?: string, rawWeight?: string | number | null): string {
+  const uploaded = uploadedImages.get(imageKey(rawName))
+  if (uploaded) return uploaded
+
   const str = `${rawName || ''} ${rawWeight || ''}`.toLowerCase();
   
   if (str.includes('5kg') || str.includes('5 kg') || str.trim() === '5' || str.startsWith('5 ') || str.includes('5.0')) {

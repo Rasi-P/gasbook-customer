@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { fetchCylinderTypes, getApiErrorDetails, type CylinderTypeItem } from '../lib/auth'
+import { activeCylinderTypes, fetchCylinderTypes, getApiErrorDetails, type CylinderTypeItem } from '../lib/auth'
 
 export const CYLINDERS_LOADING_LABEL = 'Loading cylinders…'
 export const CYLINDERS_EMPTY_LABEL = 'No cylinders are available right now.'
@@ -28,7 +28,8 @@ export function useCylinderTypes(): CylinderTypesState {
     fetchCylinderTypes()
       .then((data) => {
         if (!ignore) {
-          setCylinderTypes(Array.isArray(data) ? data : [])
+          // Inactive (discontinued) types are not offered for new bookings; the backend refuses them too.
+          setCylinderTypes(Array.isArray(data) ? activeCylinderTypes(data) : [])
         }
       })
       .catch((err: unknown) => {
