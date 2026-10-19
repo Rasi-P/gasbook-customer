@@ -205,11 +205,11 @@ export function HomeView({ onNavigateToSafety, onNavigateToExplore, customerProf
             </div>
 
             {/* Middle: Cylinder + Price + Status */}
-            <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px 16px', alignItems: 'flex-start', marginBottom: '24px' }}>
               <div style={{ width: '60px', height: '60px', background: '#F8FAFC', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <img src={getCylinderImage(latestActiveOrder.productName, latestActiveOrder.weight)} alt={latestActiveOrder.productName} style={{ height: '45px' }} />
               </div>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: '1 1 0', minWidth: 0 }}>
                 <div style={{ fontWeight: 600, color: '#1E293B', fontSize: '1rem', marginBottom: '4px' }}>{latestActiveOrder.productName}</div>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
                   <span style={{ background: '#EEF2FF', color: '#4F46E5', fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>{latestActiveOrder.weight}</span>
@@ -219,11 +219,12 @@ export function HomeView({ onNavigateToSafety, onNavigateToExplore, customerProf
                 )}
                 <div style={{ fontWeight: 700, color: '#1E293B', fontSize: '1.1rem' }}>{latestActiveOrder.price}</div>
               </div>
-              <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                <div style={{ background: latestActiveOrder.statusCode === 'pending' ? '#FEF3C7' : '#DCFCE7', color: latestActiveOrder.statusCode === 'pending' ? '#92400E' : '#166534', padding: '6px 12px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 600, marginBottom: '6px', display: 'inline-block' }}>
+              {/* Status on its own row: a long label such as "Accepted by delivery partner" must not push past the card. */}
+              <div style={{ flex: '1 1 100%', minWidth: 0, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px 12px' }}>
+                <div style={{ background: latestActiveOrder.statusCode === 'pending' ? '#FEF3C7' : '#DCFCE7', color: latestActiveOrder.statusCode === 'pending' ? '#92400E' : '#166534', padding: '6px 12px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 600, display: 'inline-block', maxWidth: '100%', overflowWrap: 'anywhere' }}>
                   {latestActiveOrder.statusLabel}
                 </div>
-                <div style={{ color: '#64748B', fontSize: '0.75rem', maxWidth: '100px', lineHeight: '1.3' }}>
+                <div style={{ color: '#64748B', fontSize: '0.75rem', lineHeight: '1.3', flex: '1 1 140px', minWidth: 0, overflowWrap: 'anywhere' }}>
                   {activeOrderMeta?.description}
                 </div>
               </div>
