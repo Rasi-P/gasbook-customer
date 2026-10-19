@@ -15,7 +15,8 @@ export async function fetchAccessories() {
 const retryKeys = new Map<string, string>()
 export async function placeCart(items: CartItem[], address: string, phone: string, preview: BookingPreviewResponse): Promise<BookingRecord[]> {
   if (!items.some(i => i.type === 'accessory')) {
-    return Promise.all(items.map(item => createBooking({ cylinder_type: item.cylinderTypeId || 1, quantity: item.quantity,
+    if (items.some(item => item.cylinderTypeId === undefined)) throw new Error('A cylinder in your cart is no longer available. Remove it and add it again.')
+    return Promise.all(items.map(item => createBooking({ cylinder_type: item.cylinderTypeId, quantity: item.quantity,
       rate_type: item.rateType ?? 'refill', note: 'Order via Customer App (COD)', payment_method: 'COD', payment_status: 'PENDING', delivery_address: address, delivery_phone: phone })))
   }
   if (!items.some(i => i.type === 'cylinder')) throw new Error('Add a cylinder to book accessories with your delivery.')

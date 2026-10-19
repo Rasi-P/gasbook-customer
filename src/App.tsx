@@ -3,6 +3,7 @@ import type { ChangeEvent, FormEvent } from 'react'
 import {
   ApiError,
   changePassword,
+  fetchCylinderTypes,
   getCustomerProfile,
   getApiErrorDetails,
   getCurrentUser,
@@ -242,6 +243,15 @@ function App() {
     setCustomerProfile(null)
     setCurrentScreen('login')
     setLoginError('Please sign in to continue.')
+  }, [currentScreen])
+
+  // Load the cylinder catalog once signed in so uploaded pictures are known to every screen
+  // (orders and history included), not only the catalog pages.
+  useEffect(() => {
+    if (currentScreen !== 'home') {
+      return
+    }
+    fetchCylinderTypes().catch(() => undefined)
   }, [currentScreen])
 
   const displayName = authUser?.name?.trim() || authUser?.username || loginForm.username.trim() || 'Customer'
