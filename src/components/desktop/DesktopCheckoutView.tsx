@@ -1,4 +1,5 @@
-import { placeCart } from '../../lib/products'
+import { useCheckout } from '../../hooks/useCheckout'
+import { placeCart, recoverCart } from '../../lib/products'
 import { CartPricing } from '../common/CartPricing'
 import { useState } from 'react'
 import { getApiErrorDetails, type BookingRecord, type CustomerProfile } from '../../lib/auth'
@@ -33,7 +34,9 @@ export function DesktopCheckoutView({
   onBackToCart,
   onOrderCreated,
 }: DesktopCheckoutViewProps) {
-  const [submitting, setSubmitting] = useState(false)
+  const checkout = useCheckout(customerProfile?.id ?? 0)
+  const submitting = checkout === 'submitting'
+  const recoveryAvailable = checkout === 'pending' || checkout === 'confirmed'
   const [error, setError] = useState<string | null>(null)
   const [isEditingAddress, setIsEditingAddress] = useState(false)
 
@@ -48,24 +51,30 @@ export function DesktopCheckoutView({
 
   const handlePlaceOrder = async () => {
     if (submitting || !canConfirm) return
-    setSubmitting(true)
     setError(null)
 
     try {
-      const responses = await placeCart(cartItems, customerAddress, customerPhone, pricingPreview!)
+      const responses = await placeCart(cartItems, customerAddress, customerPhone, pricingPreview!, customerProfile!.id)
       onOrderCreated(responses)
     } catch (err: unknown) {
       const details = getApiErrorDetails(err, 'Unable to place order. Please try again.')
       setError(err instanceof Error && !(err as { status?: number }).status ? err.message : details.message)
       reloadPricing()
-    } finally {
-      setSubmitting(false)
     }
+  }
+
+  const handleRecovery = async () => {
+    if (submitting || !customerProfile) return
+    setError(null)
+    try { onOrderCreated(await recoverCart(customerProfile.id)) }
+    catch (err) { setError(err instanceof Error ? err.message : 'Unable to recover checkout. Please retry.') }
   }
 
   if (cartItems.length === 0) {
     return (
       <div className="desktop-container" style={{ textAlign: 'center', padding: '60px 20px' }}>
+        {recoveryAvailable && <div role="status" style={{ padding: '16px' }}>A checkout is awaiting confirmation. Keep this cart unchanged. <button type="button" disabled={submitting} onClick={handleRecovery}>Recover checkout result</button></div>}
+        {error && <p role="alert">{error}</p>}
         <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#1e293b' }}>Your Cart is Empty</h2>
         <p style={{ color: '#64748b', marginBottom: '24px' }}>Add a cylinder to proceed with booking.</p>
         <button
@@ -89,6 +98,7 @@ export function DesktopCheckoutView({
 
   return (
     <div className="desktop-container">
+      {recoveryAvailable && <div role="status" style={{ padding: '16px' }}>A checkout is awaiting confirmation. Keep this cart unchanged. <button type="button" disabled={submitting} onClick={handleRecovery}>Recover checkout result</button></div>}
       {/* 1. Header Row */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
         <div>

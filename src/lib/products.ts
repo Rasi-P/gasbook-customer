@@ -1,4 +1,5 @@
-import { request, createBooking, type BookingRecord, type BookingPreviewResponse } from './auth'
+import { request, ApiError, type BookingRecord, type BookingPreviewResponse } from './auth'
+import { pendingCheckoutKey, prepareCheckout, recordCheckout, runCheckout } from './checkoutIntent'
 import { buildBookingPreviewPayload } from './pricing'
 import type { CartItem } from '../types'
 export interface Accessory { id: number; name: string; description: string; category: string; selling_price: string; image: string | null; available: boolean }
@@ -12,24 +13,43 @@ export async function fetchAccessories() {
   }
   return rows
 }
-const retryKeys = new Map<string, string>()
-export async function placeCart(items: CartItem[], address: string, phone: string, preview: BookingPreviewResponse): Promise<BookingRecord[]> {
-  if (!items.some(i => i.type === 'accessory')) {
-    if (items.some(item => item.cylinderTypeId === undefined)) throw new Error('A cylinder in your cart is no longer available. Remove it and add it again.')
-    return Promise.all(items.map(item => createBooking({ cylinder_type: item.cylinderTypeId, quantity: item.quantity,
-      rate_type: item.rateType ?? 'refill', note: 'Order via Customer App (COD)', payment_method: 'COD', payment_status: 'PENDING', delivery_address: address, delivery_phone: phone })))
-  }
-  if (!items.some(i => i.type === 'cylinder')) throw new Error('Add a cylinder to book accessories with your delivery.')
-  const payload = { ...buildBookingPreviewPayload(items), delivery_address: address, delivery_phone: phone }
-  const fingerprint = JSON.stringify(payload)
-  const storageKey = 'gasbook-accessory-checkout'
-  let key = retryKeys.get(fingerprint)
-  try { const saved = JSON.parse(sessionStorage.getItem(storageKey) || 'null'); if (saved?.fingerprint === fingerprint) key = saved.key } catch { /* optional persistence */ }
-  if (!key) key = crypto.randomUUID()
-  retryKeys.set(fingerprint, key)
-  try { sessionStorage.setItem(storageKey, JSON.stringify({ fingerprint, key })) } catch { /* optional persistence */ }
-  const booking = await request<BookingRecord>('/bookings/checkout/', { method: 'POST', body: JSON.stringify({ ...payload, client_ref: key, quote: preview.quote }) })
-  retryKeys.delete(fingerprint)
-  try { sessionStorage.removeItem(storageKey) } catch { /* optional persistence */ }
-  return [booking]
+export function placeCart(items: CartItem[], address: string, phone: string, preview: BookingPreviewResponse, customerId: number): Promise<BookingRecord[]> {
+  return runCheckout(customerId, async () => {
+    if (!items.some(i => i.type === 'cylinder')) throw new Error('Add a cylinder to book accessories with your delivery.')
+    if (items.some(item => item.type === 'cylinder' && item.cylinderTypeId === undefined)) throw new Error('A cylinder in your cart is no longer available. Remove it and add it again.')
+    if (!preview.quote) throw new Error('Refresh and review the booking total before confirming.')
+    const payload = { ...buildBookingPreviewPayload(items), delivery_address: address, delivery_phone: phone }
+    const key = await prepareCheckout(customerId, payload)
+    try {
+      const booking = await request<BookingRecord>('/bookings/checkout/', { method: 'POST', body: JSON.stringify({ ...payload, client_ref: key, quote: preview.quote }) })
+      if (!Number.isSafeInteger(booking?.id) || booking.id <= 0) throw new Error('Invalid checkout response')
+      recordCheckout(customerId, 'confirmed', booking.id)
+      return [booking]
+    } catch (error) {
+      // A definite transactional validation rejection allows cart editing.
+      // Keep the SAME key even then; a late concurrent success must still win.
+      if (error instanceof ApiError && error.status === 400) recordCheckout(customerId, 'retryable')
+      if (!(error instanceof ApiError) || error.status === 0 || error.status >= 500) {
+        throw new Error('The order result is unknown. Keep this cart open. Recover the result or retry safely using this same checkout.')
+      }
+      throw error
+    }
+  })
+}
+
+export function recoverCart(customerId: number): Promise<BookingRecord[]> {
+  return runCheckout(customerId, async () => {
+    const key = pendingCheckoutKey(customerId)
+    if (!key) throw new Error('There is no pending checkout to recover.')
+    const result = await request<{ booking: BookingRecord | null }>(`/bookings/checkout-status/?client_ref=${encodeURIComponent(key)}`)
+    if (!result.booking) {
+      // Absence is not a cancellation. Editing is safe only because the UUID
+      // survives: a late commit will make a changed-payload retry conflict.
+      recordCheckout(customerId, 'retryable')
+      throw new Error('No completed checkout is visible yet. Review your cart and retry here; the same checkout key will be kept. Do not place a separate order.')
+    }
+    if (!Number.isSafeInteger(result.booking.id) || result.booking.id <= 0) throw new Error('Invalid checkout recovery response. Keep this cart open and retry recovery.')
+    recordCheckout(customerId, 'confirmed', result.booking.id)
+    return [result.booking]
+  })
 }

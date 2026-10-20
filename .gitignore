@@ -20,6 +20,18 @@ playwright-report/
 .env.*
 !.env.example
 
+# Local provider metadata, credentials and private-key files.
+.neon
+.vercel/
+.secrets/
+credentials.json
+credentials.local.*
+secrets.local.*
+*.key
+*.pem
+*.p12
+*.pfx
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -212,10 +212,9 @@ function App() {
       setLoginError(restoreError)
       setIsBootstrapComplete(true)
 
-      // On desktop, navigate straight to authenticated screen or login
-      if (isDesktopView()) {
-        setCurrentScreen(nextScreen)
-      }
+      // A resize during restoration must not strand a desktop-started page on
+      // login. Only an actual mobile splash waits for its animation to finish.
+      setCurrentScreen(screen => screen === 'splash' && !isDesktopView() ? screen : nextScreen)
     }
 
     void bootstrapSession()

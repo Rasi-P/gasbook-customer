@@ -1,4 +1,5 @@
-import { placeCart } from '../../lib/products'
+import { useCheckout } from '../../hooks/useCheckout'
+import { placeCart, recoverCart } from '../../lib/products'
 import { CartPricing } from '../common/CartPricing'
 import { useState } from 'react'
 import { getApiErrorDetails, type BookingRecord, type CustomerProfile } from '../../lib/auth'
@@ -33,7 +34,9 @@ export function CheckoutView({
   onBackToCart,
   onOrderCreated,
 }: CheckoutViewProps) {
-  const [submitting, setSubmitting] = useState(false)
+  const checkout = useCheckout(customerProfile?.id ?? 0)
+  const submitting = checkout === 'submitting'
+  const recoveryAvailable = checkout === 'pending' || checkout === 'confirmed'
   const [error, setError] = useState<string | null>(null)
   const [isEditingAddress, setIsEditingAddress] = useState(false)
   const { preview: pricingPreview, error: pricingError, isReady: pricingReady, reload: reloadPricing, displayAmount } = usePricingPreview(cartItems)
@@ -46,25 +49,31 @@ export function CheckoutView({
 
   const handlePlaceOrder = async () => {
     if (submitting || !canConfirm) return
-    setSubmitting(true)
     setError(null)
 
     try {
-      const responses = await placeCart(cartItems, customerAddress, customerPhone, pricingPreview!)
+      const responses = await placeCart(cartItems, customerAddress, customerPhone, pricingPreview!, customerProfile!.id)
       onOrderCreated(responses)
     } catch (err: unknown) {
       const details = getApiErrorDetails(err, 'Unable to place order. Please try again.')
       setError(err instanceof Error && !(err as { status?: number }).status ? err.message : details.message)
       reloadPricing()
-    } finally {
-      setSubmitting(false)
     }
+  }
+
+  const handleRecovery = async () => {
+    if (submitting || !customerProfile) return
+    setError(null)
+    try { onOrderCreated(await recoverCart(customerProfile.id)) }
+    catch (err) { setError(err instanceof Error ? err.message : 'Unable to recover checkout. Please retry.') }
   }
 
   // Handle empty cart state directly
   if (cartItems.length === 0) {
     return (
       <div style={{ padding: '24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
+        {recoveryAvailable && <div role="status" style={{ padding: '16px' }}>A checkout is awaiting confirmation. Keep this cart unchanged. <button type="button" disabled={submitting} onClick={handleRecovery}>Recover checkout result</button></div>}
+        {error && <p role="alert">{error}</p>}
         <div style={{ background: '#EEF4FF', borderRadius: '50%', width: '120px', height: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
           <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="1.5">
             <circle cx="9" cy="21" r="2" />
@@ -83,6 +92,7 @@ export function CheckoutView({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F8FAFC', paddingBottom: '68px', boxSizing: 'border-box' }}>
+      {recoveryAvailable && <div role="status" style={{ padding: '16px' }}>A checkout is awaiting confirmation. Keep this cart unchanged. <button type="button" disabled={submitting} onClick={handleRecovery}>Recover checkout result</button></div>}
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', padding: '20px', background: '#FFF', position: 'sticky', top: 0, zIndex: 10, borderBottom: '1px solid #F1F5F9' }}>
         <button onClick={onBackToCart} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', color: '#1E293B' }}>

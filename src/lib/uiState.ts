@@ -75,12 +75,14 @@ export function loadHomeState(userId: number): Partial<PersistedHomeState> | nul
 export function saveHomeState(userId: number, state: PersistedHomeState) {
   const storage = getSessionStorage()
   if (!storage) {
-    return
+    return false
   }
   try {
     storage.setItem(storageKey(userId), JSON.stringify(state))
+    return true
   } catch {
     // Quota exceeded / private mode: persistence is best-effort.
+    return false
   }
 }
 

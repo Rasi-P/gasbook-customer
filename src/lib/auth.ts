@@ -476,10 +476,14 @@ export async function updateCustomerProfile(
 }
 
 export async function changePassword(payload: ChangePasswordPayload): Promise<{ detail: string }> {
-  return request<{ detail: string }>('/auth/change-password/', {
+  const result = await request<{ detail: string; access?: string; refresh?: string }>('/auth/change-password/', {
     method: 'POST',
     body: JSON.stringify(payload),
   })
+  if (result.access && result.refresh) {
+    replaceTokens({ accessToken: result.access, refreshToken: result.refresh })
+  }
+  return result
 }
 
 export interface CylinderTypeItem {
@@ -501,10 +505,42 @@ export interface CylinderTypeItem {
 
 /** Every cylinder type, active or not: order history still shows discontinued ones. Use `activeCylinderTypes` for what can be booked. */
 export async function fetchCylinderTypes(): Promise<CylinderTypeItem[]> {
-  const data = await request<any>('/cylinder-types/', { method: 'GET' })
-  const rows: CylinderTypeItem[] = data.results || data || []
-  registerCylinderImages(rows)
-  return rows
+  const endpoint = new URL(`${API_BASE_URL}/cylinder-types/`)
+  const rows: CylinderTypeItem[] = []
+  const ids = new Set<number>()
+  let count: number | undefined
+  let path = '/cylinder-types/'
+  const invalid = () => new Error('The cylinder catalog is incomplete. Please retry.')
+  for (let page = 1; page <= 1000; page++) {
+    const data = await request<unknown>(path, { method: 'GET' })
+    if (!data || typeof data !== 'object' || Array.isArray(data)) throw invalid()
+    const envelope = data as { count?: unknown; results?: unknown; next?: unknown }
+    if (!Number.isSafeInteger(envelope.count) || Number(envelope.count) < 0 || !Array.isArray(envelope.results)) throw invalid()
+    if (count === undefined) count = Number(envelope.count)
+    if (envelope.count !== count) throw invalid()
+    for (const value of envelope.results) {
+      if (!value || typeof value !== 'object' || !Number.isSafeInteger(value.id) || value.id <= 0 || ids.has(value.id)) throw invalid()
+      if (typeof value.name !== 'string' || (value.image != null && typeof value.image !== 'string')) throw invalid()
+      ids.add(value.id)
+      rows.push(value as CylinderTypeItem)
+    }
+    if (rows.length > count) throw invalid()
+    if (envelope.next === null) {
+      if (rows.length !== count || (page > 1 && envelope.results.length === 0)) throw invalid()
+      // Do not publish any partial catalog or images if a later page fails.
+      registerCylinderImages(rows)
+      return rows
+    }
+    if (typeof envelope.next !== 'string' || envelope.results.length === 0 || rows.length >= count) throw invalid()
+    let next: URL
+    try { next = new URL(envelope.next, endpoint) } catch { throw invalid() }
+    if (next.origin !== endpoint.origin || next.pathname !== endpoint.pathname || next.username || next.password || next.hash) throw invalid()
+    const params = [...next.searchParams.entries()]
+    if (params.length !== 1 || params[0][0] !== 'page' || params[0][1] !== String(page + 1)) throw invalid()
+    // Never pass a response-supplied absolute URL to the authenticated client.
+    path = `/cylinder-types/?page=${page + 1}`
+  }
+  throw invalid()
 }
 
 export function activeCylinderTypes(types: CylinderTypeItem[]): CylinderTypeItem[] {

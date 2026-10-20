@@ -1,5 +1,7 @@
 import { SafetyGuideView } from './SafetyGuideView'
 import type { Accessory } from '../../lib/products'
+import { acknowledgeCheckout, checkoutLocked } from '../../lib/checkoutIntent'
+import { useCheckout } from '../../hooks/useCheckout'
 import { formatDateTime } from '../../lib/dateTime'
 import { useState, useEffect, useCallback } from 'react'
 import { type BookingRecord, type CustomerProfile } from '../../lib/auth'
@@ -60,6 +62,7 @@ interface NavigateOptions {
 }
 
 export function HomeScreen({ userId, onLogout, customerProfile, onProfileUpdated }: HomeScreenProps) {
+  const checkout = useCheckout(customerProfile?.id ?? 0)
   // Hydrate from the URL hash + sessionStorage so a reload restores the tab, cart and tracked order.
   const [initialState] = useState(() => hydrateHomeState(userId))
   const [activeTab, setActiveTab] = useState<ActiveTab>(initialState.activeTab)
@@ -71,8 +74,11 @@ export function HomeScreen({ userId, onLogout, customerProfile, onProfileUpdated
 
   // Persist UI state per user (cleared on logout by lib/auth logout()).
   useEffect(() => {
-    saveHomeState(userId, { cartItems, activeTab, previousTab, trackingBookingId, lastCreatedBookings })
-  }, [userId, cartItems, activeTab, previousTab, trackingBookingId, lastCreatedBookings])
+    const saved = saveHomeState(userId, { cartItems, activeTab, previousTab, trackingBookingId, lastCreatedBookings })
+    if (saved && !cartItems.length && customerProfile && lastCreatedBookings.length) {
+      acknowledgeCheckout(customerProfile.id, lastCreatedBookings.map(booking => booking.id))
+    }
+  }, [userId, cartItems, activeTab, previousTab, trackingBookingId, lastCreatedBookings, customerProfile])
 
   // Make the current entry describe the restored tab (idempotent under StrictMode), then
   // let browser Back / Forward move between tabs via popstate.
@@ -168,14 +174,14 @@ export function HomeScreen({ userId, onLogout, customerProfile, onProfileUpdated
 
   // Safety guards: never leave the user on a tab that would render blank.
   useEffect(() => {
-    if (activeTab === 'checkout' && cartItems.length === 0) {
+    if (activeTab === 'checkout' && cartItems.length === 0 && checkout !== 'pending' && checkout !== 'confirmed') {
       navigateTo('explore', { replace: true })
     } else if (activeTab === 'order-success' && lastCreatedBookings.length === 0) {
       navigateTo('home', { replace: true })
     } else if (activeTab === 'track-order' && trackingBookingId === null) {
       navigateTo(previousTab === 'track-order' ? 'home' : previousTab, { replace: true })
     }
-  }, [activeTab, cartItems, lastCreatedBookings, trackingBookingId, previousTab, navigateTo])
+  }, [activeTab, cartItems, lastCreatedBookings, trackingBookingId, previousTab, navigateTo, checkout])
 
   const profileUser: ProfileUser = {
     profileId: customerProfile?.id,
@@ -189,10 +195,12 @@ export function HomeScreen({ userId, onLogout, customerProfile, onProfileUpdated
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0)
 
   const handleRateTypeChange = (id: string, rateType: 'new' | 'refill') => {
+    if (customerProfile && checkoutLocked(customerProfile.id)) return
     setCartItems(prev => prev.map(item => item.id === id ? { ...item, rateType } : item))
   }
 
   const handleUpdateQuantity = (id: string, delta: number) => {
+    if (customerProfile && checkoutLocked(customerProfile.id)) return
     setCartItems((prev) =>
       prev
         .map((item) => {
@@ -207,10 +215,12 @@ export function HomeScreen({ userId, onLogout, customerProfile, onProfileUpdated
   }
 
   const handleRemoveItem = (id: string) => {
+    if (customerProfile && checkoutLocked(customerProfile.id)) return
     setCartItems((prev) => prev.filter((item) => item.id !== id))
   }
 
   const handleBook = (productName: string, price?: number, cylinderTypeId?: number, weight?: string | number) => {
+    if (customerProfile && checkoutLocked(customerProfile.id)) return
     setCartItems((prev) => {
       // Find existing exactly by cylinderTypeId if defined, or strictly fallback to name match if no ID provided.
       const existing = prev.find((item) => (item.rateType ?? "refill") === "refill" && (cylinderTypeId ? item.cylinderTypeId === cylinderTypeId : item.variant === productName && item.name === weight))
@@ -234,6 +244,7 @@ export function HomeScreen({ userId, onLogout, customerProfile, onProfileUpdated
   }
 
   const handleAddAccessory = (product: Accessory, quantity: number) => {
+    if (customerProfile && checkoutLocked(customerProfile.id)) return
     setCartItems(prev => {
       const existing = prev.find(i => i.type === 'accessory' && i.productId === product.id)
       return existing ? prev.map(i => i.id === existing.id ? { ...i, quantity: i.quantity + quantity } : i) : [...prev, {
@@ -259,6 +270,9 @@ export function HomeScreen({ userId, onLogout, customerProfile, onProfileUpdated
 
   return (
     <div className="home-root">
+      {(checkout === 'pending' || checkout === 'confirmed') && activeTab !== 'checkout' && (
+        <div role="status">Finish the pending checkout before editing this cart. <button onClick={() => navigateTo('checkout')}>Recover checkout</button></div>
+      )}
       {/* MOBILE / PWA VIEW (LOCKED & UNTOUCHED) */}
       <div className="mobile-view-wrapper">
         <div className="home-reference-frame">
