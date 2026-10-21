@@ -16,6 +16,7 @@ export interface LoginResponse {
 }
 
 export interface CurrentUser {
+  capabilities?: { accessories: boolean; image_uploads: boolean }
   id: number
   username: string
   name: string
@@ -121,7 +122,7 @@ export class ApiError extends Error {
   }
 }
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8001/api').replace(/\/+$/, '')
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8001/api').replace(/\/+$/, '')
 const STORAGE_KEY = 'gasbook_customer_auth'
 
 export const CUSTOMER_ROLE = 'customer'
@@ -317,11 +318,18 @@ function extractMessage(data: unknown, fallback: string): string {
 
 async function rawRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   let response: Response
-
+  const controller = new AbortController()
+  const abort = () => controller.abort()
+  init.signal?.addEventListener('abort', abort, { once: true })
+  if (init.signal?.aborted) abort()
+  const timer = setTimeout(abort, 65000)
   try {
-    response = await fetch(buildUrl(path), init)
+    response = await fetch(buildUrl(path), { ...init, signal: controller.signal })
   } catch {
-    throw new ApiError('Network error. Please check your connection and try again.', 0, null)
+    throw new ApiError('The demo server may be waking up or unavailable. Check the result before retrying a change.', 0, null)
+  } finally {
+    clearTimeout(timer)
+    init.signal?.removeEventListener('abort', abort)
   }
 
   return parseResponse<T>(response)
@@ -645,4 +653,9 @@ function normalizeFieldErrors(data: unknown) {
 
     return accumulator
   }, {})
+}
+
+/** Build a known catalog endpoint without accepting URLs from API responses. */
+export function catalogEndpoint(path: '/products/' | '/cylinder-types/'): URL {
+  return new URL(API_BASE_URL + path)
 }

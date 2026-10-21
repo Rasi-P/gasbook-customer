@@ -10,7 +10,8 @@ import { useState } from 'react'
 import { usePaginatedQuery } from '../../hooks/usePaginatedQuery'
 import { fetchPaginatedOrderHistory } from '../../lib/api-queries'
 import { Pagination } from '../common/Pagination'
-import { getCylinderImage } from '../../lib/formatters'
+import { orderCylinder } from '../../lib/formatters'
+import { CylinderImage } from '../common/CylinderImage'
 import { ACTIVE_STATUS_FILTER, CANCELLED_STATUS_FILTER, COMPLETED_STATUS_FILTER } from '../../lib/orderStatus'
 import { DesktopRejectionModal } from './DesktopRejectionModal'
 
@@ -203,7 +204,7 @@ export function DesktopOrdersView({
                 {/* Body: Cylinder details */}
                 <div className="desktop-order-body">
                   <div className="desktop-order-img-wrap">
-                    {!(order.rawBooking?.order_items?.length && order.rawBooking.order_items.every((item: { type: string }) => item.type === 'accessory')) && <img src={getCylinderImage(order.productName, order.weight)} alt="" style={{ height: '50px', objectFit: 'contain' }} />}
+                    {!(order.rawBooking?.order_items?.length && order.rawBooking.order_items.every((item: { type: string }) => item.type === 'accessory')) && <CylinderImage cylinder={orderCylinder(order)} alt="" style={{ height: '50px', objectFit: 'contain' }} />}
                   </div>
                   <div className="desktop-order-info">
                     <h4 className="desktop-order-name">{order.productName}</h4>

@@ -2,7 +2,8 @@ import { formatDateTime } from '../../lib/dateTime'
 import { useState, useEffect } from 'react'
 import type { OrderItem } from '../../types'
 import { fetchCustomerNotifications, markNotificationRead, type NotificationItem } from '../../lib/auth'
-import { getCylinderImage } from '../../lib/formatters'
+import { orderCylinder } from '../../lib/formatters'
+import { CylinderImage } from '../common/CylinderImage'
 import { getOrderStatusMeta } from '../../lib/orderStatus'
 import heroBg from '../../assets/hero_bg.png'
 import type { CustomerProfile } from '../../lib/auth'
@@ -207,7 +208,7 @@ export function HomeView({ onNavigateToSafety, onNavigateToExplore, customerProf
             {/* Middle: Cylinder + Price + Status */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px 16px', alignItems: 'flex-start', marginBottom: '24px' }}>
               <div style={{ width: '60px', height: '60px', background: '#F8FAFC', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <img src={getCylinderImage(latestActiveOrder.productName, latestActiveOrder.weight)} alt={latestActiveOrder.productName} style={{ height: '45px' }} />
+                <CylinderImage cylinder={orderCylinder(latestActiveOrder)} alt={latestActiveOrder.productName} style={{ height: '45px' }} />
               </div>
               <div style={{ flex: '1 1 0', minWidth: 0 }}>
                 <div style={{ fontWeight: 600, color: '#1E293B', fontSize: '1rem', marginBottom: '4px' }}>{latestActiveOrder.productName}</div>

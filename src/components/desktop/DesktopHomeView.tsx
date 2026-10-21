@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import type { OrderItem } from '../../types'
 import type { CustomerProfile } from '../../lib/auth'
-import { getCylinderDisplay, getCylinderImage } from '../../lib/formatters'
+import { getCylinderDisplay, cylinderSubject, orderCylinder } from '../../lib/formatters'
+import { CylinderImage } from '../common/CylinderImage'
 import { CYLINDERS_EMPTY_LABEL, CYLINDERS_LOADING_LABEL, useCylinderTypes } from '../../hooks/useCylinderTypes'
 import heroBg from '../../assets/hero_bg.png'
 
@@ -117,7 +118,7 @@ export function DesktopHomeView({
 
               {/* Product and Price */}
               <div style={{ display: 'flex', gap: '14px', alignItems: 'center', background: '#f8fafc', padding: '14px', borderRadius: '14px', marginBottom: '16px' }}>
-                <img src={getCylinderImage(latestActiveOrder.productName, latestActiveOrder.weight)} alt="" style={{ height: '48px', objectFit: 'contain' }} />
+                <CylinderImage cylinder={orderCylinder(latestActiveOrder)} alt="" style={{ height: '48px', objectFit: 'contain' }} />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: '14.5px', color: '#1e293b' }}>
                     {latestActiveOrder.productName}
@@ -359,7 +360,7 @@ export function DesktopHomeView({
           {popularCylinders.map((prod) => (
             <div key={prod.id} className="desktop-cylinder-card">
               <div className="desktop-cylinder-img-wrap">
-                <img src={getCylinderImage(prod.name, prod.rawWeight)} className="desktop-cylinder-img" alt={prod.name} />
+                <CylinderImage cylinder={cylinderSubject({ id: prod.rawId, name: prod.name, weight: prod.rawWeight })} className="desktop-cylinder-img" alt={prod.name} />
               </div>
               <div className="desktop-cylinder-info">
                 <span className="desktop-cylinder-badge">{prod.displayBadge}</span>

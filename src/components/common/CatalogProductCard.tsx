@@ -1,3 +1,6 @@
+import { ReliableImage } from './ReliableImage'
+import { CylinderImage } from './CylinderImage'
+import type { CylinderImageSubject } from '../../lib/cylinderImages'
 import '../../styles/accessories.css'
 
 interface CatalogProductCardProps {
@@ -6,6 +9,8 @@ interface CatalogProductCardProps {
   category: string
   description: string
   image: string | null
+  /** A cylinder card shows its type's picture (custom, else its weight's default, else generic) instead of `image`. */
+  cylinder?: CylinderImageSubject
   price: number
   originalPrice?: number
   popular?: boolean
@@ -13,10 +18,10 @@ interface CatalogProductCardProps {
   onAdd: () => void
 }
 
-export function CatalogProductCard({ kind, name, category, description, image, price, originalPrice, popular, actionLabel, onAdd }: CatalogProductCardProps) {
+export function CatalogProductCard({ kind, name, category, description, image, cylinder, price, originalPrice, popular, actionLabel, onAdd }: CatalogProductCardProps) {
   return <article className={`catalog-card ${kind}-card`}>
     {popular && <span className="catalog-popular">🔥 Most Popular</span>}
-    <div className="catalog-image">{image ? <img src={image} alt={name} /> : <span>{category}</span>}</div>
+    <div className="catalog-image">{cylinder ? <CylinderImage cylinder={cylinder} alt={name} /> : image ? <ReliableImage src={image} alt={name} /> : <span>{category}</span>}</div>
     <span className="catalog-category" title={category}>{category}</span>
     <h3 className="catalog-name" title={name}>{name}</h3>
     <p className="catalog-description" title={description}>{description}</p>

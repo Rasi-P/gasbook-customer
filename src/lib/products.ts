@@ -1,16 +1,17 @@
-import { request, ApiError, type BookingRecord, type BookingPreviewResponse } from './auth'
+import { collectPages } from './pagination'
+import { request, ApiError, type BookingRecord, type BookingPreviewResponse, catalogEndpoint } from './auth'
 import { pendingCheckoutKey, prepareCheckout, recordCheckout, runCheckout } from './checkoutIntent'
 import { buildBookingPreviewPayload } from './pricing'
 import type { CartItem } from '../types'
 export interface Accessory { id: number; name: string; description: string; category: string; selling_price: string; image: string | null; available: boolean }
 export interface BookingItem { id: number; name: string; type: 'cylinder' | 'accessory'; cylinder_type?: number; quantity: number; rate: string; total_amount: string; rate_type?: 'new' | 'refill' | null; deposit_unit_amount?: string | null; refill_unit_amount?: string | null }
-export async function fetchAccessories() {
-  const rows: Accessory[] = []
-  let page: number | null = 1
-  while (page) {
-    const data: { results: Accessory[]; next: string | null } = await request(`/products/?page=${page}`)
-    rows.push(...data.results); page = data.next ? page + 1 : null
-  }
+export async function fetchAccessories(): Promise<Accessory[]> {
+  const endpoint = catalogEndpoint('/products/')
+  const rows = await collectPages<Accessory>(endpoint, query => request(`/products/?${query}`))
+  if (rows.some(row => typeof row.name !== 'string' || typeof row.available !== 'boolean' ||
+      typeof row.category !== 'string' || typeof row.description !== 'string' ||
+      !Number.isFinite(Number(row.selling_price)) || Number(row.selling_price) < 0 ||
+      (row.image != null && typeof row.image !== 'string'))) throw new Error('Invalid accessory catalog. Please reload.')
   return rows
 }
 export function placeCart(items: CartItem[], address: string, phone: string, preview: BookingPreviewResponse, customerId: number): Promise<BookingRecord[]> {

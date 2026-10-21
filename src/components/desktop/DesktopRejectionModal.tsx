@@ -1,5 +1,6 @@
 import { formatDateTime } from '../../lib/dateTime'
-import { getCylinderImage } from '../../lib/formatters'
+import { orderCylinder } from '../../lib/formatters'
+import { CylinderImage } from '../common/CylinderImage'
 
 interface DesktopRejectionModalProps {
   order: any
@@ -102,7 +103,7 @@ export function DesktopRejectionModal({
             border: '1px solid #e2e8f0',
           }}
         >
-          <img src={getCylinderImage(order.productName, order.weight)} alt="" style={{ height: '40px', objectFit: 'contain' }} />
+          <CylinderImage cylinder={orderCylinder(order)} alt="" style={{ height: '40px', objectFit: 'contain' }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 700, fontSize: '14px', color: '#1e293b' }}>{order.productName}</div>
             <div style={{ fontSize: '12px', color: '#64748b' }}>

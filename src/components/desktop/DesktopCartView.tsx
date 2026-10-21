@@ -3,7 +3,8 @@ import { useState } from 'react'
 import { type CustomerProfile } from '../../lib/auth'
 import type { CartItem, ProfileUser } from '../../types'
 import { formatMoney, previewItemByCartId, previewUnitRates } from '../../lib/pricing'
-import { getCylinderImage } from '../../lib/formatters'
+import { cartCylinder } from '../../lib/formatters'
+import { CylinderImage } from '../common/CylinderImage'
 import { EditProfileModal } from '../common/EditProfileModal'
 import { PricingErrorNotice } from '../common/PricingErrorNotice'
 import { usePricingPreview } from '../../hooks/usePricingPreview'
@@ -102,7 +103,7 @@ export function DesktopCartView({
                     flexShrink: 0,
                   }}
                 >
-                  <img src={item.type === 'accessory' ? (item.image || undefined) : getCylinderImage(item.name, item.variant)} alt={item.name} style={{ height: '60px', objectFit: 'contain' }} />
+                  {item.type === 'accessory' ? <img src={item.image || undefined} alt={item.name} style={{ height: '60px', objectFit: 'contain' }} /> : <CylinderImage cylinder={cartCylinder(item)} alt={item.name} style={{ height: '60px', objectFit: 'contain' }} />}
                 </div>
 
                 {/* Product Info */}

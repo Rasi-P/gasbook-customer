@@ -2,7 +2,8 @@ import { CartPricing } from '../common/CartPricing'
 import { useState } from 'react'
 import { type CustomerProfile } from '../../lib/auth'
 import type { CartItem, ProfileUser } from '../../types'
-import { getCylinderImage } from '../../lib/formatters'
+import { cartCylinder } from '../../lib/formatters'
+import { CylinderImage } from '../common/CylinderImage'
 import { EditProfileModal } from '../common/EditProfileModal'
 import { PricingErrorNotice } from '../common/PricingErrorNotice'
 import { previewItemByCartId } from '../../lib/pricing'
@@ -80,7 +81,7 @@ export function CartView({
                 {/* Left: Product Image */}
                 <div className="cart-product-img-wrap">
                   {item.type === 'cylinder' || item.image ? (
-                    <img src={item.type === 'accessory' ? item.image! : getCylinderImage(item.name, item.variant)} className="cart-cylinder-img" alt={item.name} />
+                    item.type === 'accessory' ? <img src={item.image!} className="cart-cylinder-img" alt={item.name} /> : <CylinderImage cylinder={cartCylinder(item)} className="cart-cylinder-img" alt={item.name} />
                   ) : <span>{item.variant}</span>}
                 </div>
 

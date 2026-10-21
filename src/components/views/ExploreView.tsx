@@ -3,7 +3,7 @@ import { useAccessories } from '../../hooks/useAccessories'
 import { CatalogTabs, AccessoryCard } from '../common/AccessoryCatalog'
 import type { Accessory } from '../../lib/products'
 import { useState } from 'react'
-import { getCylinderDisplay, getCylinderImage } from '../../lib/formatters'
+import { getCylinderDisplay, cylinderSubject } from '../../lib/formatters'
 import { CYLINDERS_EMPTY_LABEL, CYLINDERS_LOADING_LABEL, useCylinderTypes } from '../../hooks/useCylinderTypes'
 
 interface ExploreViewProps {
@@ -92,6 +92,7 @@ export function ExploreView({
       </div>
 
       <CatalogTabs value={selectedCategory} onChange={setSelectedCategory} cylinders={products.length} accessories={accessories.products.length} />
+      {selectedCategory !== 'cylinder' && accessories.enabled === false && <p role="status">Accessories are disabled in this demo.</p>}
       {selectedCategory !== 'cylinder' && accessories.loading && <p>Loading accessories…</p>}
       {selectedCategory !== 'cylinder' && accessories.error && <p role="alert">{accessories.error} <button onClick={accessories.retry}>Retry</button></p>}
       {/* 4. Quick Book Section */}
@@ -109,7 +110,7 @@ export function ExploreView({
           {filteredProducts.map((prod) => (
           <CatalogProductCard key={prod.id} kind="cylinder" name={prod.displayTitle} category={prod.displayBadge}
             description="Genuine sealed cylinder • Fast doorstep delivery"
-            image={getCylinderImage(prod.name, prod.rawWeight)} price={prod.finalPrice}
+            image={null} cylinder={cylinderSubject({ id: prod.rawId, name: prod.name, weight: prod.rawWeight })} price={prod.finalPrice}
             originalPrice={prod.hasDiscount ? prod.originalPrice : undefined} popular={Boolean(prod.isPopular)}
             actionLabel="Book" onAdd={() => onBook(prod.displayBadge, prod.rawPrice, prod.rawId, prod.displayTitle)} />
         ))}

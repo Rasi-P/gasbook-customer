@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, expect, it } from 'bun:test'
-import { activeCylinderTypes, fetchCylinderTypes, login, logout } from '../src/lib/auth'
-import { getCylinderImage, registerCylinderImages } from '../src/lib/formatters'
+import { API_BASE_URL, activeCylinderTypes, fetchCylinderTypes, login, logout } from '../src/lib/auth'
+import { cylinderSubject, registerCylinderImages } from '../src/lib/formatters'
+import { resolveCylinderImage, type CylinderImageSubject } from '../src/lib/cylinderImages'
+
+const pic = (subject: CylinderImageSubject) => resolveCylinderImage(subject, API_BASE_URL)
+const getCylinderImage = (name: string) => pic(cylinderSubject({ name }))
 
 const originalFetch = globalThis.fetch
 beforeEach(async () => {
@@ -16,8 +20,9 @@ it('uses bundled images for a complete demo catalog with no uploaded media', asy
   const seen = pages(() => ({ count: all.length, results: all, next: null }))
   const result = await fetchCylinderTypes()
   for (const type of result) {
-    const image = getCylinderImage(type.name, type.weight)
-    expect(image).toMatch(/(?:cylinder_\d+kg|splash_cylinder)\.png$/)
+    const image = pic(cylinderSubject({ id: type.id, name: type.name, weight: type.weight }))
+    // No uploads: every type shows its weight's SABCO file (33 kg too), served by the backend.
+    expect(image).toBe(`${new URL(API_BASE_URL).origin}/static/cylinders/sabco-${Number(type.weight)}kg.png`)
     expect(image).not.toContain('unused.invalid')
   }
   expect(seen).toHaveLength(1)

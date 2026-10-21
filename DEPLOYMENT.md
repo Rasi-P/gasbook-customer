@@ -1,6 +1,29 @@
 # Customer frontend deployment preparation
 
-## Current deployment scope: personal ₹0 demo
+## Full-feature candidate — 2026-10-21
+
+Local candidate only; no hosted configuration or data was changed. Intended existing projects are the admin
+`https://gasbook-beige.vercel.app` and this customer app `https://gasbook-customer.vercel.app`, sharing
+`https://gasbook-demo-api.onrender.com/api`. These target URLs are supplied deployment context; local tests do not
+verify their current SHA, account or settings. Keep Vercel/Bun/root `.`/output `dist` and the existing API variable.
+
+Deploy the candidate backend **before** this frontend: `/auth/me/` must provide `capabilities.accessories` and
+`capabilities.image_uploads`. Accessory-off, empty catalog, loading and failure are distinct UI states. Accessory
+pagination validates counts, IDs, advancing pages and exact same-origin endpoint; incomplete lists are never published.
+Cylinder historical/active filtering and intentional home limits remain. Customer images use stable backend media URLs
+with explicit fallback/retry; provider signatures and credentials are never sent to this frontend. Staff photos remain
+private to the appropriate management users. Storage activation is separately gated by the backend runbook.
+
+Checkout remains a single atomic, persisted-key operation for cylinder and mixed orders. Network failures do not clear
+an uncertain cart or create a new retry key. Client timeouts allow 65 seconds for Render cold starts. Do not add automatic
+POST retries. Accessory-only customer ordering and online payment processing are not implemented business workflows.
+
+Review `gasbook/docs/production-deployment.md` for the ImageKit Free/account/secret gate, encryption-key backup, feature
+activation sequence and coordinated rollback. Older backend artifacts require accessories off/uploads disabled and lack
+capabilities; do not independently roll back one side. No migration, seed, bootstrap or hosted smoke-data writes are
+implied by a frontend deployment. User approval remains required for commits, pushes and all provider changes.
+
+## Historical initial deployment preparation: personal ₹0 demo
 
 The current release is for non-commercial demonstration with synthetic customers/bookings only. Keep this frontend and
 the admin in separate Vercel projects. No real orders, payments, customer data, payment credentials, billing activation,

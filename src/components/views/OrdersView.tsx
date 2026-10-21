@@ -12,7 +12,8 @@ import { markNotificationRead } from '../../lib/auth'
 import { usePaginatedQuery } from '../../hooks/usePaginatedQuery'
 import { fetchPaginatedNotifications, fetchPaginatedOrderHistory } from '../../lib/api-queries'
 import { Pagination } from '../common/Pagination'
-import { getCylinderImage } from '../../lib/formatters'
+import { orderCylinder } from '../../lib/formatters'
+import { CylinderImage } from '../common/CylinderImage'
 import { ACTIVE_STATUS_FILTER, CANCELLED_STATUS_FILTER, COMPLETED_STATUS_FILTER } from '../../lib/orderStatus'
 
 interface OrdersViewProps {
@@ -176,7 +177,7 @@ export function OrdersView({
                 <OrderHistoryEvents order={order.rawBooking} />
               <div className="order-card-main">
                 <div className="order-cylinder-wrap">
-                  {!(order.rawBooking?.order_items?.length && order.rawBooking.order_items.every((item: { type: string }) => item.type === 'accessory')) && <img src={getCylinderImage(order.productName, order.weight)} className="order-cylinder-img" alt={order.productName} />}
+                  {!(order.rawBooking?.order_items?.length && order.rawBooking.order_items.every((item: { type: string }) => item.type === 'accessory')) && <CylinderImage cylinder={orderCylinder(order)} className="order-cylinder-img" alt={order.productName} />}
                 </div>
 
                 <div className="order-info-center">
