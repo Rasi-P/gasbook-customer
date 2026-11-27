@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import type { OrderItem } from '../../types'
 import type { CustomerProfile } from '../../lib/auth'
-import { fetchCylinderTypes } from '../../lib/auth'
-import { getCylinderDisplay, getCylinderImage } from '../../lib/formatters'
+import { getCylinderDisplay, cylinderSubject, orderCylinder } from '../../lib/formatters'
+import { CylinderImage } from '../common/CylinderImage'
+import { CYLINDERS_EMPTY_LABEL, CYLINDERS_LOADING_LABEL, useCylinderTypes } from '../../hooks/useCylinderTypes'
 import heroBg from '../../assets/hero_bg.png'
 
 interface DesktopHomeViewProps {
+  onNavigateToSafety: () => void
   onNavigateToExplore: () => void
   customerProfile: CustomerProfile | null
   latestActiveOrder?: OrderItem | null
@@ -19,6 +21,7 @@ function getGreetingName(customerProfile: CustomerProfile | null) {
 }
 
 export function DesktopHomeView({
+  onNavigateToSafety,
   onNavigateToExplore,
   customerProfile,
   latestActiveOrder,
@@ -26,17 +29,11 @@ export function DesktopHomeView({
   onTrackOrder,
   onBook,
 }: DesktopHomeViewProps) {
-  const [cylinderTypes, setCylinderTypes] = useState<any[]>([])
+  const { cylinderTypes, isLoading: catalogLoading, error: catalogError, reload: reloadCatalog } = useCylinderTypes()
   const [copiedCoupon, setCopiedCoupon] = useState(false)
 
   const greetingName = getGreetingName(customerProfile)
   const hasActiveOrder = Boolean(latestActiveOrder)
-
-  useEffect(() => {
-    fetchCylinderTypes()
-      .then((data: any[]) => setCylinderTypes(data))
-      .catch(() => undefined)
-  }, [])
 
   const popularCylinders = cylinderTypes.slice(0, 4).map((c) => {
     const display = getCylinderDisplay(c.name, c.weight)
@@ -47,9 +44,9 @@ export function DesktopHomeView({
       displayTitle: display.title,
       displayBadge: display.badge,
       rawWeight: c.weight,
-      rawPrice: Number(c.selling_price) || 0,
-      finalPrice: Number(c.final_price || c.selling_price) || 0,
-      originalPrice: Number(c.customer_rate || c.selling_price) || 0,
+      rawPrice: Number(c.refill_rate) || 0,
+      finalPrice: Number(c.final_price ?? c.refill_rate) || 0,
+      originalPrice: Number(c.customer_rate ?? c.refill_rate) || 0,
       hasDiscount: Boolean(c.has_discount),
     }
   })
@@ -103,6 +100,7 @@ export function DesktopHomeView({
                   <h3 style={{ margin: '2px 0 0', fontSize: '18px', fontWeight: 800, color: '#1e293b' }}>
                     {latestActiveOrder.orderNumber}
                   </h3>
+                  <div className="order-event-times">Booked {latestActiveOrder.date}</div>
                 </div>
                 <span
                   style={{
@@ -120,7 +118,7 @@ export function DesktopHomeView({
 
               {/* Product and Price */}
               <div style={{ display: 'flex', gap: '14px', alignItems: 'center', background: '#f8fafc', padding: '14px', borderRadius: '14px', marginBottom: '16px' }}>
-                <img src={getCylinderImage(latestActiveOrder.productName, latestActiveOrder.weight)} alt="" style={{ height: '48px', objectFit: 'contain' }} />
+                <CylinderImage cylinder={orderCylinder(latestActiveOrder)} alt="" style={{ height: '48px', objectFit: 'contain' }} />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: '14.5px', color: '#1e293b' }}>
                     {latestActiveOrder.productName}
@@ -321,11 +319,48 @@ export function DesktopHomeView({
           </button>
         </div>
 
+        {(catalogLoading || catalogError || popularCylinders.length === 0) && (
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '28px 24px',
+              marginBottom: '16px',
+              color: '#64748b',
+              fontSize: '14px',
+              background: '#ffffff',
+              borderRadius: '20px',
+              border: '1px dashed #e2e8f0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '14px',
+              flexWrap: 'wrap',
+            }}
+          >
+            {catalogLoading ? (
+              <span>{CYLINDERS_LOADING_LABEL}</span>
+            ) : catalogError ? (
+              <>
+                <span style={{ color: '#dc2626', fontWeight: 600 }}>{catalogError}</span>
+                <button
+                  type="button"
+                  onClick={reloadCatalog}
+                  style={{ background: '#1052be', color: '#ffffff', border: 'none', padding: '8px 18px', borderRadius: '10px', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  Retry
+                </button>
+              </>
+            ) : (
+              <span>{CYLINDERS_EMPTY_LABEL}</span>
+            )}
+          </div>
+        )}
+
         <div className="desktop-cylinder-grid">
           {popularCylinders.map((prod) => (
             <div key={prod.id} className="desktop-cylinder-card">
               <div className="desktop-cylinder-img-wrap">
-                <img src={getCylinderImage(prod.name, prod.rawWeight)} className="desktop-cylinder-img" alt={prod.name} />
+                <CylinderImage cylinder={cylinderSubject({ id: prod.rawId, name: prod.name, weight: prod.rawWeight })} className="desktop-cylinder-img" alt={prod.name} />
               </div>
               <div className="desktop-cylinder-info">
                 <span className="desktop-cylinder-badge">{prod.displayBadge}</span>
@@ -338,7 +373,7 @@ export function DesktopHomeView({
                       ₹{prod.originalPrice.toLocaleString('en-IN')}
                     </span>
                   )}
-                  <span className="desktop-cylinder-price">₹{prod.finalPrice.toLocaleString('en-IN')}</span>
+                  <span className="desktop-cylinder-price">Refill ₹{prod.finalPrice.toLocaleString('en-IN')}</span>
                 </div>
                 <button
                   className="desktop-book-btn"
@@ -403,6 +438,7 @@ export function DesktopHomeView({
             <p style={{ margin: 0, fontSize: '13px', color: '#15803d', lineHeight: 1.4 }}>
               Always keep your LPG cylinder upright and verify the safety seal upon delivery.
             </p>
+            <button type="button" className="know-more-link" onClick={onNavigateToSafety}>Know More <span aria-hidden="true">→</span></button>
           </div>
           <div
             style={{

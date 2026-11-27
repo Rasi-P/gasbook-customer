@@ -1,14 +1,21 @@
-import { useEffect, useState } from 'react'
-import { createBooking, getApiErrorDetails, previewBookings, type BookingPreviewResponse, type BookingRecord, type CustomerProfile } from '../../lib/auth'
+import { useCheckout } from '../../hooks/useCheckout'
+import { placeCart, recoverCart } from '../../lib/products'
+import { CartPricing } from '../common/CartPricing'
+import { useState } from 'react'
+import { getApiErrorDetails, type BookingRecord, type CustomerProfile } from '../../lib/auth'
 import type { CartItem, ProfileUser } from '../../types'
-import { buildBookingPreviewPayload, createEmptyPreview, formatMoney, previewItemByCartId } from '../../lib/pricing'
-import { getCylinderImage } from '../../lib/formatters'
+import { previewItemByCartId } from '../../lib/pricing'
+import { cartCylinder } from '../../lib/formatters'
+import { CylinderImage } from '../common/CylinderImage'
 import { EditProfileModal } from '../common/EditProfileModal'
+import { PricingErrorNotice } from '../common/PricingErrorNotice'
+import { usePricingPreview } from '../../hooks/usePricingPreview'
 
 interface CheckoutViewProps {
   cartItems: CartItem[]
   customerProfile: CustomerProfile | null
   profileUser?: ProfileUser
+  onRateTypeChange: (id: string, value: "new" | "refill") => void
   onUpdateQuantity: (id: string, delta: number) => void
   onRemoveItem: (id: string) => void
   onProfileUpdated?: () => void
@@ -22,75 +29,52 @@ export function CheckoutView({
   customerProfile,
   profileUser,
   onUpdateQuantity,
+  onRateTypeChange,
   onProfileUpdated,
   onNavigateToExplore,
   onBackToCart,
   onOrderCreated,
 }: CheckoutViewProps) {
-  const [submitting, setSubmitting] = useState(false)
+  const checkout = useCheckout(customerProfile?.id ?? 0)
+  const submitting = checkout === 'submitting'
+  const recoveryAvailable = checkout === 'pending' || checkout === 'confirmed'
   const [error, setError] = useState<string | null>(null)
   const [isEditingAddress, setIsEditingAddress] = useState(false)
-  const [pricingPreview, setPricingPreview] = useState<BookingPreviewResponse>(createEmptyPreview())
+  const { preview: pricingPreview, error: pricingError, isReady: pricingReady, reload: reloadPricing, displayAmount } = usePricingPreview(cartItems)
 
   const customerName = customerProfile?.name?.trim() || customerProfile?.full_name?.trim() || 'Customer'
   const customerPhone = customerProfile?.phone?.trim() || ''
   const customerAddress = customerProfile?.address?.trim() || ''
   const hasValidAddress = Boolean(customerAddress)
-
-  useEffect(() => {
-    let ignore = false
-
-    if (cartItems.length === 0) {
-      setPricingPreview(createEmptyPreview())
-      return
-    }
-
-    previewBookings(buildBookingPreviewPayload(cartItems))
-      .then((data) => {
-        if (!ignore) setPricingPreview(data)
-      })
-      .catch(() => {
-        if (!ignore) setPricingPreview(createEmptyPreview())
-      })
-
-    return () => {
-      ignore = true
-    }
-  }, [cartItems])
+  const canConfirm = !submitting && hasValidAddress && pricingReady && cartItems.some(i => i.type === 'cylinder')
 
   const handlePlaceOrder = async () => {
-    if (submitting) return
-    setSubmitting(true)
+    if (submitting || !canConfirm) return
     setError(null)
 
     try {
-      const bookingPromises = cartItems.map((item) => {
-        const payload = {
-          cylinder_type: item.cylinderTypeId || 1,
-          quantity: item.quantity || 1,
-          note: `Order via Customer App (COD)`,
-          payment_method: 'COD',
-          payment_status: 'PENDING',
-          delivery_address: customerAddress,
-          delivery_phone: customerPhone,
-        }
-        return createBooking(payload)
-      })
-
-      const responses = await Promise.all(bookingPromises)
+      const responses = await placeCart(cartItems, customerAddress, customerPhone, pricingPreview!, customerProfile!.id)
       onOrderCreated(responses)
     } catch (err: unknown) {
       const details = getApiErrorDetails(err, 'Unable to place order. Please try again.')
-      setError(details.message)
-    } finally {
-      setSubmitting(false)
+      setError(err instanceof Error && !(err as { status?: number }).status ? err.message : details.message)
+      reloadPricing()
     }
+  }
+
+  const handleRecovery = async () => {
+    if (submitting || !customerProfile) return
+    setError(null)
+    try { onOrderCreated(await recoverCart(customerProfile.id)) }
+    catch (err) { setError(err instanceof Error ? err.message : 'Unable to recover checkout. Please retry.') }
   }
 
   // Handle empty cart state directly
   if (cartItems.length === 0) {
     return (
       <div style={{ padding: '24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
+        {recoveryAvailable && <div role="status" style={{ padding: '16px' }}>A checkout is awaiting confirmation. Keep this cart unchanged. <button type="button" disabled={submitting} onClick={handleRecovery}>Recover checkout result</button></div>}
+        {error && <p role="alert">{error}</p>}
         <div style={{ background: '#EEF4FF', borderRadius: '50%', width: '120px', height: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
           <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="1.5">
             <circle cx="9" cy="21" r="2" />
@@ -109,6 +93,7 @@ export function CheckoutView({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F8FAFC', paddingBottom: '68px', boxSizing: 'border-box' }}>
+      {recoveryAvailable && <div role="status" style={{ padding: '16px' }}>A checkout is awaiting confirmation. Keep this cart unchanged. <button type="button" disabled={submitting} onClick={handleRecovery}>Recover checkout result</button></div>}
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', padding: '20px', background: '#FFF', position: 'sticky', top: 0, zIndex: 10, borderBottom: '1px solid #F1F5F9' }}>
         <button onClick={onBackToCart} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', color: '#1E293B' }}>
@@ -140,7 +125,7 @@ export function CheckoutView({
                 {idx > 0 && <div style={{ borderTop: '1px solid #F1F5F9', margin: '0 0 16px 0' }} />}
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <div style={{ width: '60px', height: '60px', background: '#F8FAFC', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
-                    <img src={getCylinderImage(item.name, item.variant)} alt={item.name} style={{ width: '40px', objectFit: 'contain' }} />
+                    {item.type === 'accessory' ? <img src={item.image || undefined} alt={item.name} style={{ width: '40px', objectFit: 'contain' }} /> : <CylinderImage cylinder={cartCylinder(item)} alt={item.name} style={{ width: '40px', objectFit: 'contain' }} />}
                   </div>
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -151,11 +136,11 @@ export function CheckoutView({
                       <div style={{ textAlign: 'right' }}>
                         {previewItemByCartId(pricingPreview, item.id)?.has_discount && (
                           <div style={{ fontSize: '0.78rem', color: '#94a3b8', textDecoration: 'line-through' }}>
-                            {formatMoney(previewItemByCartId(pricingPreview, item.id)?.original_amount)}
+                            {displayAmount(previewItemByCartId(pricingPreview, item.id)?.original_amount)}
                           </div>
                         )}
                         <span style={{ color: '#1E293B', fontSize: '0.95rem' }}>
-                          {formatMoney(previewItemByCartId(pricingPreview, item.id)?.final_amount || item.unitPrice)}
+                          {displayAmount(previewItemByCartId(pricingPreview, item.id)?.final_amount)}
                         </span>
                       </div>
                     </div>
@@ -167,7 +152,7 @@ export function CheckoutView({
                         <button onClick={() => onUpdateQuantity(item.id, 1)} style={{ width: '32px', height: '32px', background: '#FFF', border: 'none', color: '#64748B', cursor: 'pointer', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
                       </div>
                       <span style={{ fontWeight: 600, color: '#1E293B' }}>
-                        {formatMoney(previewItemByCartId(pricingPreview, item.id)?.final_amount || item.unitPrice * item.quantity)}
+                        {displayAmount(previewItemByCartId(pricingPreview, item.id)?.final_amount)}
                       </span>
                     </div>
                   </div>
@@ -227,14 +212,16 @@ export function CheckoutView({
             <h3 style={{ margin: 0, fontSize: '1rem', color: '#1E293B' }}>Price Details</h3>
           </div>
 
+          <CartPricing items={cartItems} preview={pricingReady ? pricingPreview : null} onRateTypeChange={onRateTypeChange} />
+          {pricingError && <PricingErrorNotice message={pricingError} onRetry={reloadPricing} />}
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '0.95rem', color: '#64748B' }}>
             <span>Original Amount</span>
-            <span style={{ color: '#1E293B' }}>{formatMoney(pricingPreview.summary.original_amount)}</span>
+            <span style={{ color: '#1E293B' }}>{displayAmount(pricingPreview?.summary.original_amount)}</span>
           </div>
-          {pricingPreview.summary.has_discount && (
+          {pricingPreview?.summary.has_discount && (
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', fontSize: '0.95rem', color: '#64748B' }}>
               <span>Discount</span>
-              <span style={{ color: '#16a34a' }}>- {formatMoney(pricingPreview.summary.discount_amount)}</span>
+              <span style={{ color: '#16a34a' }}>- {displayAmount(pricingPreview.summary.discount_amount)}</span>
             </div>
           )}
           
@@ -242,7 +229,7 @@ export function CheckoutView({
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ color: '#1E293B', fontWeight: 600, fontSize: '1.05rem' }}>Final Amount</span>
-            <span style={{ color: '#2563EB', fontWeight: 700, fontSize: '1.15rem' }}>{formatMoney(pricingPreview.summary.final_amount)}</span>
+            <span style={{ color: '#2563EB', fontWeight: 700, fontSize: '1.15rem' }}>{displayAmount(pricingPreview?.summary.final_amount)}</span>
           </div>
         </div>
 
@@ -266,7 +253,7 @@ export function CheckoutView({
             </div>
             <div>
               <div style={{ fontWeight: 600, color: '#1E293B', fontSize: '0.95rem' }}>Cash on Delivery (COD)</div>
-              <div style={{ fontSize: '0.85rem', color: '#64748B', marginTop: '2px' }}>Pay {formatMoney(pricingPreview.summary.final_amount)} upon delivery</div>
+              <div style={{ fontSize: '0.85rem', color: '#64748B', marginTop: '2px' }}>Pay {displayAmount(pricingPreview?.summary.final_amount)} upon delivery</div>
             </div>
           </div>
         </div>
@@ -284,8 +271,8 @@ export function CheckoutView({
         <div style={{ width: '100%', maxWidth: '480px' }}>
           <button 
             onClick={handlePlaceOrder}
-            disabled={submitting || !hasValidAddress}
-            style={{ width: '100%', padding: '16px', background: '#EA580C', color: '#FFF', border: 'none', borderRadius: '12px', fontSize: '1.05rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: (submitting || !hasValidAddress) ? 0.6 : 1 }}
+            disabled={!canConfirm}
+            style={{ width: '100%', padding: '16px', background: '#EA580C', color: '#FFF', border: 'none', borderRadius: '12px', fontSize: '1.05rem', fontWeight: 600, cursor: canConfirm ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: canConfirm ? 1 : 0.6 }}
           >
             {submitting ? 'Placing Order...' : 'Confirm Booking'}
             {!submitting && (

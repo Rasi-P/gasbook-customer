@@ -1,10 +1,20 @@
+import { PaymentSummary } from '../common/PaymentSummary'
+import { OutstandingBalance } from '../common/OutstandingBalance'
+import '../../styles/orderCards.css'
+import { BookingItems } from '../common/BookingItems'
+import { ReceiptActions } from '../receipt/ReceiptActions'
+import { OrderPricingBreakdown } from '../common/PricingBreakdown'
+import { mapHistoryOrder } from '../../lib/orderHistory'
+import { OrderHistoryEvents } from '../common/OrderHistoryEvents'
+import { formatDateTime } from '../../lib/dateTime'
 import { useState, useEffect } from 'react'
-import type { OrderItem } from '../../types'
 import { markNotificationRead } from '../../lib/auth'
 import { usePaginatedQuery } from '../../hooks/usePaginatedQuery'
 import { fetchPaginatedNotifications, fetchPaginatedOrderHistory } from '../../lib/api-queries'
 import { Pagination } from '../common/Pagination'
-import { getCylinderDisplay, getCylinderImage } from '../../lib/formatters'
+import { orderCylinder } from '../../lib/formatters'
+import { CylinderImage } from '../common/CylinderImage'
+import { ACTIVE_STATUS_FILTER, CANCELLED_STATUS_FILTER, COMPLETED_STATUS_FILTER } from '../../lib/orderStatus'
 
 interface OrdersViewProps {
   onNavigateToExplore: () => void
@@ -66,11 +76,11 @@ export function OrdersView({
   const mapFilterToStatus = (filter: string) => {
     switch (filter) {
       case 'ongoing':
-        return 'pending,approved,accepted,out_for_delivery'
+        return ACTIVE_STATUS_FILTER
       case 'completed':
-        return 'delivered'
+        return COMPLETED_STATUS_FILTER
       case 'cancelled':
-        return 'cancelled,rejected'
+        return CANCELLED_STATUS_FILTER
       default:
         return ''
     }
@@ -87,75 +97,16 @@ export function OrdersView({
   }
 
   // Map raw backend bookings to UI OrderItem format
-  const mappedOrders: OrderItem[] = rawOrders.map((b: any) => {
-    const isDirectSale = b.history_source === 'sale'
-    let statusLabel = 'Order Placed'
-    let statusKind: 'ongoing' | 'completed' | 'cancelled' = 'ongoing'
-    let etaOrDate = 'Order Placed — Preparing for delivery'
-
-    if (isDirectSale) {
-      statusLabel = 'Sale Completed'
-      statusKind = 'completed'
-      etaOrDate = b.detail_message || 'Direct sale completed'
-    } else if (b.status === 'approved') {
-      statusLabel = 'Order Confirmed'
-      statusKind = 'ongoing'
-      etaOrDate = 'Order confirmed — awaiting dispatch'
-    } else if (b.status === 'accepted' || b.status === 'out_for_delivery') {
-      statusLabel = 'Out for Delivery'
-      statusKind = 'ongoing'
-      etaOrDate = `Out for delivery with ${b.assigned_staff_name || 'Delivery Staff'}`
-    } else if (b.status === 'delivered') {
-      statusLabel = 'Delivered'
-      statusKind = 'completed'
-      etaOrDate = 'Successfully delivered'
-    } else if (b.status === 'cancelled') {
-      statusLabel = 'Cancelled'
-      statusKind = 'cancelled'
-      etaOrDate = 'Order was cancelled'
-    } else if (b.status === 'rejected') {
-      statusLabel = 'Rejected'
-      statusKind = 'cancelled'
-      etaOrDate = 'Order rejected'
-    }
-
-    const finalPriceNum = parseFloat(b.final_amount || b.total_amount || '0')
-    const originalPriceNum = parseFloat(b.original_amount || '0')
-    const finalPrice = finalPriceNum > 0 ? `₹${finalPriceNum.toLocaleString('en-IN')}` : 'To be determined'
-
-    const display =
-      b.display_name && b.display_badge
-        ? { title: b.display_name, badge: b.display_badge }
-        : getCylinderDisplay(b.cylinder_type_name, b.cylinder_type_weight)
-
-    return {
-      id: `${b.history_source || 'booking'}-${b.id}`,
-      orderNumber: b.display_reference || `Order #${b.order_id}`,
-      date: new Date(b.created_at).toLocaleDateString('en-IN', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      }),
-      productName: display.title,
-      weight: display.badge,
-      price: finalPrice,
-      originalPrice: parseFloat(b.discount_amount || '0') > 0 ? `₹${originalPriceNum.toLocaleString('en-IN')}` : undefined,
-      status: statusKind,
-      statusCode: b.status,
-      statusLabel,
-      actionLabel: isDirectSale ? 'Order Again' : 'Track Order',
-      etaOrDate,
-      rawBooking: b,
-    }
-  })
+  const mappedOrders = rawOrders.map(mapHistoryOrder)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#F8FAFC', paddingBottom: '68px', boxSizing: 'border-box', position: 'relative' }}>
       <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         <div className="orders-scroll-container" style={{ minHeight: 'auto', paddingBottom: '32px' }}>
       {/* 1. Header */}
-      <div className="orders-header">
+      <div className="orders-header orders-header--balance">
         <h1 className="orders-title">My Orders</h1>
+        <OutstandingBalance />
         <button
           className="orders-notification-btn"
           aria-label="Notifications"
@@ -174,11 +125,13 @@ export function OrdersView({
       </div>
 
       {/* 2. Filter Tabs */}
+      <div className="order-filter-bar">
       <div className="filter-tabs-row">
         <button className={`filter-tab-btn ${selectedFilter === 'all' ? 'active' : ''}`} onClick={() => handleFilterClick('all')}>All</button>
         <button className={`filter-tab-btn ${selectedFilter === 'ongoing' ? 'active' : ''}`} onClick={() => handleFilterClick('ongoing')}>Ongoing</button>
         <button className={`filter-tab-btn ${selectedFilter === 'completed' ? 'active' : ''}`} onClick={() => handleFilterClick('completed')}>Completed</button>
         <button className={`filter-tab-btn ${selectedFilter === 'cancelled' ? 'active' : ''}`} onClick={() => handleFilterClick('cancelled')}>Cancelled</button>
+      </div>
       </div>
 
       <div style={{ padding: '0 16px', marginBottom: '16px' }}>
@@ -220,13 +173,20 @@ export function OrdersView({
                 <span className="order-card-date">{order.date}</span>
               </div>
 
+              <div className="history-card-content" tabIndex={0} aria-label={`${order.orderNumber} information`}>
+                <OrderHistoryEvents order={order.rawBooking} />
               <div className="order-card-main">
                 <div className="order-cylinder-wrap">
-                  <img src={getCylinderImage(order.productName, order.weight)} className="order-cylinder-img" alt={order.productName} />
+                  {!(order.rawBooking?.order_items?.length && order.rawBooking.order_items.every((item: { type: string }) => item.type === 'accessory')) && <CylinderImage cylinder={orderCylinder(order)} className="order-cylinder-img" alt={order.productName} />}
                 </div>
 
                 <div className="order-info-center">
                   <h3 className="order-product-name">{order.productName}</h3>
+                    {order.rawBooking?.order_items?.some((item: { type: string }) => item.type === 'accessory') && (
+                      <p className="history-card-accessories" title={order.rawBooking.order_items.filter((item: { type: string }) => item.type === 'accessory').map((item: { name: string; quantity: number }) => `${item.quantity} × ${item.name}`).join(', ')}>
+                        + {order.rawBooking.order_items.filter((item: { type: string }) => item.type === 'accessory').map((item: { name: string; quantity: number }) => `${item.quantity} × ${item.name}`).join(', ')}
+                      </p>
+                    )}
                   <span className="order-weight-badge">{order.weight}</span>
                   {order.originalPrice && (
                     <span className="order-price-tag" style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '0.82rem' }}>{order.originalPrice}</span>
@@ -234,8 +194,16 @@ export function OrdersView({
                   <span className="order-price-tag">{order.price}</span>
                 </div>
 
+              </div>
+
+                {(order.rawBooking?.order_items?.length || order.rawBooking?.items?.length || order.rawBooking?.rate_type) && (
+                  <details className="history-card-details">
+                    <summary>Items &amp; pricing{order.rawBooking?.order_items?.length ? ` (${order.rawBooking.order_items.length})` : ''}</summary>
+                    {order.rawBooking?.order_items?.length ? <BookingItems items={order.rawBooking.order_items} /> : <OrderPricingBreakdown order={order.rawBooking} />}
+                  </details>
+                )}
                 <div className="order-status-action-right">
-                  <div className={`status-pill ${order.statusCode === 'pending' ? 'pending' : 'ongoing'}`}>
+                  <div className={`status-pill ${order.statusCode === 'pending' ? 'pending' : order.status}`}>
                     <span>{order.statusLabel}</span>
                   </div>
 
@@ -243,7 +211,18 @@ export function OrdersView({
                     <span>{order.etaOrDate}</span>
                   </div>
 
-                  {order.statusCode === 'delivered' && order.rawBooking?.history_source === 'sale' ? (
+                </div>
+              </div>
+              <div className="history-card-footer">
+                <div className="history-card-mobile-actions">
+                  {order.statusCode === 'cancelled' && order.rawBooking?.history_source === 'sale' ? (
+                    <div
+                      className="order-action-outline-btn"
+                      style={{ cursor: 'default', opacity: 0.75 }}
+                    >
+                      Sale Cancelled
+                    </div>
+                  ) : order.statusCode === 'delivered' && order.rawBooking?.history_source === 'sale' ? (
                     order.rawBooking?.can_order_again ? (
                       <button className="order-action-outline-btn" onClick={() => {
                         if (!order.rawBooking.cylinder_type_id) {
@@ -287,8 +266,9 @@ export function OrdersView({
                     </button>
                   )}
                 </div>
+              <PaymentSummary value={order.rawBooking.payment_summary} />
+                <ReceiptActions order={order.rawBooking} />
               </div>
-
             </div>
           ))}
           
@@ -330,7 +310,7 @@ export function OrdersView({
                 <div key={n.id} onClick={() => void handleMarkRead(n.id)} style={{ padding: 12, borderRadius: 8, background: n.is_read ? '#f8fafc' : '#eff6ff', border: n.is_read ? '1px solid #e2e8f0' : '1px solid #bfdbfe', cursor: 'pointer' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                     <strong style={{ fontSize: 14, color: '#1e293b' }}>{n.title}</strong>
-                    <small style={{ fontSize: 11, color: '#94a3b8' }}>{new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
+                    <small style={{ fontSize: 11, color: '#94a3b8' }}>{formatDateTime(n.created_at)}</small>
                   </div>
                   <p style={{ fontSize: 13, color: '#475569', margin: 0 }}>{n.body}</p>
                 </div>
@@ -352,11 +332,11 @@ export function OrdersView({
 
       {/* Rejection Details Bottom Sheet */}
       {selectedRejectionOrder && (
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2000, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', animation: 'fadeIn 0.2s ease-out' }}>
-          <div style={{ background: '#fff', width: '100%', padding: '24px', borderTopLeftRadius: '20px', borderTopRightRadius: '20px', animation: 'slideUp 0.3s ease-out', boxShadow: '0 -10px 40px rgba(0,0,0,0.1)', boxSizing: 'border-box' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2000, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', animation: 'fadeIn 0.2s ease-out' }}>
+          <div role="dialog" aria-modal="true" aria-label="Rejection Details" style={{ background: '#fff', width: '100%', maxHeight: 'calc(100dvh - 24px)', overflowY: 'auto', overflowWrap: 'anywhere', minHeight: 0, padding: '24px', paddingBottom: 'calc(24px + env(safe-area-inset-bottom))', borderTopLeftRadius: '20px', borderTopRightRadius: '20px', animation: 'slideUp 0.3s ease-out', boxShadow: '0 -10px 40px rgba(0,0,0,0.1)', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>Rejection Details</h2>
-              <button onClick={() => setSelectedRejectionOrder(null)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#64748b' }}>✕</button>
+              <button aria-label="Close rejection details" onClick={() => setSelectedRejectionOrder(null)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#64748b' }}>✕</button>
             </div>
             
             <div style={{ marginBottom: '16px' }}>
@@ -367,13 +347,11 @@ export function OrdersView({
             <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', marginBottom: '24px' }}>
               <div style={{ marginBottom: '12px' }}>
                 <div style={{ fontSize: '12px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '4px' }}>Reason</div>
-                <div style={{ fontSize: '15px', color: '#1e293b' }}>{selectedRejectionOrder.rawBooking.rejection_reason || 'No reason provided'}</div>
+                <div style={{ fontSize: '15px', color: '#1e293b', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', lineHeight: 1.5 }}>{selectedRejectionOrder.rawBooking.rejection_reason || 'No reason provided'}</div>
               </div>
               <div>
                 <div style={{ fontSize: '13px', color: '#94a3b8' }}>
-                  {selectedRejectionOrder.rawBooking.rejected_at ? new Date(selectedRejectionOrder.rawBooking.rejected_at).toLocaleString('en-IN', {
-                    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-                  }) : selectedRejectionOrder.date}
+                  {formatDateTime(selectedRejectionOrder.rawBooking.rejected_at)}
                 </div>
               </div>
             </div>

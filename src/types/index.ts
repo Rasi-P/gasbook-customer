@@ -25,8 +25,11 @@ export interface OrderItem {
 }
 
 export interface CartItem {
+  rateType?: "new" | "refill"
   id: string
   cylinderTypeId?: number
+  productId?: number
+  image?: string | null
   name: string
   variant: string
   unitPrice: number
@@ -44,4 +47,4 @@ export interface ProfileUser {
   memberSince: string
 }
 
-export type ActiveTab = 'home' | 'explore' | 'orders' | 'cart' | 'checkout' | 'order-success' | 'profile' | 'track-order'
+export type ActiveTab = 'safety' | 'home' | 'explore' | 'orders' | 'cart' | 'checkout' | 'order-success' | 'profile' | 'track-order'

@@ -12,11 +12,25 @@ dist
 dist-ssr
 *.local
 .vite
+test-results/
+playwright-report/
 
 # Env files — only the example is tracked
 .env
 .env.*
 !.env.example
+
+# Local provider metadata, credentials and private-key files.
+.neon
+.vercel/
+.secrets/
+credentials.json
+credentials.local.*
+secrets.local.*
+*.key
+*.pem
+*.p12
+*.pfx
 
 # Editor directories and files
 .vscode/*

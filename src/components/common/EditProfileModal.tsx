@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { ProfileUser } from '../../types'
-import { updateCustomerProfile, getApiErrorDetails } from '../../lib/auth'
+import { PROFILE_FIELD_LIMITS, updateCustomerProfile, getApiErrorDetails } from '../../lib/auth'
 
 interface EditProfileModalProps {
   user: ProfileUser
@@ -8,9 +8,45 @@ interface EditProfileModalProps {
   onSuccess: () => void
 }
 
+type ProfileField = 'name' | 'phone' | 'email' | 'address'
+type ProfileFieldErrors = Partial<Record<ProfileField, string>>
+
+const PROFILE_FIELDS: readonly ProfileField[] = ['name', 'phone', 'email', 'address']
+
+function isProfileField(value: string): value is ProfileField {
+  return (PROFILE_FIELDS as readonly string[]).includes(value)
+}
+
+/** Client-side checks mirroring the backend limits (name ≤150, phone digits ≤20, email ≤254). */
+function validateProfileForm(values: { name: string; phone: string; email: string }): ProfileFieldErrors {
+  const errors: ProfileFieldErrors = {}
+  const name = values.name.trim()
+  const phone = values.phone.trim()
+  const email = values.email.trim()
+
+  if (!name) {
+    errors.name = 'Full name is required.'
+  } else if (name.length > PROFILE_FIELD_LIMITS.name) {
+    errors.name = `Full name must be ${PROFILE_FIELD_LIMITS.name} characters or fewer.`
+  }
+
+  if (phone && !/^\d+$/.test(phone)) {
+    errors.phone = 'Phone number must contain only numbers.'
+  } else if (phone.length > PROFILE_FIELD_LIMITS.phone) {
+    errors.phone = `Phone number must be ${PROFILE_FIELD_LIMITS.phone} digits or fewer.`
+  }
+
+  if (email.length > PROFILE_FIELD_LIMITS.email) {
+    errors.email = `Email must be ${PROFILE_FIELD_LIMITS.email} characters or fewer.`
+  }
+
+  return errors
+}
+
 export function EditProfileModal({ user, onClose, onSuccess }: EditProfileModalProps) {
   const [isSaving, setIsSaving] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<ProfileFieldErrors>({})
 
   const [formValues, setFormValues] = useState({
     name: user.name === 'Customer' ? '' : user.name,
@@ -34,35 +70,56 @@ export function EditProfileModal({ user, onClose, onSuccess }: EditProfileModalP
     onClose()
   }
 
+  const updateField = (field: ProfileField, value: string) => {
+    setFormValues((current) => ({ ...current, [field]: value }))
+    setFieldErrors((current) => (current[field] ? { ...current, [field]: undefined } : current))
+  }
+
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMessage(null)
 
-    if (!formValues.name.trim()) {
-      setErrorMessage('Full name is required.')
+    const validationErrors = validateProfileForm(formValues)
+    if (Object.keys(validationErrors).length > 0) {
+      setFieldErrors(validationErrors)
       return
     }
-
-    if (formValues.phone.trim() && !/^\d+$/.test(formValues.phone.trim())) {
-      setErrorMessage('Phone number must contain only numbers.')
-      return
-    }
+    setFieldErrors({})
 
     setIsSaving(true)
 
     try {
-      if (user.profileId) {
-        await updateCustomerProfile(user.profileId, {
-          name: formValues.name.trim(),
-          phone: formValues.phone.trim(),
-          email: formValues.email.trim(),
-          address: formValues.address.trim(),
-        })
+      if (!user.profileId) {
+        // Nothing to PATCH: do not pretend the save succeeded.
+        setErrorMessage('No customer profile is linked to this account. Please contact support.')
+        return
       }
+      await updateCustomerProfile(user.profileId, {
+        name: formValues.name.trim(),
+        phone: formValues.phone.trim(),
+        email: formValues.email.trim(),
+        address: formValues.address.trim(),
+      })
       onSuccess()
     } catch (err: unknown) {
       const details = getApiErrorDetails(err, 'Failed to update profile. Please try again.')
-      setErrorMessage(details.message)
+
+      // Per-field server errors ({"phone": ["..."]} and/or {"field": "phone", "detail": "..."}) go under the input;
+      // the banner is reserved for errors that do not belong to a field.
+      const serverFieldErrors: ProfileFieldErrors = {}
+      for (const [key, message] of Object.entries(details.fieldErrors)) {
+        if (isProfileField(key) && message) {
+          serverFieldErrors[key] = message
+        }
+      }
+      if (details.field && isProfileField(details.field) && !serverFieldErrors[details.field]) {
+        serverFieldErrors[details.field] = details.message
+      }
+
+      setFieldErrors(serverFieldErrors)
+      if (Object.keys(serverFieldErrors).length === 0) {
+        setErrorMessage(details.message)
+      }
     } finally {
       setIsSaving(false)
     }
@@ -113,10 +170,14 @@ export function EditProfileModal({ user, onClose, onSuccess }: EditProfileModalP
                 className="form-input"
                 placeholder="Enter your full name"
                 value={formValues.name}
-                onChange={(e) => setFormValues({ ...formValues, name: e.target.value })}
+                onChange={(e) => updateField('name', e.target.value)}
+                maxLength={PROFILE_FIELD_LIMITS.name}
+                aria-invalid={Boolean(fieldErrors.name)}
+                aria-describedby={fieldErrors.name ? 'edit-name-error' : undefined}
                 required
               />
             </div>
+            {fieldErrors.name && <p id="edit-name-error" className="field-feedback">{fieldErrors.name}</p>}
           </div>
 
           {/* Phone Number */}
@@ -132,9 +193,15 @@ export function EditProfileModal({ user, onClose, onSuccess }: EditProfileModalP
                 className="form-input"
                 placeholder="Enter mobile number"
                 value={formValues.phone}
-                onChange={(e) => setFormValues({ ...formValues, phone: e.target.value })}
+                onChange={(e) => updateField('phone', e.target.value)}
+                maxLength={PROFILE_FIELD_LIMITS.phone}
+                inputMode="numeric"
+                pattern="[0-9]*"
+                aria-invalid={Boolean(fieldErrors.phone)}
+                aria-describedby={fieldErrors.phone ? 'edit-phone-error' : undefined}
               />
             </div>
+            {fieldErrors.phone && <p id="edit-phone-error" className="field-feedback">{fieldErrors.phone}</p>}
           </div>
 
           {/* Email Address */}
@@ -151,9 +218,13 @@ export function EditProfileModal({ user, onClose, onSuccess }: EditProfileModalP
                 className="form-input"
                 placeholder="Enter email address"
                 value={formValues.email}
-                onChange={(e) => setFormValues({ ...formValues, email: e.target.value })}
+                onChange={(e) => updateField('email', e.target.value)}
+                maxLength={PROFILE_FIELD_LIMITS.email}
+                aria-invalid={Boolean(fieldErrors.email)}
+                aria-describedby={fieldErrors.email ? 'edit-email-error' : undefined}
               />
             </div>
+            {fieldErrors.email && <p id="edit-email-error" className="field-feedback">{fieldErrors.email}</p>}
           </div>
 
           {/* Address */}
@@ -170,9 +241,12 @@ export function EditProfileModal({ user, onClose, onSuccess }: EditProfileModalP
                 rows={3}
                 placeholder="Enter full delivery address"
                 value={formValues.address}
-                onChange={(e) => setFormValues({ ...formValues, address: e.target.value })}
+                onChange={(e) => updateField('address', e.target.value)}
+                aria-invalid={Boolean(fieldErrors.address)}
+                aria-describedby={fieldErrors.address ? 'edit-address-error' : undefined}
               />
             </div>
+            {fieldErrors.address && <p id="edit-address-error" className="field-feedback">{fieldErrors.address}</p>}
           </div>
 
           <div className="edit-modal-actions">

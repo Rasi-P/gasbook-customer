@@ -1,9 +1,18 @@
+import { PaymentSummary } from '../common/PaymentSummary'
+import { OutstandingBalance } from '../common/OutstandingBalance'
+import '../../styles/orderCards.css'
+import { BookingItems } from '../common/BookingItems'
+import { ReceiptActions } from '../receipt/ReceiptActions'
+import { OrderPricingBreakdown } from '../common/PricingBreakdown'
+import { mapHistoryOrder } from '../../lib/orderHistory'
+import { OrderHistoryEvents } from '../common/OrderHistoryEvents'
 import { useState } from 'react'
-import type { OrderItem } from '../../types'
 import { usePaginatedQuery } from '../../hooks/usePaginatedQuery'
 import { fetchPaginatedOrderHistory } from '../../lib/api-queries'
 import { Pagination } from '../common/Pagination'
-import { getCylinderDisplay, getCylinderImage } from '../../lib/formatters'
+import { orderCylinder } from '../../lib/formatters'
+import { CylinderImage } from '../common/CylinderImage'
+import { ACTIVE_STATUS_FILTER, CANCELLED_STATUS_FILTER, COMPLETED_STATUS_FILTER } from '../../lib/orderStatus'
 import { DesktopRejectionModal } from './DesktopRejectionModal'
 
 interface DesktopOrdersViewProps {
@@ -37,11 +46,11 @@ export function DesktopOrdersView({
   const mapFilterToStatus = (filter: string) => {
     switch (filter) {
       case 'ongoing':
-        return 'pending,approved,accepted,out_for_delivery'
+        return ACTIVE_STATUS_FILTER
       case 'completed':
-        return 'delivered'
+        return COMPLETED_STATUS_FILTER
       case 'cancelled':
-        return 'cancelled,rejected'
+        return CANCELLED_STATUS_FILTER
       default:
         return ''
     }
@@ -59,68 +68,7 @@ export function DesktopOrdersView({
     updateFilters({ search: searchQuery })
   }
 
-  const mappedOrders: OrderItem[] = rawOrders.map((b: any) => {
-    const isDirectSale = b.history_source === 'sale'
-    let statusLabel = 'Order Placed'
-    let statusKind: 'ongoing' | 'completed' | 'cancelled' = 'ongoing'
-    let etaOrDate = 'Order Placed — Preparing for delivery'
-
-    if (isDirectSale) {
-      statusLabel = 'Sale Completed'
-      statusKind = 'completed'
-      etaOrDate = b.detail_message || 'Direct sale completed'
-    } else if (b.status === 'approved') {
-      statusLabel = 'Order Confirmed'
-      statusKind = 'ongoing'
-      etaOrDate = 'Order confirmed — awaiting dispatch'
-    } else if (b.status === 'accepted' || b.status === 'out_for_delivery') {
-      statusLabel = 'Out for Delivery'
-      statusKind = 'ongoing'
-      etaOrDate = `Out for delivery with ${b.assigned_staff_name || 'Delivery Partner'}`
-    } else if (b.status === 'delivered') {
-      statusLabel = 'Delivered'
-      statusKind = 'completed'
-      etaOrDate = 'Successfully delivered to your address'
-    } else if (b.status === 'cancelled') {
-      statusLabel = 'Cancelled'
-      statusKind = 'cancelled'
-      etaOrDate = 'Order was cancelled'
-    } else if (b.status === 'rejected') {
-      statusLabel = 'Rejected'
-      statusKind = 'cancelled'
-      etaOrDate = b.rejection_reason ? `Reason: ${b.rejection_reason}` : 'Order could not be fulfilled'
-    }
-
-    const finalPriceNum = isDirectSale
-      ? parseFloat(b.final_amount || b.total_amount || '0')
-      : parseFloat(b.rate || '0')
-    const finalPrice = finalPriceNum > 0 ? `₹${finalPriceNum.toLocaleString('en-IN')}` : 'Standard Rate'
-
-    const display =
-      b.display_name && b.display_badge
-        ? { title: b.display_name, badge: b.display_badge }
-        : getCylinderDisplay(b.cylinder_type_name, b.cylinder_type_weight)
-
-    return {
-      id: `${b.history_source || 'booking'}-${b.id}`,
-      orderNumber: b.display_reference || `Order #${b.order_id}`,
-      date: new Date(b.created_at).toLocaleDateString('en-IN', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      }),
-      productName: display.title,
-      weight: display.badge,
-      price: finalPrice,
-      status: statusKind,
-      statusCode: b.status,
-      statusLabel,
-      actionLabel: isDirectSale ? 'Order Again' : 'Track Order',
-      etaOrDate,
-      rawBooking: b,
-      rejectionReason: b.rejection_reason,
-    }
-  })
+  const mappedOrders = rawOrders.map(mapHistoryOrder)
 
   return (
     <div className="desktop-container">
@@ -165,7 +113,8 @@ export function DesktopOrdersView({
       </div>
 
       {/* Filter Tabs */}
-      <div className="desktop-filter-pills" style={{ marginBottom: '28px' }}>
+      <div className="order-filter-bar">
+      <div className="desktop-filter-pills">
         <button
           className={`desktop-filter-pill ${selectedFilter === 'all' ? 'active' : ''}`}
           onClick={() => handleFilterClick('all')}
@@ -190,6 +139,8 @@ export function DesktopOrdersView({
         >
           Cancelled / Rejected
         </button>
+      </div>
+      <OutstandingBalance />
       </div>
 
       {/* 2. Orders Content */}
@@ -248,23 +199,39 @@ export function DesktopOrdersView({
                   <span className="desktop-order-date">{order.date}</span>
                 </div>
 
+                <div className="history-card-content" tabIndex={0} aria-label={`${order.orderNumber} information`}>
+                <OrderHistoryEvents order={order.rawBooking} />
                 {/* Body: Cylinder details */}
                 <div className="desktop-order-body">
                   <div className="desktop-order-img-wrap">
-                    <img src={getCylinderImage(order.productName, order.weight)} alt="" style={{ height: '50px', objectFit: 'contain' }} />
+                    {!(order.rawBooking?.order_items?.length && order.rawBooking.order_items.every((item: { type: string }) => item.type === 'accessory')) && <CylinderImage cylinder={orderCylinder(order)} alt="" style={{ height: '50px', objectFit: 'contain' }} />}
                   </div>
                   <div className="desktop-order-info">
                     <h4 className="desktop-order-name">{order.productName}</h4>
+                    {order.rawBooking?.order_items?.some((item: { type: string }) => item.type === 'accessory') && (
+                      <p className="history-card-accessories" title={order.rawBooking.order_items.filter((item: { type: string }) => item.type === 'accessory').map((item: { name: string; quantity: number }) => `${item.quantity} × ${item.name}`).join(', ')}>
+                        + {order.rawBooking.order_items.filter((item: { type: string }) => item.type === 'accessory').map((item: { name: string; quantity: number }) => `${item.quantity} × ${item.name}`).join(', ')}
+                      </p>
+                    )}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                       <span style={{ background: '#eff6ff', color: '#1d4ed8', fontSize: '11.5px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px' }}>
                         {order.weight}
                       </span>
                       <span style={{ fontSize: '12px', color: '#64748b' }}>Qty: {order.rawBooking?.quantity || 1}</span>
                     </div>
+                    {order.originalPrice && (
+                      <div style={{ color: '#94a3b8', textDecoration: 'line-through', fontSize: '12px' }}>{order.originalPrice}</div>
+                    )}
                     <div className="desktop-order-price">{order.price}</div>
                   </div>
                 </div>
 
+                {(order.rawBooking?.order_items?.length || order.rawBooking?.items?.length || order.rawBooking?.rate_type) && (
+                  <details className="history-card-details">
+                    <summary>Items &amp; pricing{order.rawBooking?.order_items?.length ? ` (${order.rawBooking.order_items.length})` : ''}</summary>
+                    {order.rawBooking?.order_items?.length ? <BookingItems items={order.rawBooking.order_items} /> : <OrderPricingBreakdown order={order.rawBooking} />}
+                  </details>
+                )}
                 {/* Status description for non-rejected orders */}
                 {order.statusCode !== 'rejected' && (
                   <div style={{ fontSize: '13px', color: '#64748b', background: '#f8fafc', padding: '10px 14px', borderRadius: '10px' }}>
@@ -272,6 +239,8 @@ export function DesktopOrdersView({
                   </div>
                 )}
 
+                </div>
+                <div className="history-card-footer">
                 {/* Actions */}
                 <div className="desktop-order-actions">
                   {order.statusCode === 'rejected' ? (
@@ -296,6 +265,22 @@ export function DesktopOrdersView({
                       <span>View Rejection Reason</span>
                       <span>→</span>
                     </button>
+                  ) : order.statusCode === 'cancelled' && order.rawBooking?.history_source === 'sale' ? (
+                    <div
+                      style={{
+                        width: '100%',
+                        background: '#f8fafc',
+                        color: '#64748b',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '10px',
+                        padding: '10px',
+                        fontSize: '13.5px',
+                        fontWeight: 600,
+                        textAlign: 'center',
+                      }}
+                    >
+                      Sale Cancelled
+                    </div>
                   ) : order.statusCode === 'delivered' && order.rawBooking?.history_source === 'sale' ? (
                     order.rawBooking?.can_order_again ? (
                       <button
@@ -404,6 +389,9 @@ export function DesktopOrdersView({
                       </svg>
                     </button>
                   )}
+                </div>
+                <PaymentSummary value={order.rawBooking.payment_summary} />
+                <ReceiptActions order={order.rawBooking} />
                 </div>
               </div>
             ))}

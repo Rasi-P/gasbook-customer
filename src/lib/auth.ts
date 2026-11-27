@@ -1,3 +1,7 @@
+import type { PricingSnapshot } from '../components/common/PricingBreakdown'
+import { registerCylinderImages } from './formatters'
+import { clearHomeState, clearTabHash } from './uiState'
+
 export interface AuthTokens {
   accessToken: string
   refreshToken: string
@@ -8,9 +12,21 @@ export interface LoginResponse {
   refresh: string
   must_change_password: boolean
   user_id?: number
+  role?: string
+}
+
+/** The gas agency (tenant) the signed-in customer belongs to. */
+export interface Agency {
+  id: number
+  name: string
+  slug: string
+  /** The original agency, whose brand assets the app ships with. */
+  is_default: boolean
 }
 
 export interface CurrentUser {
+  capabilities?: { accessories: boolean; image_uploads: boolean }
+  tenant?: Agency | null
   id: number
   username: string
   name: string
@@ -42,7 +58,9 @@ export interface CustomerProfile {
   updated_at: string
 }
 
-export interface BookingRecord {
+export interface BookingRecord extends PricingSnapshot {
+  payment_summary?: import('../components/common/PaymentSummary').PaymentFacts | null
+  order_items?: import('./products').BookingItem[]
   id: number
   order_id: string
   cylinder_type: number
@@ -61,6 +79,9 @@ export interface BookingRecord {
   assigned_staff_name?: string | null
   assigned_staff_phone?: string | null
   rejection_reason?: string | null
+  delivery_status?: string | null
+  delivery_staff_name?: string | null
+  needs_reassignment?: boolean
   created_at: string
   updated_at?: string
   approved_at?: string | null
@@ -69,7 +90,7 @@ export interface BookingRecord {
   payment_status?: string
 }
 
-export interface BookingPreviewItem {
+export interface BookingPreviewItem extends PricingSnapshot {
   client_item_id?: string
   cylinder_type: number
   cylinder_type_name: string
@@ -85,6 +106,7 @@ export interface BookingPreviewItem {
 }
 
 export interface BookingPreviewResponse {
+  quote?: string
   items: BookingPreviewItem[]
   summary: {
     original_amount: string
@@ -110,8 +132,39 @@ export class ApiError extends Error {
   }
 }
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8001/api').replace(/\/+$/, '')
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8001/api').replace(/\/+$/, '')
 const STORAGE_KEY = 'gasbook_customer_auth'
+
+export const CUSTOMER_ROLE = 'customer'
+export const PROFILE_FIELD_LIMITS = { name: 150, phone: 20, email: 254 } as const
+
+type PasswordChangeRequiredHandler = () => void
+let passwordChangeRequiredHandler: PasswordChangeRequiredHandler | null = null
+
+/** Registers the callback invoked whenever any API call is refused with 403 `password_change_required`. */
+export function setPasswordChangeRequiredHandler(handler: PasswordChangeRequiredHandler | null) {
+  passwordChangeRequiredHandler = handler
+}
+
+export function getErrorCode(data: unknown): string | null {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return null
+  }
+  const code = (data as Record<string, unknown>).code
+  return typeof code === 'string' && code.trim() ? code : null
+}
+
+export function isPasswordChangeRequiredError(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 403 && getErrorCode(error.data) === 'password_change_required'
+}
+
+export function isRoleNotAllowedError(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 403 && getErrorCode(error.data) === 'role_not_allowed'
+}
+
+export function isCustomerUser(user: Pick<CurrentUser, 'role'> | null | undefined): boolean {
+  return String(user?.role ?? '').trim().toLowerCase() === CUSTOMER_ROLE
+}
 
 let activeStorage: Storage | null = null
 let cachedTokens: AuthTokens | null = loadStoredTokens()
@@ -275,11 +328,18 @@ function extractMessage(data: unknown, fallback: string): string {
 
 async function rawRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   let response: Response
-
+  const controller = new AbortController()
+  const abort = () => controller.abort()
+  init.signal?.addEventListener('abort', abort, { once: true })
+  if (init.signal?.aborted) abort()
+  const timer = setTimeout(abort, 65000)
   try {
-    response = await fetch(buildUrl(path), init)
+    response = await fetch(buildUrl(path), { ...init, signal: controller.signal })
   } catch {
-    throw new ApiError('Network error. Please check your connection and try again.', 0, null)
+    throw new ApiError('The demo server may be waking up or unavailable. Check the result before retrying a change.', 0, null)
+  } finally {
+    clearTimeout(timer)
+    init.signal?.removeEventListener('abort', abort)
   }
 
   return parseResponse<T>(response)
@@ -360,6 +420,10 @@ export async function request<T>(
       return request<T>(path, init, { auth, retryOnUnauthorized: false })
     }
 
+    if (auth && isPasswordChangeRequiredError(error)) {
+      passwordChangeRequiredHandler?.()
+    }
+
     throw error
   }
 }
@@ -369,7 +433,7 @@ export async function login(username: string, password: string, remember: boolea
     '/auth/token/',
     {
       method: 'POST',
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, client: CUSTOMER_ROLE }),
     },
     { auth: false, retryOnUnauthorized: false },
   )
@@ -389,10 +453,34 @@ export async function getCurrentUser(): Promise<CurrentUser> {
   return request<CurrentUser>('/auth/me/', { method: 'GET' })
 }
 
-export async function getCustomerProfile(): Promise<CustomerProfile | null> {
+/**
+ * Loads the signed-in customer's own profile via GET /customers/me/.
+ * Falls back to the list endpoint (matching the row by `user_id`) when the
+ * backend does not expose /me/ yet. Never returns an arbitrary first row.
+ */
+export async function getCustomerProfile(expectedUserId: number): Promise<CustomerProfile | null> {
+  try {
+    const profile = await request<CustomerProfile>('/customers/me/', { method: 'GET' })
+    if (profile && typeof profile === 'object' && typeof profile.id === 'number') {
+      return profile
+    }
+    return getCustomerProfileFromList(expectedUserId)
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      if (getErrorCode(error.data) === 'customer_profile_missing') {
+        return null
+      }
+      // Endpoint not available on this backend build: fall back to the scoped list.
+      return getCustomerProfileFromList(expectedUserId)
+    }
+    throw error
+  }
+}
+
+async function getCustomerProfileFromList(expectedUserId: number): Promise<CustomerProfile | null> {
   const data = await request<CustomerProfile[] | PaginatedResponse<CustomerProfile>>('/customers/', { method: 'GET' })
   const rows = Array.isArray(data) ? data : data?.results || []
-  return rows[0] ?? null
+  return rows.find((row) => row && row.user_id === expectedUserId) ?? null
 }
 
 export async function updateCustomerProfile(
@@ -406,27 +494,75 @@ export async function updateCustomerProfile(
 }
 
 export async function changePassword(payload: ChangePasswordPayload): Promise<{ detail: string }> {
-  return request<{ detail: string }>('/auth/change-password/', {
+  const result = await request<{ detail: string; access?: string; refresh?: string }>('/auth/change-password/', {
     method: 'POST',
     body: JSON.stringify(payload),
   })
+  if (result.access && result.refresh) {
+    replaceTokens({ accessToken: result.access, refreshToken: result.refresh })
+  }
+  return result
 }
 
 export interface CylinderTypeItem {
   id: number
   name: string
   weight: string
-  selling_price: string
+  /** Legacy column, read-only and not part of the business model: a refill costs refill_rate, a new connection refill_rate + deposit_amount. */
+  selling_price?: string
+  deposit_amount: string
+  refill_rate: string
   customer_rate?: string
   discount_amount?: string
   final_price?: string
   has_discount?: boolean
   is_active: boolean
+  /** Absolute URL of the picture an admin uploaded; null/absent means use the built-in artwork. */
+  image?: string | null
 }
 
+/** Every cylinder type, active or not: order history still shows discontinued ones. Use `activeCylinderTypes` for what can be booked. */
 export async function fetchCylinderTypes(): Promise<CylinderTypeItem[]> {
-  const data = await request<any>('/cylinder-types/', { method: 'GET' })
-  return data.results || data || []
+  const endpoint = new URL(`${API_BASE_URL}/cylinder-types/`)
+  const rows: CylinderTypeItem[] = []
+  const ids = new Set<number>()
+  let count: number | undefined
+  let path = '/cylinder-types/'
+  const invalid = () => new Error('The cylinder catalog is incomplete. Please retry.')
+  for (let page = 1; page <= 1000; page++) {
+    const data = await request<unknown>(path, { method: 'GET' })
+    if (!data || typeof data !== 'object' || Array.isArray(data)) throw invalid()
+    const envelope = data as { count?: unknown; results?: unknown; next?: unknown }
+    if (!Number.isSafeInteger(envelope.count) || Number(envelope.count) < 0 || !Array.isArray(envelope.results)) throw invalid()
+    if (count === undefined) count = Number(envelope.count)
+    if (envelope.count !== count) throw invalid()
+    for (const value of envelope.results) {
+      if (!value || typeof value !== 'object' || !Number.isSafeInteger(value.id) || value.id <= 0 || ids.has(value.id)) throw invalid()
+      if (typeof value.name !== 'string' || (value.image != null && typeof value.image !== 'string')) throw invalid()
+      ids.add(value.id)
+      rows.push(value as CylinderTypeItem)
+    }
+    if (rows.length > count) throw invalid()
+    if (envelope.next === null) {
+      if (rows.length !== count || (page > 1 && envelope.results.length === 0)) throw invalid()
+      // Do not publish any partial catalog or images if a later page fails.
+      registerCylinderImages(rows)
+      return rows
+    }
+    if (typeof envelope.next !== 'string' || envelope.results.length === 0 || rows.length >= count) throw invalid()
+    let next: URL
+    try { next = new URL(envelope.next, endpoint) } catch { throw invalid() }
+    if (next.origin !== endpoint.origin || next.pathname !== endpoint.pathname || next.username || next.password || next.hash) throw invalid()
+    const params = [...next.searchParams.entries()]
+    if (params.length !== 1 || params[0][0] !== 'page' || params[0][1] !== String(page + 1)) throw invalid()
+    // Never pass a response-supplied absolute URL to the authenticated client.
+    path = `/cylinder-types/?page=${page + 1}`
+  }
+  throw invalid()
+}
+
+export function activeCylinderTypes(types: CylinderTypeItem[]): CylinderTypeItem[] {
+  return types.filter((type) => type.is_active !== false)
 }
 
 export async function createBooking(payload: Record<string, unknown>): Promise<BookingRecord> {
@@ -437,7 +573,7 @@ export async function createBooking(payload: Record<string, unknown>): Promise<B
 }
 
 export async function previewBookings(payload: {
-  items: Array<{ client_item_id?: string; cylinder_type: number; quantity: number }>
+  items: Array<{ client_item_id?: string; cylinder_type?: number; product?: number; quantity: number; rate_type?: "new" | "refill" }>
 }): Promise<BookingPreviewResponse> {
   return request<BookingPreviewResponse>('/bookings/preview/', {
     method: 'POST',
@@ -476,6 +612,8 @@ export async function markNotificationRead(id: number): Promise<NotificationItem
 
 export async function logout() {
   clearTokens()
+  clearHomeState()
+  clearTabHash()
 }
 
 export function hasStoredSession() {
@@ -488,13 +626,20 @@ export function getApiErrorDetails(error: unknown, fallback: string) {
       message: fallback,
       fieldErrors: {} as Record<string, string>,
       status: 0,
+      code: null as string | null,
+      field: null as string | null,
     }
   }
+
+  const record = error.data && typeof error.data === 'object' && !Array.isArray(error.data) ? (error.data as Record<string, unknown>) : null
+  const field = record && typeof record.field === 'string' && record.field.trim() ? record.field : null
 
   return {
     message: extractMessage(error.data, error.message || fallback),
     fieldErrors: normalizeFieldErrors(error.data),
     status: error.status,
+    code: getErrorCode(error.data),
+    field,
   }
 }
 
@@ -518,4 +663,9 @@ function normalizeFieldErrors(data: unknown) {
 
     return accumulator
   }, {})
+}
+
+/** Build a known catalog endpoint without accepting URLs from API responses. */
+export function catalogEndpoint(path: '/products/' | '/cylinder-types/'): URL {
+  return new URL(API_BASE_URL + path)
 }

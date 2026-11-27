@@ -1,4 +1,6 @@
-import { getCylinderImage } from '../../lib/formatters'
+import { formatDateTime } from '../../lib/dateTime'
+import { orderCylinder } from '../../lib/formatters'
+import { CylinderImage } from '../common/CylinderImage'
 
 interface DesktopRejectionModalProps {
   order: any
@@ -15,15 +17,7 @@ export function DesktopRejectionModal({
 
   const rawBooking = order.rawBooking || {}
   const rejectionReason = rawBooking.rejection_reason || 'No specific reason provided.'
-  const rejectedDate = rawBooking.rejected_at
-    ? new Date(rawBooking.rejected_at).toLocaleString('en-IN', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    : order.date
+  const rejectedDate = formatDateTime(rawBooking.rejected_at)
 
   const handleBookAgain = () => {
     if (!rawBooking.cylinder_type_id) {
@@ -40,7 +34,7 @@ export function DesktopRejectionModal({
 
   return (
     <div className="desktop-modal-backdrop" onClick={onClose}>
-      <div className="desktop-modal-dialog" onClick={(e) => e.stopPropagation()}>
+      <div className="desktop-modal-dialog" role="dialog" aria-modal="true" aria-label="Rejection Details" style={{ maxHeight: 'calc(100dvh - 48px)', overflowY: 'auto', overflowWrap: 'anywhere', minWidth: 0, boxSizing: 'border-box' }} onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div
           style={{
@@ -77,6 +71,7 @@ export function DesktopRejectionModal({
             </div>
           </div>
           <button
+            aria-label="Close rejection details"
             onClick={onClose}
             style={{
               background: '#f1f5f9',
@@ -108,10 +103,16 @@ export function DesktopRejectionModal({
             border: '1px solid #e2e8f0',
           }}
         >
-          <img src={getCylinderImage(order.productName, order.weight)} alt="" style={{ height: '40px', objectFit: 'contain' }} />
-          <div style={{ flex: 1 }}>
+          <CylinderImage cylinder={orderCylinder(order)} alt="" style={{ height: '40px', objectFit: 'contain' }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 700, fontSize: '14px', color: '#1e293b' }}>{order.productName}</div>
-            <div style={{ fontSize: '12px', color: '#64748b' }}>{order.weight} • {order.price}</div>
+            <div style={{ fontSize: '12px', color: '#64748b' }}>
+              {order.weight} •{' '}
+              {order.originalPrice && (
+                <span style={{ color: '#94a3b8', textDecoration: 'line-through', marginRight: '4px' }}>{order.originalPrice}</span>
+              )}
+              {order.price}
+            </div>
           </div>
           <span
             style={{
@@ -156,6 +157,8 @@ export function DesktopRejectionModal({
               color: '#1e293b',
               lineHeight: 1.5,
               fontWeight: 500,
+              whiteSpace: 'pre-wrap',
+              overflowWrap: 'anywhere',
             }}
           >
             {rejectionReason}

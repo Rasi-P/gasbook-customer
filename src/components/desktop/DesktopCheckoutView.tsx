@@ -1,14 +1,21 @@
-import { useEffect, useState } from 'react'
-import { createBooking, getApiErrorDetails, previewBookings, type BookingPreviewResponse, type BookingRecord, type CustomerProfile } from '../../lib/auth'
+import { useCheckout } from '../../hooks/useCheckout'
+import { placeCart, recoverCart } from '../../lib/products'
+import { CartPricing } from '../common/CartPricing'
+import { useState } from 'react'
+import { getApiErrorDetails, type BookingRecord, type CustomerProfile } from '../../lib/auth'
 import type { CartItem, ProfileUser } from '../../types'
-import { buildBookingPreviewPayload, createEmptyPreview, formatMoney, previewItemByCartId, previewUnitRates } from '../../lib/pricing'
-import { getCylinderImage } from '../../lib/formatters'
+import { formatMoney, previewItemByCartId, previewUnitRates } from '../../lib/pricing'
+import { cartCylinder } from '../../lib/formatters'
+import { CylinderImage } from '../common/CylinderImage'
 import { EditProfileModal } from '../common/EditProfileModal'
+import { PricingErrorNotice } from '../common/PricingErrorNotice'
+import { usePricingPreview } from '../../hooks/usePricingPreview'
 
 interface DesktopCheckoutViewProps {
   cartItems: CartItem[]
   customerProfile: CustomerProfile | null
   profileUser?: ProfileUser
+  onRateTypeChange: (id: string, value: "new" | "refill") => void
   onUpdateQuantity: (id: string, delta: number) => void
   onRemoveItem: (id: string) => void
   onProfileUpdated?: () => void
@@ -22,76 +29,53 @@ export function DesktopCheckoutView({
   customerProfile,
   profileUser,
   onUpdateQuantity,
+  onRateTypeChange,
   onProfileUpdated,
   onNavigateToExplore,
   onBackToCart,
   onOrderCreated,
 }: DesktopCheckoutViewProps) {
-  const [submitting, setSubmitting] = useState(false)
+  const checkout = useCheckout(customerProfile?.id ?? 0)
+  const submitting = checkout === 'submitting'
+  const recoveryAvailable = checkout === 'pending' || checkout === 'confirmed'
   const [error, setError] = useState<string | null>(null)
   const [isEditingAddress, setIsEditingAddress] = useState(false)
 
-  const [pricingPreview, setPricingPreview] = useState<BookingPreviewResponse>(createEmptyPreview())
+  const { preview: pricingPreview, error: pricingError, isReady: pricingReady, reload: reloadPricing, displayAmount } = usePricingPreview(cartItems)
   const totalCount = cartItems.reduce((acc, item) => acc + item.quantity, 0)
-
-  useEffect(() => {
-    let ignore = false
-
-    if (cartItems.length === 0) {
-      setPricingPreview(createEmptyPreview())
-      return
-    }
-
-    previewBookings(buildBookingPreviewPayload(cartItems))
-      .then((data) => {
-        if (!ignore) setPricingPreview(data)
-      })
-      .catch(() => {
-        if (!ignore) setPricingPreview(createEmptyPreview())
-      })
-
-    return () => {
-      ignore = true
-    }
-  }, [cartItems])
 
   const customerName = customerProfile?.name?.trim() || customerProfile?.full_name?.trim() || 'Customer'
   const customerPhone = customerProfile?.phone?.trim() || ''
   const customerAddress = customerProfile?.address?.trim() || ''
   const hasValidAddress = Boolean(customerAddress)
+  const canConfirm = !submitting && hasValidAddress && pricingReady && cartItems.some(i => i.type === 'cylinder')
 
   const handlePlaceOrder = async () => {
-    if (submitting) return
-    setSubmitting(true)
+    if (submitting || !canConfirm) return
     setError(null)
 
     try {
-      const bookingPromises = cartItems.map((item) => {
-        const payload = {
-          cylinder_type: item.cylinderTypeId || 1,
-          quantity: item.quantity || 1,
-          note: `Order via Customer Desktop Web (COD)`,
-          payment_method: 'COD',
-          payment_status: 'PENDING',
-          delivery_address: customerAddress,
-          delivery_phone: customerPhone,
-        }
-        return createBooking(payload)
-      })
-
-      const responses = await Promise.all(bookingPromises)
+      const responses = await placeCart(cartItems, customerAddress, customerPhone, pricingPreview!, customerProfile!.id)
       onOrderCreated(responses)
     } catch (err: unknown) {
       const details = getApiErrorDetails(err, 'Unable to place order. Please try again.')
-      setError(details.message)
-    } finally {
-      setSubmitting(false)
+      setError(err instanceof Error && !(err as { status?: number }).status ? err.message : details.message)
+      reloadPricing()
     }
+  }
+
+  const handleRecovery = async () => {
+    if (submitting || !customerProfile) return
+    setError(null)
+    try { onOrderCreated(await recoverCart(customerProfile.id)) }
+    catch (err) { setError(err instanceof Error ? err.message : 'Unable to recover checkout. Please retry.') }
   }
 
   if (cartItems.length === 0) {
     return (
       <div className="desktop-container" style={{ textAlign: 'center', padding: '60px 20px' }}>
+        {recoveryAvailable && <div role="status" style={{ padding: '16px' }}>A checkout is awaiting confirmation. Keep this cart unchanged. <button type="button" disabled={submitting} onClick={handleRecovery}>Recover checkout result</button></div>}
+        {error && <p role="alert">{error}</p>}
         <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#1e293b' }}>Your Cart is Empty</h2>
         <p style={{ color: '#64748b', marginBottom: '24px' }}>Add a cylinder to proceed with booking.</p>
         <button
@@ -115,6 +99,7 @@ export function DesktopCheckoutView({
 
   return (
     <div className="desktop-container">
+      {recoveryAvailable && <div role="status" style={{ padding: '16px' }}>A checkout is awaiting confirmation. Keep this cart unchanged. <button type="button" disabled={submitting} onClick={handleRecovery}>Recover checkout result</button></div>}
       {/* 1. Header Row */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
         <div>
@@ -182,7 +167,7 @@ export function DesktopCheckoutView({
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                    <img src={getCylinderImage(item.name, item.variant)} alt={item.name} style={{ height: '44px', objectFit: 'contain' }} />
+                    {item.type === 'accessory' ? <img src={item.image || undefined} alt={item.name} style={{ height: '44px', objectFit: 'contain' }} /> : <CylinderImage cylinder={cartCylinder(item)} alt={item.name} style={{ height: '44px', objectFit: 'contain' }} />}
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span style={{ fontWeight: 700, fontSize: '14.5px', color: '#1e293b' }}>{item.name}</span>
@@ -191,15 +176,16 @@ export function DesktopCheckoutView({
                         </span>
                       </div>
                       {(() => {
-                        const rates = previewUnitRates(previewItemByCartId(pricingPreview, item.id), item.unitPrice)
+                        const lineItem = previewItemByCartId(pricingPreview, item.id)
+                        const rates = previewUnitRates(lineItem, item.unitPrice)
                         return (
                           <div style={{ fontSize: '12.5px', color: '#64748b' }}>
-                            {rates.hasDiscount && (
+                            {pricingReady && lineItem && rates.hasDiscount && (
                               <span style={{ color: '#94a3b8', textDecoration: 'line-through', marginRight: '6px' }}>
                                 {formatMoney(rates.original)}
                               </span>
                             )}
-                            {formatMoney(rates.effective)} × {item.quantity}
+                            {pricingReady && lineItem ? formatMoney(rates.effective) : displayAmount(undefined)} × {item.quantity}
                           </div>
                         )
                       })()}
@@ -218,7 +204,7 @@ export function DesktopCheckoutView({
                     </div>
 
                     <span style={{ fontSize: '16px', fontWeight: 800, color: '#1e293b', minWidth: '80px', textAlign: 'right' }}>
-                      {formatMoney(previewItemByCartId(pricingPreview, item.id)?.final_amount || item.unitPrice * item.quantity)}
+                      {displayAmount(previewItemByCartId(pricingPreview, item.id)?.final_amount)}
                     </span>
                   </div>
                 </div>
@@ -271,7 +257,7 @@ export function DesktopCheckoutView({
                   Cash on Delivery (COD)
                 </div>
                 <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#15803d' }}>
-                  Pay {formatMoney(pricingPreview.summary.final_amount)} in cash or UPI directly to your delivery agent at doorstep.
+                  Pay {displayAmount(pricingPreview?.summary.final_amount)} in cash or UPI directly to your delivery agent at doorstep.
                 </p>
               </div>
               <div
@@ -344,15 +330,18 @@ export function DesktopCheckoutView({
               Payment Details
             </h3>
 
+            <CartPricing items={cartItems} preview={pricingReady ? pricingPreview : null} onRateTypeChange={onRateTypeChange} />
+          {pricingError && <PricingErrorNotice message={pricingError} onRetry={reloadPricing} compact />}
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#64748b' }}>
                 <span>Original Amount ({totalCount} cylinders)</span>
-                <span style={{ fontWeight: 600, color: '#1e293b' }}>{formatMoney(pricingPreview.summary.original_amount)}</span>
+                <span style={{ fontWeight: 600, color: '#1e293b' }}>{displayAmount(pricingPreview?.summary.original_amount)}</span>
               </div>
-              {pricingPreview.summary.has_discount && (
+              {pricingPreview?.summary.has_discount && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#64748b' }}>
                   <span>Discount</span>
-                  <span style={{ fontWeight: 600, color: '#16a34a' }}>- {formatMoney(pricingPreview.summary.discount_amount)}</span>
+                  <span style={{ fontWeight: 600, color: '#16a34a' }}>- {displayAmount(pricingPreview.summary.discount_amount)}</span>
                 </div>
               )}
 
@@ -360,7 +349,7 @@ export function DesktopCheckoutView({
 
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontWeight: 800 }}>
                 <span style={{ color: '#1e293b' }}>Final Amount</span>
-                <span style={{ color: '#1052be' }}>{formatMoney(pricingPreview.summary.final_amount)}</span>
+                <span style={{ color: '#1052be' }}>{displayAmount(pricingPreview?.summary.final_amount)}</span>
               </div>
             </div>
 
@@ -372,7 +361,7 @@ export function DesktopCheckoutView({
 
             <button
               onClick={handlePlaceOrder}
-              disabled={submitting || !hasValidAddress}
+              disabled={!canConfirm}
               style={{
                 width: '100%',
                 background: '#ff7a00',
@@ -382,8 +371,8 @@ export function DesktopCheckoutView({
                 padding: '15px',
                 fontSize: '16px',
                 fontWeight: 800,
-                cursor: submitting || !hasValidAddress ? 'not-allowed' : 'pointer',
-                opacity: submitting || !hasValidAddress ? 0.6 : 1,
+                cursor: canConfirm ? 'pointer' : 'not-allowed',
+                opacity: canConfirm ? 1 : 0.6,
                 boxShadow: '0 6px 20px rgba(255, 122, 0, 0.35)',
                 display: 'flex',
                 alignItems: 'center',

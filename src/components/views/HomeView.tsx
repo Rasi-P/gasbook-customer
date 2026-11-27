@@ -1,7 +1,10 @@
+import { formatDateTime } from '../../lib/dateTime'
 import { useState, useEffect } from 'react'
 import type { OrderItem } from '../../types'
 import { fetchCustomerNotifications, markNotificationRead, type NotificationItem } from '../../lib/auth'
-import { getCylinderImage } from '../../lib/formatters'
+import { orderCylinder } from '../../lib/formatters'
+import { CylinderImage } from '../common/CylinderImage'
+import { getOrderStatusMeta } from '../../lib/orderStatus'
 import heroBg from '../../assets/hero_bg.png'
 import type { CustomerProfile } from '../../lib/auth'
 
@@ -24,6 +27,7 @@ function getLocationText(customerProfile: CustomerProfile | null) {
 }
 
 interface HomeViewProps {
+  onNavigateToSafety: () => void
   onNavigateToExplore: () => void
   customerProfile: CustomerProfile | null
   latestActiveOrder?: OrderItem | null
@@ -31,10 +35,11 @@ interface HomeViewProps {
   onTrackOrder?: (bookingId: number) => void
 }
 
-export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrder, onViewOrders, onTrackOrder }: HomeViewProps) {
+export function HomeView({ onNavigateToSafety, onNavigateToExplore, customerProfile, latestActiveOrder, onViewOrders, onTrackOrder }: HomeViewProps) {
   const [showNotifications, setShowNotifications] = useState(false)
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const hasActiveOrder = Boolean(latestActiveOrder)
+  const activeOrderMeta = latestActiveOrder ? getOrderStatusMeta(latestActiveOrder.statusCode, latestActiveOrder.rawBooking) : null
   const greetingName = getGreetingName(customerProfile)
   const locationText = getLocationText(customerProfile)
 
@@ -201,11 +206,11 @@ export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrd
             </div>
 
             {/* Middle: Cylinder + Price + Status */}
-            <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px 16px', alignItems: 'flex-start', marginBottom: '24px' }}>
               <div style={{ width: '60px', height: '60px', background: '#F8FAFC', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <img src={getCylinderImage(latestActiveOrder.productName, latestActiveOrder.weight)} alt={latestActiveOrder.productName} style={{ height: '45px' }} />
+                <CylinderImage cylinder={orderCylinder(latestActiveOrder)} alt={latestActiveOrder.productName} style={{ height: '45px' }} />
               </div>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: '1 1 0', minWidth: 0 }}>
                 <div style={{ fontWeight: 600, color: '#1E293B', fontSize: '1rem', marginBottom: '4px' }}>{latestActiveOrder.productName}</div>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
                   <span style={{ background: '#EEF2FF', color: '#4F46E5', fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>{latestActiveOrder.weight}</span>
@@ -215,12 +220,13 @@ export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrd
                 )}
                 <div style={{ fontWeight: 700, color: '#1E293B', fontSize: '1.1rem' }}>{latestActiveOrder.price}</div>
               </div>
-              <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                <div style={{ background: latestActiveOrder.statusCode === 'pending' ? '#FEF3C7' : '#DCFCE7', color: latestActiveOrder.statusCode === 'pending' ? '#92400E' : '#166534', padding: '6px 12px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 600, marginBottom: '6px', display: 'inline-block' }}>
+              {/* Status on its own row: a long label such as "Accepted by delivery partner" must not push past the card. */}
+              <div style={{ flex: '1 1 100%', minWidth: 0, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px 12px' }}>
+                <div style={{ background: latestActiveOrder.statusCode === 'pending' ? '#FEF3C7' : '#DCFCE7', color: latestActiveOrder.statusCode === 'pending' ? '#92400E' : '#166534', padding: '6px 12px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 600, display: 'inline-block', maxWidth: '100%', overflowWrap: 'anywhere' }}>
                   {latestActiveOrder.statusLabel}
                 </div>
-                <div style={{ color: '#64748B', fontSize: '0.75rem', maxWidth: '100px', lineHeight: '1.3' }}>
-                  {latestActiveOrder.statusCode === 'pending' ? 'Awaiting assignment' : (latestActiveOrder.statusCode === 'accepted' ? 'Staff assigned' : (latestActiveOrder.statusCode === 'out_for_delivery' ? 'On the way' : 'Completed'))}
+                <div style={{ color: '#64748B', fontSize: '0.75rem', lineHeight: '1.3', flex: '1 1 140px', minWidth: 0, overflowWrap: 'anywhere' }}>
+                  {activeOrderMeta?.description}
                 </div>
               </div>
             </div>
@@ -231,13 +237,13 @@ export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrd
             {/* Compact Progress Indicator */}
             <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative', marginBottom: '24px', padding: '0 10px' }}>
               <div style={{ position: 'absolute', top: '10px', left: '20px', right: '20px', height: '2px', background: '#E2E8F0', zIndex: 1 }}></div>
-              <div style={{ position: 'absolute', top: '10px', left: '20px', right: '20px', height: '2px', background: '#22C55E', zIndex: 1, width: latestActiveOrder.statusCode === 'pending' ? '0%' : latestActiveOrder.statusCode === 'accepted' ? '33%' : latestActiveOrder.statusCode === 'out_for_delivery' ? '66%' : '100%', transition: 'width 0.3s ease' }}></div>
+              <div style={{ position: 'absolute', top: '10px', left: '20px', right: '20px', height: '2px', background: '#22C55E', zIndex: 1, width: `${activeOrderMeta?.progressPercent ?? 0}%`, transition: 'width 0.3s ease' }}></div>
               
               {[
                 { label: 'Placed', active: true },
-                { label: 'Assigned', active: latestActiveOrder.statusCode !== 'pending' && latestActiveOrder.statusCode !== 'rejected' && latestActiveOrder.statusCode !== 'cancelled' },
-                { label: 'Delivery', active: latestActiveOrder.statusCode === 'out_for_delivery' || latestActiveOrder.statusCode === 'delivered' },
-                { label: 'Delivered', active: latestActiveOrder.statusCode === 'delivered' }
+                { label: 'Assigned', active: (activeOrderMeta?.timelineIndex ?? 0) >= 1 },
+                { label: 'Delivery', active: (activeOrderMeta?.timelineIndex ?? 0) >= 2 },
+                { label: 'Delivered', active: (activeOrderMeta?.timelineIndex ?? 0) >= 3 }
               ].map((step, idx) => (
                 <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 2, background: '#FFF' }}>
                   <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: step.active ? '#22C55E' : '#F1F5F9', border: step.active ? 'none' : '2px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px', color: '#FFF' }}>
@@ -350,7 +356,7 @@ export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrd
             <p className="safety-description">
               Keep your cylinder upright and in a well-ventilated area.
             </p>
-            <button className="know-more-link">
+            <button type="button" className="know-more-link" onClick={onNavigateToSafety}>
               <span>Know More</span>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12" />
@@ -379,7 +385,7 @@ export function HomeView({ onNavigateToExplore, customerProfile, latestActiveOrd
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                     <strong style={{ fontSize: '13px', color: '#1E293B' }}>{n.title}</strong>
-                    <small style={{ fontSize: '10px', color: '#94A3B8' }}>{new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
+                    <small style={{ fontSize: '10px', color: '#94A3B8' }}>{formatDateTime(n.created_at)}</small>
                   </div>
                   <p style={{ fontSize: '12px', color: '#475569', margin: 0 }}>{n.body}</p>
                 </div>
