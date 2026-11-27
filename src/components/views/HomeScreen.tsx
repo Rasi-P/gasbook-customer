@@ -4,7 +4,7 @@ import { acknowledgeCheckout, checkoutLocked } from '../../lib/checkoutIntent'
 import { useCheckout } from '../../hooks/useCheckout'
 import { formatDateTime } from '../../lib/dateTime'
 import { useState, useEffect, useCallback } from 'react'
-import { type BookingRecord, type CustomerProfile } from '../../lib/auth'
+import { type Agency, type BookingRecord, type CustomerProfile } from '../../lib/auth'
 import type { ActiveTab, CartItem, OrderItem, ProfileUser } from '../../types'
 import { ACTIVE_STATUS_FILTER, getOrderStatusMeta } from '../../lib/orderStatus'
 import { buildOrderPrice } from '../../lib/pricing'
@@ -52,6 +52,7 @@ interface HomeScreenProps {
   onLogout?: () => void
   customerProfile: CustomerProfile | null
   onProfileUpdated?: () => void
+  agency?: Agency | null
 }
 
 interface NavigateOptions {
@@ -61,7 +62,7 @@ interface NavigateOptions {
   replace?: boolean
 }
 
-export function HomeScreen({ userId, onLogout, customerProfile, onProfileUpdated }: HomeScreenProps) {
+export function HomeScreen({ userId, onLogout, customerProfile, onProfileUpdated, agency }: HomeScreenProps) {
   const checkout = useCheckout(customerProfile?.id ?? 0)
   // Hydrate from the URL hash + sessionStorage so a reload restores the tab, cart and tracked order.
   const [initialState] = useState(() => hydrateHomeState(userId))
@@ -379,6 +380,7 @@ export function HomeScreen({ userId, onLogout, customerProfile, onProfileUpdated
           customerProfile={customerProfile}
           cartCount={cartCount}
           onLogout={onLogout}
+          agency={agency}
         />
 
         <main style={{ flex: 1 }}>

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import type { ActiveTab } from '../../types'
-import type { CustomerProfile, NotificationItem } from '../../lib/auth'
+import type { Agency, CustomerProfile, NotificationItem } from '../../lib/auth'
 import { fetchCustomerNotifications, markNotificationRead } from '../../lib/auth'
-import sabcoLogo from '../../assets/sabco_logo.png'
+import sabcoLogo from '../../assets/sabco_logo_blue.svg'
 import { DesktopNotificationsPopover } from './DesktopNotificationsPopover'
 
 interface DesktopHeaderProps {
@@ -11,6 +11,7 @@ interface DesktopHeaderProps {
   customerProfile: CustomerProfile | null
   cartCount: number
   onLogout?: () => void
+  agency?: Agency | null
 }
 
 export function DesktopHeader({
@@ -19,7 +20,10 @@ export function DesktopHeader({
   customerProfile,
   cartCount,
   onLogout,
+  agency,
 }: DesktopHeaderProps) {
+  // The bundled logo belongs to the original agency; other agencies are shown by name.
+  const showBundledLogo = !agency || agency.is_default
   const [showNotifications, setShowNotifications] = useState(false)
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [showProfileMenu, setShowProfileMenu] = useState(false)
@@ -52,8 +56,8 @@ export function DesktopHeader({
       <div className="desktop-header-inner">
         {/* Left: Brand Logo & Title */}
         <div className="desktop-brand-group" onClick={() => setActiveTab('home')}>
-          <img src={sabcoLogo} className="desktop-brand-logo" alt="GasBook Sabco Logo" />
-          <h1 className="desktop-brand-title">GasBook</h1>
+          {showBundledLogo && <img src={sabcoLogo} className="desktop-brand-logo" alt="GasBook Sabco Logo" />}
+          <h1 className="desktop-brand-title">{showBundledLogo ? 'GasBook' : agency.name}</h1>
         </div>
 
         {/* Center: Navigation Links */}

@@ -46,15 +46,17 @@ export function fetchReceipt(source: ReceiptSource, id: number, signal?: AbortSi
   return request<ReceiptData>(`/receipts/${source}/${id}/`, { signal, cache: 'no-store' })
 }
 
-export function receiptFilename(number: string) {
-  return `Sabco-Gas-Receipt-${number.replace(/[^a-zA-Z0-9_-]/g, '-')}.pdf`
+const fileSafe = (value: string) => value.trim().replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-+|-+$/g, '')
+
+export function receiptFilename(number: string, businessName: string) {
+  return `${fileSafe(businessName) || 'GasBook'}-Receipt-${fileSafe(number)}.pdf`
 }
 
-export function downloadReceipt(blob: Blob, number: string) {
+export function downloadReceipt(blob: Blob, number: string, businessName: string) {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = receiptFilename(number)
+  link.download = receiptFilename(number, businessName)
   document.body.append(link)
   link.click()
   link.remove()
