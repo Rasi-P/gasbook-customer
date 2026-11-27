@@ -76,7 +76,7 @@ function AvailableReceiptActions({ order, showDownload = true }: ReceiptActionsP
       const blob = await generateReceiptPdf(receipt)
       if (version !== generation.current) return
       if (preview) setDocument({ receipt, blob })
-      else downloadReceipt(blob, receipt.number)
+      else downloadReceipt(blob, receipt.number, receipt.business.name)
     } catch (err) {
       if (version === generation.current) setError(err instanceof Error ? err.message : 'Unable to prepare the receipt. Please try again.')
     } finally {
@@ -95,7 +95,7 @@ function AvailableReceiptActions({ order, showDownload = true }: ReceiptActionsP
           <h2 id={titleId}>Receipt{document ? ` · ${document.receipt.number}` : ''}</h2>
           <div>
             <button type="button" disabled={!printReady} onClick={() => window.print()}>Print</button>
-            <button type="button" disabled={!document} onClick={() => document && downloadReceipt(document.blob, document.receipt.number)}>Download PDF</button>
+            <button type="button" disabled={!document} onClick={() => document && downloadReceipt(document.blob, document.receipt.number, document.receipt.business.name)}>Download PDF</button>
             <button type="button" onClick={close}>Close</button>
           </div>
         </header>

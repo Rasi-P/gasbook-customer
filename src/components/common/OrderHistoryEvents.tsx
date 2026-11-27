@@ -13,7 +13,7 @@ type HistoryEvents = {
 export function OrderHistoryEvents({ order }: { order: HistoryEvents }) {
   const direct = order.history_source === 'sale'
   return <div className="order-event-times">
-    <span>{direct ? 'Source' : 'Delivery partner'}: {direct ? 'Sabco Gas' : order.assigned_staff_name || 'Unassigned'}</span>
+    <span>{direct ? 'Source' : 'Delivery partner'}: {order.assigned_staff_name || (direct ? 'Your gas agency' : 'Unassigned')}</span>
     {(order.status === 'cancelled' || order.status === 'rejected') && <span>
       {order.status === 'rejected' ? 'Rejected' : 'Cancelled'} {formatDateTime(direct ? order.cancelled_at : order.rejected_at)}
     </span>}

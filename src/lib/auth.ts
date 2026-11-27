@@ -15,8 +15,18 @@ export interface LoginResponse {
   role?: string
 }
 
+/** The gas agency (tenant) the signed-in customer belongs to. */
+export interface Agency {
+  id: number
+  name: string
+  slug: string
+  /** The original agency, whose brand assets the app ships with. */
+  is_default: boolean
+}
+
 export interface CurrentUser {
   capabilities?: { accessories: boolean; image_uploads: boolean }
+  tenant?: Agency | null
   id: number
   username: string
   name: string

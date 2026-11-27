@@ -553,6 +553,7 @@ function App() {
       onLogout={handleLogout}
       customerProfile={customerProfile}
       onProfileUpdated={handleProfileUpdated}
+      agency={authUser?.tenant ?? null}
     />
   )
 }

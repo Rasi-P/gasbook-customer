@@ -107,8 +107,10 @@ it('paginates long addresses and many items without clipping text or dropping to
 it('keeps booking/sale IDs distinct and creates a safe meaningful download filename', () => {
   expect(receiptTarget({ id: 32 })).toEqual({ source: 'booking', id: 32 })
   expect(receiptTarget({ id: 32, history_source: 'sale', source_id: 33 })).toEqual({ source: 'sale', id: 33 })
-  expect(receiptFilename('SALE-32')).toBe('Sabco-Gas-Receipt-SALE-32.pdf')
-  expect(receiptFilename('../GB/32')).not.toContain('/')
+  expect(receiptFilename('SALE-32', 'Sabco Gas')).toBe('Sabco-Gas-Receipt-SALE-32.pdf')
+  expect(receiptFilename('GB7', 'City Gas & Co.')).toBe('City-Gas-Co-Receipt-GB7.pdf')
+  expect(receiptFilename('GB7', '  ')).toBe('GasBook-Receipt-GB7.pdf')
+  expect(receiptFilename('../GB/32', 'A/B')).not.toContain('/')
 })
 
 it('exposes receipt actions for delivered bookings and direct sales', () => {
